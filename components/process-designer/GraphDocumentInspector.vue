@@ -132,6 +132,42 @@
             class="w-full"
             @update:model-value="value => updateConfigField(field.id, { base: value, nullable: false })"
           />
+          <InstanceSelect
+            v-else-if="field.schema.semantic?.kind === 'perigram.entity-type'"
+            :model-value="configFieldValue(field)"
+            :options="typeOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-full"
+            @update:model-value="value => updateConfigField(field.id, value || '')"
+          />
+          <div v-else-if="field.schema.semantic?.kind === 'perigram.field-list'" class="flex flex-col gap-1">
+            <div v-for="(path, index) in (configFieldValue(field) || [])" :key="index" class="flex items-center gap-1">
+              <InputText
+                :model-value="path"
+                size="small"
+                class="min-w-0 flex-1"
+                @update:model-value="value => updateFieldListItem(field, index, value)"
+              />
+              <Button
+                icon="pi pi-times"
+                text
+                size="small"
+                severity="secondary"
+                :aria-label="$t('common.delete')"
+                @click="removeFieldListItem(field, index)"
+              />
+            </div>
+            <Button
+              icon="pi pi-plus"
+              :label="$t('common.add')"
+              text
+              size="small"
+              severity="secondary"
+              @click="addFieldListItem(field)"
+            />
+          </div>
           <TypedValueControl
             v-else
             :base="configBase(field.schema)"
@@ -298,6 +334,20 @@ function setConfigValueBase(field, base) {
     ...(base === 'entityRef' ? { [typeIdField]: typeId } : {})
   };
   commitConfigDraft();
+}
+
+function updateFieldListItem(field, index, value) {
+  const items = [...(configFieldValue(field) || [])];
+  items[index] = value;
+  updateConfigField(field.id, items);
+}
+
+function addFieldListItem(field) {
+  updateConfigField(field.id, [...(configFieldValue(field) || []), '']);
+}
+
+function removeFieldListItem(field, index) {
+  updateConfigField(field.id, (configFieldValue(field) || []).filter((_, position) => position !== index));
 }
 
 function updateTypeFieldId(field, value) {

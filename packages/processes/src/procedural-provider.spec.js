@@ -15,6 +15,7 @@ import {
   PROCESS_PROCEDURAL_PROVIDER,
   PROCESS_PROCEDURAL_VERSION
 } from './procedural-provider.js';
+import { PROCESS_NODE_CATALOG } from './node-catalog.js';
 
 describe('process procedural provider adapter', () => {
 
@@ -47,6 +48,26 @@ describe('process procedural provider adapter', () => {
       fromUnit: { type: 'string' },
       toUnit: { type: 'string' }
     });
+  });
+
+  it('declares inspector settings for every cataloged process operation', () => {
+    const kinds = PROCESS_NODE_CATALOG.map(catalog => catalog.kind);
+    expect(kinds.length).toBeGreaterThan(60);
+    for (const kind of kinds) {
+      const definition = createProcessGraphNodeDefinition(kind);
+      expect(definition.configuration.default).toMatchObject({ kind });
+      expect(definition.configuration.properties).toBeTypeOf('object');
+    }
+    expect(createProcessGraphNodeDefinition('collection.join').configuration.properties).toMatchObject({
+      leftKey: { type: 'string' }, rightKey: { type: 'string' }, matching: { type: 'string' }
+    });
+    expect(createProcessGraphNodeDefinition('collection.shift').configuration.default.offset).toBe(1);
+    expect(createProcessGraphNodeDefinition('cts.read').configuration.properties.select.enum).toContain('related');
+    expect(createProcessGraphNodeDefinition('cts.transition').configuration.properties.guard).toMatchObject({ type: 'object' });
+    expect(createProcessGraphNodeDefinition('record.construct').configuration.properties.fields.semantic.kind)
+      .toBe('perigram.field-list');
+    expect(createProcessGraphNodeDefinition('cts.construct').configuration.properties.typeId.semantic.kind)
+      .toBe('perigram.entity-type');
   });
 
   it('registers only preview-safe process nodes in the shared provider registry', () => {

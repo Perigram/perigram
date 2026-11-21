@@ -1,13 +1,14 @@
 import {
   CAST_BASES,
   CONVERT_UNITS,
+  EFFECT_SPECIES_KINDS,
   getProcessNodeDefinition,
   PROCESS_AUTHORED_BASES,
   PROCESS_NODE_CATALOG,
   resolveCatalogNodePorts
 } from './node-catalog.js';
 import { executeProcessDataNode } from './evaluator.js';
-import { createDataPacket, packetValue } from './data-tree.js';
+import { createDataPacket, packetValue, PROCESS_MATCHING_MODES } from './data-tree.js';
 import { defaultProcessNodeOperation, PROCESS_NODE_OPERATIONS_BY_KIND } from './authoring.js';
 import { PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
@@ -16,26 +17,72 @@ export const PROCESS_PROCEDURAL_VERSION = '1';
 
 const CORE_FAMILIES = new Set(['sources', 'values', 'collections', 'records']);
 
-// Authoring fields the graph editor inspector renders (SPEC §28.14).
+// Authoring fields the graph editor inspector renders (SPEC §28.14). Each
+// entry names a config key, its control schema, and the value a drop seeds.
+const TYPED_BASE_DEFAULTS = Object.freeze({
+  'value.select': 'string', 'value.recordField': 'json',
+  'value.convertUnit': 'number', 'value.required': 'string',
+  'value.coalesce': 'string', 'value.validate': 'string',
+  'value.format': 'number',
+  'value.math': 'number', 'value.string': 'string',
+  'value.dateTime': 'dateTime', 'value.compare': 'string',
+  'value.logic': 'string', 'collection.reduce': 'number',
+  'tree.flatten': 'json', 'tree.graft': 'json', 'tree.simplify': 'json',
+  'tree.branch': 'json', 'tree.zip': 'json', 'tree.unzip': 'json',
+  'tree.cross': 'json', 'tree.transpose': 'json', 'tree.clean': 'json',
+  'tree.stats': 'json'
+});
+const TEXT_DEFAULTS = Object.freeze({
+  'source.processInput': { path: '' },
+  'source.triggerPayload': { path: 'event.payload' },
+  'source.secretRef': { secretRef: '' },
+  'value.recordField': { path: '' },
+  'cts.field': { path: '' },
+  'collection.join': { leftKey: '', rightKey: '' },
+  'control.stopFailure': { message: '' },
+  'control.stopSuccess': { result: '' },
+  'cts.command': { commandId: '' },
+  'cts.service': { commandId: '' },
+  'cts.transition': { eventId: '' },
+  'cts.read': { relationKey: '', projection: '' }
+});
+const NUMBER_DEFAULTS = Object.freeze({
+  'collection.shift': { offset: 1 },
+  'collection.partition': { size: 2 },
+  'value.validate': { min: null, max: null }
+});
+const MATCHING_KINDS = new Set([
+  'collection.concat', 'collection.itemAt', 'collection.slice',
+  'collection.count', 'collection.distinct', 'collection.sort',
+  'collection.reverse', 'collection.shift', 'collection.partition',
+  'collection.dispatch', 'collection.groupBy', 'collection.filter',
+  'collection.join', 'collection.reduce', 'record.merge',
+  ...Object.keys(TYPED_BASE_DEFAULTS).filter(kind => kind.startsWith('tree.'))
+]);
+const TYPE_BOUND_KINDS = new Set([
+  'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
+  'cts.command', 'cts.service', 'cts.conversion', 'cts.read',
+  'cts.field', 'cts.emit', 'cts.compose', 'cts.decompose'
+]);
+
 export function processNodeConfigurationSchema(kind = '') {
   const properties = {};
   const defaults = {};
-  if (kind === 'collection.sort') {
-    properties.direction = { type: 'string', enum: ['asc', 'desc'], default: 'asc' };
-    defaults.direction = 'asc';
-  } else {
-    const operations = PROCESS_NODE_OPERATIONS_BY_KIND[kind] || [];
-    if (operations.length) {
-      const operation = defaultProcessNodeOperation(kind);
-      properties.operation = { type: 'string', enum: [...operations], default: operation };
-      defaults.operation = operation;
-    }
+  function add(id, schema, value) {
+    properties[id] = { ...(properties[id] || {}), ...schema, default: value };
+    defaults[id] = value;
   }
+
+  if (kind === 'collection.sort') add('direction', { type: 'string', enum: ['asc', 'desc'] }, 'asc');
+  else {
+    const operations = PROCESS_NODE_OPERATIONS_BY_KIND[kind] || [];
+    if (operations.length) add('operation', { type: 'string', enum: [...operations] }, defaultProcessNodeOperation(kind));
+  }
+
   if (String(kind).startsWith('source.literal')) {
     const isStructure = kind === 'source.literalList' || kind === 'source.literalTree';
-    const base = isStructure ? 'json' : 'string';
     const value = kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : '';
-    properties.value = {
+    add('value', {
       title: 'Value',
       semantic: {
         kind: 'perigram.typed-value',
@@ -44,31 +91,41 @@ export function processNodeConfigurationSchema(kind = '') {
         typeIdField: 'typeId'
       },
       default: value
-    };
-    defaults.type = { base, nullable: false };
-    defaults.value = value;
+    }, value);
+    add('access', { type: 'string', enum: ['item', 'list', 'tree'] },
+      kind === 'source.literalTree' ? 'tree' : kind === 'source.literalList' ? 'list' : 'item');
+    defaults.type = { base: isStructure ? 'json' : 'string', nullable: false };
+  } else if (TYPED_BASE_DEFAULTS[kind]) {
+    const base = TYPED_BASE_DEFAULTS[kind];
+    add('type', { semantic: { kind: 'perigram.value-base', bases: [...PROCESS_AUTHORED_BASES] } }, { base, nullable: false });
   }
-  if (['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(kind)) {
-    properties.type = {
-      title: 'Value type',
-      semantic: { kind: 'perigram.value-base', bases: [...PROCESS_AUTHORED_BASES] },
-      default: { base: 'string', nullable: false }
-    };
-    defaults.type = { base: 'string', nullable: false };
-  }
-  if (kind === 'value.format') {
-    properties.template = { type: 'string', default: '' };
-    defaults.template = '';
-  }
+
+  for (const [id, value] of Object.entries(TEXT_DEFAULTS[kind] || {})) add(id, { type: 'string' }, value);
+  for (const [id, value] of Object.entries(NUMBER_DEFAULTS[kind] || {})) add(id, { type: 'number' }, value);
+  if (MATCHING_KINDS.has(kind)) add('matching', { type: 'string', enum: [...PROCESS_MATCHING_MODES] }, 'longest');
+  if (TYPE_BOUND_KINDS.has(kind)) add('typeId', { semantic: { kind: 'perigram.entity-type' } }, '');
+
+  if (kind === 'cts.read') add('select', { type: 'string', enum: ['current', 'all', 'extract', 'parent', 'children', 'related'] }, 'current');
+  if (kind === 'value.cast') add('outputType', { type: 'string', enum: [...CAST_BASES] }, 'record');
   if (kind === 'value.convertUnit') {
-    properties.fromUnit = { type: 'string', enum: [...CONVERT_UNITS], default: 'mm' };
-    properties.toUnit = { type: 'string', enum: [...CONVERT_UNITS], default: 'm' };
-    defaults.fromUnit = 'mm';
-    defaults.toUnit = 'm';
+    add('fromUnit', { type: 'string', enum: [...CONVERT_UNITS] }, 'mm');
+    add('toUnit', { type: 'string', enum: [...CONVERT_UNITS] }, 'm');
   }
-  if (kind === 'value.cast') {
-    properties.outputType = { type: 'string', enum: [...CAST_BASES], default: 'record' };
-    defaults.outputType = 'record';
+  if (kind === 'value.format') add('template', { type: 'string' }, '');
+  if (kind === 'value.required' || kind === 'value.validate') add('required', { type: 'boolean' }, true);
+  if (kind === 'value.validate') {
+    add('pattern', { type: 'string' }, '');
+    add('message', { type: 'string' }, '');
+  }
+  if (kind === 'record.construct') add('fields', { semantic: { kind: 'perigram.field-list' } }, []);
+  if (kind === 'cts.construct') add('construction', { type: 'object' }, {});
+  if (kind === 'cts.transition') {
+    add('guard', { type: 'object' }, {});
+    add('fieldPolicy', { type: 'object' }, {});
+  }
+  if (EFFECT_SPECIES_KINDS.has(kind)) {
+    add('trigger', { type: 'object' }, {});
+    add('eventId', { type: 'string' }, '');
   }
   return { type: 'object', additionalProperties: true, properties, default: { kind, ...defaults } };
 }
