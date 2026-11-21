@@ -215,7 +215,7 @@ import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from '~/components/shared/chip-surface
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
-const instances = useInstancesStore();
+const instancesStore = useInstancesStore();
 
 // The tile anatomy carries its whole card in the header slot; the body
 // slot stays hidden so no empty padded box trails the media.
@@ -289,7 +289,7 @@ function openFileChip(instance) {
   const typeId = String(props.type?.id || '');
   const surface = resolveFileSurface(null, typeId);
   if (surface?.workspacePage) {
-    const entity = instances.dtoFor(instances.canonicalTypeKey(typeId), String(instance?.id || instance?._id || ''));
+    const entity = instancesStore.dtoFor(instancesStore.canonicalTypeKey(typeId), String(instance?.id || instance?._id || ''));
     if (entity?._id) {
       openWorkspacePageFromChrome({ pageId: surface.surface, typeId, entity });
       return;
