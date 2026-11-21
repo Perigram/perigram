@@ -278,6 +278,11 @@ export default function createSurface({ vue, components, locale, queries, record
       const assemblyHostContainer = ref(null);
       const assemblyHostRef = shallowRef(null);
       let assemblyHost = null;
+      let assemblyHostMountEl = null;
+      const setAssemblyHostContainer = (element) => {
+        assemblyHostContainer.value = element;
+        if (element) mountAssemblyCadCraft();
+      };
       const inlineEditor = ref(null);
       const attachmentPicker = ref(null);
       const attachmentPickerSourceId = ref('');
@@ -1353,7 +1358,6 @@ export default function createSurface({ vue, components, locale, queries, record
         refreshSessionDraftState();
         resetDesignerHistory();
         loadTemplateRecords();
-        mountAssemblyCadCraft();
         if (selectedNode.value) selectFaceFromTree(selectedNode.value);
       });
 
@@ -1641,10 +1645,18 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const mountAssemblyCadCraft = async () => {
         if (!isClient() || !assemblyHostContainer.value) return;
-        const host = new CadCraftHost({ container: assemblyHostContainer.value, title: t('cassette.name') });
+        const container = assemblyHostContainer.value;
+        if (assemblyHost && assemblyHostMountEl === container) return;
+        if (assemblyHost) {
+          assemblyHost.destroy();
+          assemblyHost = null;
+          assemblyHostRef.value = null;
+        }
+        assemblyHostMountEl = container;
+        const host = new CadCraftHost({ container, title: t('cassette.name') });
         try {
           await host.mount();
-          if (!assemblyHostContainer.value) {
+          if (assemblyHostContainer.value !== container) {
             host.destroy();
             return;
           }
@@ -4505,7 +4517,7 @@ export default function createSurface({ vue, components, locale, queries, record
             class: 'relative h-full min-h-0 w-full overflow-hidden'
           }, [
             h('div', {
-              ref: assemblyHostContainer,
+              ref: setAssemblyHostContainer,
               class: ['absolute inset-0 z-0', sketchMode.value ? '' : 'pointer-events-none'],
               'aria-hidden': sketchMode.value ? undefined : 'true'
             }),

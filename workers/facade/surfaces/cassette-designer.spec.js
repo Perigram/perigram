@@ -6,7 +6,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { createSSRApp, h, ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-vi.mock('cadcraft', () => ({ CadCraftHost: class CadCraftHost {} }));
+const { hostMounts } = vi.hoisted(() => ({ hostMounts: [] }));
+vi.mock('cadcraft', () => ({
+  CadCraftHost: class CadCraftHost {
+    constructor({ container }) { this.container = container; }
+    async mount() { hostMounts.push(this.container); return this; }
+    setGrid() {}
+    seed() {}
+    lockLayers() {}
+    setVisibleLayers() {}
+    restoreView() {}
+    destroy() {}
+  }
+}));
 
 const surfaceModule = await import('./cassette-designer.mjs');
 
@@ -86,5 +98,52 @@ describe('cassette-designer surface mount', () => {
     expect(html).toContain('cassette.v2.globalParameters');
     expect(html).toContain('data-button-icon="ck-entity-icon ck-entity-icon-bolt"');
     expect(html).toContain('data-input-text');
+  });
+});
+
+describe('cassette designer native host mount', () => {
+  it('mounts the host when the deferred canvas container attaches', async () => {
+    hostMounts.length = 0;
+    let hostRef = null;
+    const context = mountContext();
+    context.vue = {
+      ...context.vue,
+      h: (...args) => {
+        const vnode = h(...args);
+        if (typeof vnode.ref?.r === 'function') hostRef = vnode.ref.r;
+        return vnode;
+      }
+    };
+    const app = createSSRApp(surfaceModule.default(context), { record, persistence });
+    await renderToString(app);
+    expect(hostRef, 'the canvas container uses a function ref').toBeTypeOf('function');
+
+    const previousWindow = global.window;
+    global.window = {
+      sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      addEventListener() {}, removeEventListener() {},
+      setTimeout: () => 0, clearTimeout() {},
+      document: { addEventListener() {}, removeEventListener() {} }
+    };
+    const first = { tagName: 'DIV' };
+    const second = { tagName: 'DIV' };
+    try {
+      hostRef(first);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(hostMounts).toEqual([first]);
+
+      hostRef(null);
+      hostRef(first);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(hostMounts, 'reattaching the same container keeps its host').toEqual([first]);
+
+      hostRef(null);
+      hostRef(second);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(hostMounts, 'a replaced container mounts a fresh host').toEqual([first, second]);
+    } finally {
+      global.window = previousWindow;
+    }
   });
 });
