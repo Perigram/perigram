@@ -32,7 +32,7 @@ describe('graph editor workspace chrome', () => {
     expect(workspace).not.toContain('name="support"');
   });
 
-  it('keeps the canvas free of standing state chrome', async () => {
+  it('renders the validation strip for diagnostics only', async () => {
     const canvas = await readComponent('./GraphCanvas.vue');
 
     expect(canvas).not.toContain('data-canvas-status');

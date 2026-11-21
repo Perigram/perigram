@@ -156,17 +156,14 @@ owns the order; the inventory audit precedes any code move.
   output/viewer selection, diagnostics, and process-profile behavior;
   design-system visual compliance.
 
-### Agent Notes (2026-11-21, agent/canvas-badges — owner direction: no standing state chrome)
+### Agent Notes (2026-11-21, agent/canvas-badges — owner direction: diagnostics render on condition)
 
 - Owner report: a permanent "Process definition is valid" badge and a
   permanent "Not evaluated"/"Preview ready" evaluation pill sat on the
-  canvas. Direction recorded in the component SPEC (diagnostics render
-  on condition; the canvas carries no standing state chrome) and
-  implemented: the canvas validation strip renders errors, warnings,
-  and apply diffs only; the status pill is gone from both editor
-  mounts (`canvasStatusOf` and its util with it) — the preview dock
-  panel opens through the canvas header's panel menu, and the e2e
-  opener follows.
+  canvas. Landed: the canvas validation strip renders errors, warnings,
+  and apply diffs; the status pill and its `canvasStatusOf` derivation
+  are removed from both editor mounts; the preview dock panel opens
+  through the canvas header's panel menu, and the e2e opener follows.
 
 ### Agent Notes (2026-11-20, agent/preview-fixes — owner defect report: two editors differ; preview broken)
 

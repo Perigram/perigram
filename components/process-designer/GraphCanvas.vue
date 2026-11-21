@@ -119,9 +119,6 @@
       </template>
     </DesignerWorkspace>
 
-    <!-- The canvas validation strip speaks when there is something to
-         say: errors, warnings, apply diffs. A valid draft renders
-         nothing. -->
     <div v-if="validation && (!validation.ok || (validation.warnings || []).length || validationDiffLines.length)" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
       <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
         <Message v-if="!validation.ok" severity="error">
