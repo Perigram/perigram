@@ -80,7 +80,7 @@ const items = computed(() => {
 
 function dragStart(event) {
   props.session.beginDrag?.(props.sectionKey);
-  event.dataTransfer?.setData('text/plain', props.sectionKey);
+  event.dataTransfer?.setData('application/x-perigram-doc-section', props.sectionKey);
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 }
 

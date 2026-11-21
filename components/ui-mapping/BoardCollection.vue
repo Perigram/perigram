@@ -278,7 +278,7 @@ function onDragStart(event, instance) {
   draggedInstance.value = instance;
   servedTransitions.value = null;
   event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', String(instance?.id || ''));
+  event.dataTransfer.setData('application/x-perigram-instance', String(instance?.id || ''));
   if (props.resolveTransitions) {
     Promise.resolve(props.resolveTransitions(instance))
       .then(actions => {
