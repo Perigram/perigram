@@ -61,6 +61,9 @@ authoring signature: node identity/operation/config, edges, and the
 declared interface. Position and selection are outside the signature, so
 drags and selection churn re-run neither validation nor definition
 resolution; identical derived rewrites keep the signature unchanged.
+`draftSignature()` projects the persisted draft shape (interface, node
+operation/config/position, edges) without graph normalization — the
+editor's dirty marker compares it against the saved baseline in one pass.
 
 `useGraphDocumentCatalog({ withPayloads })` is the one catalog fetch both
 consumers share: the graphs list on the process page (names and ids) and
