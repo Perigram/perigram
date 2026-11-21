@@ -28,38 +28,16 @@
       </div>
       <div v-if="isLiteral" class="flex flex-col gap-2">
         <label>{{ $t('processDesigner.valueType') }}</label>
-        <Select
-          :model-value="record.type?.base || 'json'"
-          :options="baseTypeOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-          @update:model-value="setLiteralBase"
-        />
-        <Select
-          v-if="record.type?.base === 'entityRef'"
-          :model-value="record.typeId || record.type?.typeId || ''"
-          :options="typeIdOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-          filter
-          @update:model-value="setLiteralTypeId"
-        />
-        <TypedValueControl
-          v-if="op === 'source.literalItem'"
+        <TypedLiteralControl
+          :bases="PROCESS_AUTHORED_BASES"
           :base="record.type?.base || 'json'"
-          :type-id="record.type?.typeId || record.typeId || ''"
+          :type-id="record.typeId || record.type?.typeId || ''"
           :model-value="record.value"
+          :type-options="typeIdOptions"
           :status-options="statusOptions"
           :placeholder="$t('processDesigner.inlineValue')"
-          @update:model-value="value => { record.value = value; emit('sync'); }"
-        />
-        <TypedValueControl
-          v-else
-          base="json"
-          :model-value="record.value"
-          :placeholder="$t('processDesigner.inlineValue')"
+          @update:base="setLiteralBase"
+          @update:type-id="setLiteralTypeId"
           @update:model-value="value => { record.value = value; emit('sync'); }"
         />
       </div>
@@ -443,7 +421,7 @@
 // this selected-record surface and return through the host's sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '#packages/cts';
-import { CAST_BASES, CONVERT_UNITS, EFFECT_SPECIES_KINDS, MAPPED_MUTATION_SPECIES_KINDS } from '#packages/processes';
+import { CAST_BASES, CONVERT_UNITS, EFFECT_SPECIES_KINDS, MAPPED_MUTATION_SPECIES_KINDS, PROCESS_AUTHORED_BASES } from '#packages/processes';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
@@ -454,6 +432,7 @@ import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
+import TypedLiteralControl from '~/components/process-designer/TypedLiteralControl.vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -506,9 +485,7 @@ const isLiteral = computed(() => String(op.value).startsWith('source.literal'));
 const isCast = computed(() => op.value === 'value.cast');
 const isTypedValueUtility = computed(() => ['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(op.value));
 const isConvertUnit = computed(() => op.value === 'value.convertUnit');
-const baseTypeOptions = computed(() => [
-  'string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef'
-].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
+const baseTypeOptions = computed(() => PROCESS_AUTHORED_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
 const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
 const convertUnitOptions = CONVERT_UNITS.map(value => ({ label: value, value }));
 const operationValue = computed(() => (

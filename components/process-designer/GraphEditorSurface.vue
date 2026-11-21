@@ -49,6 +49,7 @@
         <div v-else class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
           <GraphDocumentInspector
             :node="selectedNode"
+            :type-options="graphTypeOptions"
             :node-output="previewResult?.nodeOutputs?.[selectedNode?.id] || null"
             :boundary-declaration="selectedBoundaryDeclaration"
             :graph-documents="graphDocuments"
@@ -188,6 +189,7 @@ const pluginRuntime = usePluginRuntime({
   )
 });
 const graphPreviewChannels = ref([]);
+const graphTypeOptions = ref([]);
 const providerErrors = ref([]);
 const graphRevisions = ref([]);
 const graphRevisionsLoading = ref(false);
@@ -334,6 +336,9 @@ async function loadGraphProviders() {
     clientEngineBindings.value = Array.isArray(view?.clientEngines) ? view.clientEngines : [];
     clientRuntimeBindings.value = Array.isArray(view?.clientRuntimes) ? view.clientRuntimes : [];
     graphPreviewChannels.value = Array.isArray(view?.previewChannels) ? view.previewChannels : [];
+    graphTypeOptions.value = (Array.isArray(view?.types) ? view.types : [])
+      .map(type => ({ label: type.name || type.label || type.id, value: type.id }))
+      .filter(option => option.value);
     const failures = [];
     const engineResults = await Promise.allSettled(clientEngineBindings.value.map(async binding => {
       const engine = await clientEngines.engineFor(binding);
