@@ -133,6 +133,18 @@
   The listing now publishes facade v49; orgs upgrade through the Plugins
   page to pick up the editor-owned file panel and header removal.
 
+### Agent Notes (2026-11-21, agent/facade-v50-release — owner defect report: cassette canvas shows only the selected face)
+
+- Owner reported the cassette editor canvas showed only the selected
+  face's fill; the native CadCraft host was absent, so the SVG overlay
+  alone painted and its only face fill is the active-face highlight.
+- The deferred-container mount fix (`setAssemblyHostContainer`) landed in
+  the repo but the listing stayed at v49: facade installs serve the
+  org-materialized package asset at the installed version, and every
+  installed org's v49 `cassette-designer.mjs` byte-matched the fix's
+  parent commit. The listing now publishes facade v50; orgs upgrade
+  through the Plugins page.
+
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
 The process designer and graph-document editor converge on one authoring
