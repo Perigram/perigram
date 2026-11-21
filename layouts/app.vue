@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
         ]"
     >
-    <header v-if="!isGeneratedHomeRoute && !isStandaloneDesignerRoute" class="sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
+    <header v-if="!isGeneratedHomeRoute && !isStandaloneDesignerRoute && !isOwnsChromeEditorRoute" class="sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -201,6 +201,7 @@
     import { useNavigationStore } from '~/stores/navigation'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
+    import { useFileTypeView } from '~/composables/useFileTypeView.js'
     import { resolveDefaultHomeScreen, resolveProcessEntryRoute, screenByKey } from '~/utils/process-navigation.js'
     import { HOME_SCREEN_ROUTE } from '@perigram/processes/screen-contract'
     import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
@@ -312,8 +313,23 @@
     const isGeneratedHomeRoute = computed(() => activeGeneratedScreen.value?.template === 'home')
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
+    // An editor-bound record page is a workspace page: the editor owns the
+    // height chain and fills the viewport; an ownsChrome surface owns the
+    // page chrome besides.
+    const fileTypeView = useFileTypeView()
+    const activeEditorSurface = computed(() => {
+        const typeId = activeGeneratedScreen.value?.typeId || ''
+        if (!typeId) return null
+        const editor = (fileTypeView.editors.value || []).find(binding => binding?.type === typeId)
+        if (!editor) return null
+        const declared = (fileTypeView.surfaces.value || []).find(surface => surface.id === editor.surface)
+        return { surface: editor.surface, ownsChrome: Boolean(declared?.ownsChrome) }
+    })
+    const isEditorRecordRoute = computed(() => Boolean(activeEditorSurface.value))
+    const isOwnsChromeEditorRoute = computed(() => Boolean(activeEditorSurface.value?.ownsChrome))
     const isBoundedWorkspaceRoute = computed(() => (
         isGeneratedWorkspaceRoute.value
+        || isEditorRecordRoute.value
         || isStandaloneDesignerRoute.value
         || isChatsRoute.value
     ))
@@ -321,7 +337,7 @@
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
     // The main element's route-class chain, one branch per surface kind.
     const mainClass = computed(() => {
-        if (isStandaloneDesignerRoute.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+        if (isStandaloneDesignerRoute.value || isOwnsChromeEditorRoute.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
         if (isFlushMobileSurface.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
         if (isGeneratedWorkspaceRoute.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
         if (isBoundedWorkspaceRoute.value) return 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
