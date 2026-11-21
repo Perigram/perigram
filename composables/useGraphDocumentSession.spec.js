@@ -739,9 +739,6 @@ describe('useGraphDocumentSession', () => {
   });
 
   it('hydrates a Use Graph node from an exact pinned graph revision', () => {
-    const session = createSession();
-    const invocation = session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0];
-    const node = session.addNode(invocation, { x: 0, y: 0 });
     const child = createSession();
     const [input, output] = child.paletteGroups.value[0].items;
     child.addNode(input, { x: 0, y: 0 });
@@ -752,6 +749,9 @@ describe('useGraphDocumentSession', () => {
       default: [3, 4]
     });
     const pinned = child.serializeGraph();
+    const session = useGraphDocumentSession({ t: key => key, graphDocuments: [{ graph: pinned }] });
+    const invocation = session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0];
+    const node = session.addNode(invocation, { x: 0, y: 0 });
 
     const config = session.hydrateGraphInvocation(node.id, pinned);
 
@@ -894,13 +894,7 @@ describe('useGraphDocumentSession', () => {
 
     const graphDocuments = ref([]);
     const session = useGraphDocumentSession({ t: key => key, graphDocuments });
-    const placeholder = session.paletteGroups.value.find(group => group.id === 'graph-invocation');
-    expect(placeholder.items).toHaveLength(1);
-    expect(placeholder.items[0]).toMatchObject({
-      id: 'use-graph',
-      operation: { id: 'perigram.core.use-graph' },
-      config: { graphId: '', revision: '' }
-    });
+    expect(session.paletteGroups.value.some(group => group.id === 'graph-invocation')).toBe(false);
 
     let releaseCatalog;
     const catalog = new Promise(resolve => { releaseCatalog = resolve; });

@@ -32,7 +32,7 @@ export {
   rowFieldId
 } from './graph-protocol.js';
 export { cncTypePack } from './pack/cnc.js';
-export { frameworkTypes } from './pack/framework.js';
+export { frameworkTypes, GRAPH_DOCUMENT_EXTENSION } from './pack/framework.js';
 export { PAGE_TYPE_ID, pageTypeDeclaration } from './pack/page.js';
 export { ctsFieldToProcessType } from './process-grammar.js';
 export { checkDeclarationsAgainstCts } from './process-checks.js';

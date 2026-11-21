@@ -42,7 +42,8 @@ last-writer-wins like the canvas itself).
 record through the `graph-editor` file surface. Its Use Graph palette
 loads each readable graph payload through the file-read boundary and places
 an invocation pinned to the payload's graph identity, revision, and public
-interface. The inspector can select a historical source revision and refresh
+interface. Each save reloads that catalog so a newly saved graph becomes
+invocable. The inspector can select a historical source revision and refresh
 the invocation sockets from that frozen payload. The source storage-instance
 id remains a separate catalog locator. The editor host injects the authorized
 CTS query capability used by the core data-query node; preview read sets retain
@@ -538,7 +539,9 @@ it into the same editor through the canonical graph session (the process
 profile unmounts), the loaded row carries the dirty dot, the in-place
 save/rename from the editor's chrome channel, and the close control; the
 section's plus starts a blank graph document (the first save creates the
-instance through the deferred instance-payload save).
+instance through the deferred instance-payload save). Each blank creation
+mounts a new editor session, so the canvas starts empty. Saves write the
+`.perigram-graph` filename with the JSON payload.
 
 ### Screens (Roles tab)
 

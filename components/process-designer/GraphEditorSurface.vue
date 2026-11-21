@@ -102,6 +102,7 @@ import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocume
 import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
 import { parseGraphPayload, useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
+import { GRAPH_DOCUMENT_EXTENSION } from '#packages/cts';
 import { useClientEngines } from '~/composables/useClientEngines.js';
 import { usePluginRuntime } from '~/composables/usePluginRuntime.js';
 import {
@@ -519,12 +520,13 @@ async function saveGraphDocument() {
     graphDocument.value.revision = mintId('rev').replaceAll('_', '-');
     const updated = await props.persistence.save(
       JSON.stringify(serializeGraph(), null, 2),
-      `${name}.json`
+      `${name}${GRAPH_DOCUMENT_EXTENSION}`
     );
     instanceId = String(updated?._id || updated?.id || instanceId);
     persisted.value = Boolean(instanceId);
     if (updated?.name) recordName.value = updated.name;
     savedSignature.value = designerSignature();
+    await loadGraphCatalog(t);
     await refreshPreviewAndRecord();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
   } catch (error) {
@@ -568,6 +570,7 @@ async function renameGraphDocument(name) {
 const chromeApi = Object.assign(
   reactive({
     name: computed(() => recordName.value),
+    instanceId: computed(() => instanceId),
     dirty: isDirty,
     saving,
     diverged: false

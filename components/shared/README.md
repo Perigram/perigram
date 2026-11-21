@@ -354,7 +354,7 @@ Current drawing display owners:
 | Surface | Source type |
 |---|---|
 | `GeometryPreview.vue` | `geometry-preview` |
-| `FilePayloadViewer.vue` | `dxf-url`, `svg-url`, `sketch` |
+| `FilePayloadViewer.vue` | `dxf-url`, `svg-url`, `sketch`, `graph` |
 | `/test/ui-lab` | `geometry-preview` demo |
 
 New drawing previews should add a source normalizer for `DrawingCanvas`, not a feature-local `<svg>`.
@@ -383,7 +383,7 @@ glyph from the generated file-type icon family, the bordered subtle chip,
 `name · size` on hover. A prose host passes `prose` for the inline-code
 face. A descriptor carrying a stored `fileId` or a
 direct `url` is openable; the peek resolves only for stored files with a
-renderable mode (image, svg, pdf, text, dxf through
+renderable mode (image, svg, pdf, text, dxf, graph through
 `resolveAttachmentPeek` in
 [file-preview-contract](../generated/README.md)) and raises its payload peek
 on hover (SPEC §22.14) — the framed media band plus the name and

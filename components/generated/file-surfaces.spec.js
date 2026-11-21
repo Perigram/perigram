@@ -13,6 +13,7 @@ import {
   resolveFileSurface,
   validateEditorBindings
 } from './file-surfaces.js';
+import { resolveAttachmentPeek } from './file-preview-contract.js';
 
 // The served editor layer (the plugins' listings): every served file
 // editor is plugin-delivered (documents, tech-drawing, facade — owner
@@ -200,6 +201,14 @@ describe('file surface registry', () => {
       renderable: true,
       hasPayload: true
     });
+  });
+
+  it('previews graph documents visually from their dedicated extension', () => {
+    const graphType = { id: 'graph-document', payload: { mime: ['application/json'], preview: 'graph' } };
+    const entity = { payload: { fileId: 'f-graph', mime: 'application/json', name: 'Assembly.perigram-graph' } };
+    expect(resolveFilePreview(entity, graphType)).toMatchObject({ mode: 'graph', renderable: true });
+    expect(resolveAttachmentPeek(entity.payload)).toMatchObject({ mode: 'graph', fileUrl: '/api/files/download/f-graph?bucket=files' });
+    expect(resolveAttachmentPeek({ fileId: 'f-json', mime: 'application/json', name: 'notes.json' }).mode).toBe('text');
   });
 
   it('falls back to attachment mode for payload types without authored preview', () => {

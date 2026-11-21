@@ -3,6 +3,7 @@
 // component imports so card/preview surfaces resolve payload preview
 // policy without pulling the editor-surface registry graph.
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
+import { GRAPH_DOCUMENT_EXTENSION } from '#packages/cts';
 
 // Instance payload blobs live in the `files` GridFS bucket (SPEC §3 Blob
 // home); the wire payload reference carries no bucket by design.
@@ -38,13 +39,13 @@ export function resolveFilePreview(entity = {}, type = null) {
   };
 }
 
-// The peek sniffers are mime-first with extension fallbacks for the
-// octet-stream uploads browsers label loosely; office containers stay
-// downloads (mime-exact matching, the chat viewer's rule).
+// The graph extension wins before mime; other peeks are mime-first with
+// extension fallbacks for octet-stream uploads.
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|avif)$/i;
 const TEXT_EXT = /\.(md|txt|csv|json|ya?ml|log)$/i;
 
 function sniffedPeekMode(mime = '', name = '') {
+  if (String(name).toLowerCase().endsWith(GRAPH_DOCUMENT_EXTENSION)) return 'graph';
   if (mime === 'image/svg+xml' || /\.svg$/i.test(name)) return 'svg';
   if (mime.startsWith('image/') || IMAGE_EXT.test(name)) return 'image';
   if (mime.includes('pdf') || /\.pdf$/i.test(name)) return 'pdf';

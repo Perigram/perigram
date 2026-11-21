@@ -16,6 +16,8 @@ describe('graph-document framework type', () => {
       fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string' } }
     });
     expect(graphDocument.framework).toBeUndefined();
+    expect(graphDocument.payload.accept).toEqual(['.perigram-graph', 'application/json']);
+    expect(graphDocument.payload.preview).toBe('graph');
   });
 
   it('declares execution records as hidden append-only CTS instances', () => {

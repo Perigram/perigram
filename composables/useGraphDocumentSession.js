@@ -143,36 +143,29 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     const savedGraphs = (unref(graphDocuments) || [])
       .map(item => item?.graph)
       .filter(graph => graph?.id && graph?.revision && graph.id !== graphDocument.value.id);
-    groups.push({
-      source: 'graphs',
-      id: 'graph-invocation',
-      label: t('processDesigner.graphComposition'),
-      signal: 'structure',
-      items: savedGraphs.length
-        ? savedGraphs.map(graph => ({
-            id: `use-graph:${graph.id}@${graph.revision}`,
-            label: graph.name || graph.id,
-            description: t('processDesigner.useGraphDescription'),
-            signal: 'structure',
-            operation: operation(GRAPH_INVOKE_OPERATION),
-            config: {
-              graphId: graph.id,
-              revision: graph.revision,
-              interface: {
-                inputs: graph.interface.inputs.map(port => cloneJson(port)),
-                outputs: graph.interface.outputs.map(port => cloneJson(port))
-              }
+    if (savedGraphs.length) {
+      groups.push({
+        source: 'graphs',
+        id: 'graph-invocation',
+        label: t('processDesigner.graphComposition'),
+        signal: 'structure',
+        items: savedGraphs.map(graph => ({
+          id: `use-graph:${graph.id}@${graph.revision}`,
+          label: graph.name || graph.id,
+          description: t('processDesigner.useGraphDescription'),
+          signal: 'structure',
+          operation: operation(GRAPH_INVOKE_OPERATION),
+          config: {
+            graphId: graph.id,
+            revision: graph.revision,
+            interface: {
+              inputs: graph.interface.inputs.map(port => cloneJson(port)),
+              outputs: graph.interface.outputs.map(port => cloneJson(port))
             }
-          }))
-        : [{
-            id: 'use-graph',
-            label: t('processDesigner.useGraph'),
-            description: t('processDesigner.useGraphDescription'),
-            signal: 'structure',
-            operation: operation(GRAPH_INVOKE_OPERATION),
-            config: { graphId: '', revision: '', interface: { inputs: [], outputs: [] } }
-          }]
-    });
+          }
+        }))
+      });
+    }
     const grouped = new Map();
     const pluginSections = new Map();
     for (const definition of registry.list()) {

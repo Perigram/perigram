@@ -354,6 +354,12 @@ describe('field control resolution', () => {
     };
     expect(cardAnatomyFor(factful)).toBe('side');
     expect(cardAnatomyFor({ ...identifierOnly, payload: { preview: 'download' } })).toBe('plain');
+    expect(cardAnatomyFor({
+      id: 'graph-document',
+      identifier: 'name',
+      fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string' } },
+      payload: { preview: 'graph' }
+    })).toBe('side');
     expect(cardAnatomyFor({ id: 'part', identifier: 'name', fields: { name: { base: 'string', identifier: true }, width: { base: 'number' } } })).toBe('plain');
     const declared = { id: 'design', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, previewSource: { display: 'geometry' } };
     expect(cardAnatomyFor(declared)).toBe('tile');

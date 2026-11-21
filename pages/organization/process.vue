@@ -7,7 +7,7 @@
            inspector owns file and lifecycle commands. -->
       <GraphEditorSurface
         v-if="activeGraphDocument"
-        :key="activeGraphDocument._id || 'blank-graph'"
+        :key="activeGraphDocument._id || `blank-graph-${blankGraphSeq}`"
         :record="activeGraphDocument"
         :persistence="graphDocumentPersistence"
         :mode="pageProps.mode"
@@ -1569,6 +1569,7 @@ const {
   load: loadGraphDocuments
 } = useGraphDocumentCatalog();
 const activeGraphDocument = ref(null);
+const blankGraphSeq = ref(0);
 
 // The graph-document surface opens this page (SPEC §28.14 one editor):
 // `graphInstanceId` is '' (the process plane), an instance id (that
@@ -1581,6 +1582,7 @@ const pageProps = defineProps({
 });
 function applyGraphInstanceId(id) {
   if (id === 'blank') {
+    blankGraphSeq.value += 1;
     activeGraphDocument.value = {};
     return;
   }
@@ -1594,6 +1596,11 @@ function applyGraphInstanceId(id) {
 watch(() => pageProps.graphInstanceId, applyGraphInstanceId);
 const graphDocumentChrome = ref(null);
 const graphDocumentChromeChannel = { bind: chrome => { graphDocumentChrome.value = chrome; } };
+watch(() => graphDocumentChrome.value?.instanceId, id => {
+  if (!id || !activeGraphDocument.value || activeGraphDocument.value._id) return;
+  activeGraphDocument.value = { _id: String(id), name: String(graphDocumentChrome.value?.name || '') };
+  loadGraphDocuments(t);
+});
 const graphDocumentPersistence = computed(() => instancePayloadPersistence(
   activeGraphDocument.value || null,
   'graph-document',
@@ -1612,6 +1619,7 @@ function openGraphDocument(doc) {
 }
 
 function openBlankGraphDocument() {
+  blankGraphSeq.value += 1;
   activeGraphDocument.value = {};
 }
 

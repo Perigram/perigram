@@ -406,12 +406,13 @@ status-forward detail); the class obligations in
 [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §5 guarantee which slots
 are fillable. Unknown classes fall back to the generic record surface.
 `resolvePreview(typeRecord)` keys on the declared payload `preview` mode
-(`image`, `geometry`, `attachment`, `none`) — preview behavior is declared
-data. `RENDERABLE_PREVIEW_MODES`
+(`image`, `geometry`, `graph`, `attachment`, `none`) — preview behavior is
+declared data. `RENDERABLE_PREVIEW_MODES`
 (table export) lists the modes the app's shared viewer modules render
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
-`workbook`, `text`); app-side materializations import it instead of
+`workbook`, `text`, `graph`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
+A `graph` preview renders the saved canonical graph payload as an SVG.
 `ASPECT_PREVIEW_MODES` (`pdf`) marks the page modes: the page renders
 in the framed region (`LAYOUT.previewHeroBandAspect`), the viewer
 fitting the frame's width;
