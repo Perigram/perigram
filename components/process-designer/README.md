@@ -420,16 +420,13 @@ shared `DesignerWorkspace` dock's center panel
 tokens alone. The node palette is the workspace's left dock panel
 (SPEC §28 interaction model): provenance-tier section chips, a search
 that spans the full catalog, and the active section's rows — picking a
-row places the node. The canvas status pill owns the canvas top-center
-(`z-30`). The inspector
+row places the node. The canvas carries no standing state chrome. The inspector
 is a dock panel beside the canvas that the toolbar toggle opens
 and closes — canvas clicks keep it open, and canvas Escape clears graph
 selection. The preview workspace is a dock panel docked below the canvas
-area (SPEC §28.14); the canvas status pill
-opens it (both mounts: the graph-editor session's evaluation state and
-the process channel evaluation feed the shared `canvasStatusOf`
-derivation). Panel layout persists per editor through the shell's
-`workspaceId`. The canvas header's ellipsis toggles the panels; the
+area (SPEC §28.14), opened through the canvas header's panel menu.
+Panel layout persists per editor through the shell's
+`workspaceId`; the canvas header's ellipsis toggles the panels; the
 bottom `commands` panel carries the view controls (zoom out/in, frame
 all, frame selection, reset zoom, Tidy), every item icon-only
 with its label as tooltip and accessible name, so the commands survive
@@ -470,6 +467,8 @@ Apply saves, validates, and activates as one operation with
 first-diagnostic focus. Declaration-post failures abort before validation
 and land in the persistent validation feedback on the canvas, so an Apply
 refused by the registry keeps showing its cause after the toasts expire.
+The canvas validation strip renders errors, warnings, and apply diffs
+only — a valid draft renders nothing.
 Failed validation and activation responses carry structured diagnostics
 (`nodeId`, `edgeId`, `socketId`, `producerOutputId` anchors), and the
 first anchored diagnostic selects its edge or node on the canvas —
@@ -576,8 +575,8 @@ normalizer and validator.
 ### Preview (channel tabs)
 
 The preview workspace region hosts the channel-tab strip
-(`GraphPreviewPanel.vue`); the canvas status pill opens it and the
-region's visibility rides the editor mount's `preview-visibility` event
+(`GraphPreviewPanel.vue`); the region's visibility rides the editor
+mount's `preview-visibility` event
 (the workspace frame's `panels` ref API): the evaluation runs when the
 region opens and re-runs on authoring changes while it stays open (one
 debounced seam). The
@@ -627,7 +626,7 @@ gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
 inspector panel content; the `preview` slot carries a host's preview
 workspace content. The graph-document mount places its preview/input panel in the
-workspace preview region; the canvas status control opens that region.
+workspace preview region; the canvas header's panel menu opens that region.
 Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
 unwrap at the host template. `readOnly` renders the canvas alone: the
