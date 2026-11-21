@@ -93,7 +93,7 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   await openGraphEditor(app, createdEntity);
 
   // Open the preview dock panel from the canvas header panel menu.
-  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('region', { name: 'Canvas' }).getByRole('button', { name: 'More' }).click();
   await page.getByRole('menuitem', { name: 'Preview' }).click();
   const markdownInput = page.getByRole('textbox', { name: 'Markdown' });
   await expect(markdownInput).toBeVisible({ timeout: 15_000 });
@@ -213,7 +213,7 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, createdEntity);
-  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('region', { name: 'Canvas' }).getByRole('button', { name: 'More' }).click();
   await page.getByRole('menuitem', { name: 'Preview' }).click();
   const bodyInput = page.getByRole('textbox', { name: 'Body' });
   await expect(bodyInput).toBeVisible({ timeout: 15_000 });
