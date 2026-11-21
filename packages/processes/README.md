@@ -49,7 +49,19 @@ it — is `genericPaletteItemForKind`.
 
 The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition.
 
-`processNodeConfigurationSchema` (`src/procedural-provider.js`) is the one home for process-node authoring fields: `operation` (with the kind's default) for polymorphic operations, `direction` for sort, `template` for format, `fromUnit`/`toUnit` for convertUnit, and `outputType` for cast. Literals carry a `perigram.typed-value` editor contribution and typed-value utilities a `perigram.value-base` one; both declare the authored base vocabulary from `PROCESS_AUTHORED_BASES`, and the literal contribution names its `type`/`typeId` config fields. The [graph editor's inspector](../../components/process-designer/README.md#inspector-anatomy) renders those contributions as a base selector plus a base-aware value control. A palette drop seeds node config from the schema's default, so the setting the inspector shows is the one the evaluator runs.
+`processNodeConfigurationSchema` (`src/procedural-provider.js`) declares authoring fields for every cataloged process operation; the [graph editor's inspector](../../components/process-designer/README.md#inspector-anatomy) renders them from the node definition. A palette drop seeds node config from the schema's defaults, so the setting the inspector shows is the one the evaluator runs.
+
+| Field family | Declared for | Control |
+|---|---|---|
+| `operation`, `direction` | polymorphic operations, sort | enum select seeded with the kind's default |
+| `type`, `value`, `access` | literals and typed-value utilities | `perigram.typed-value` / `perigram.value-base` contributions over `PROCESS_AUTHORED_BASES` |
+| `path`, `leftKey`/`rightKey`, `message`/`result`, `commandId`, `eventId`, `secretRef`, `relationKey`, `projection` | sources, joins, terminals, effects, reads | text field with the kind's authored default |
+| `offset`, `size`, `min`/`max` | shift, partition, validate | number field |
+| `matching` | collection and tree operations | enum from `PROCESS_MATCHING_MODES` |
+| `typeId` | CTS operations | `perigram.entity-type` picker over the organization's types |
+| `select`, `fromUnit`/`toUnit`, `outputType`, `template`, `required`, `pattern` | reads, convertUnit, cast, format, validate | enum, text, or boolean field |
+| `fields` | record.construct | `perigram.field-list` path editor |
+| `construction`, `guard`, `fieldPolicy`, `trigger` | construct, transition, effects | JSON editor |
 
 ## Authoring seam
 

@@ -79,8 +79,10 @@ process adapter's schema for its operations is owned by
 declare theirs in their listings. A `perigram.typed-value` contribution
 renders a base selector, an entity-type picker on the entity-reference
 base, and the shared base-aware value control; `perigram.value-base`
-renders the base selector alone. `TypedLiteralControl.vue` is the one
-control both editors use for literal authoring. Socket gestures,
+renders the base selector alone, `perigram.entity-type` the organization
+type picker, and `perigram.field-list` the authored field-path list.
+`TypedLiteralControl.vue` is the one control both editors use for literal
+authoring. Socket gestures,
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 
