@@ -12,26 +12,7 @@
         :persistence="graphDocumentPersistence"
         :mode="pageProps.mode"
         :page-chrome="pageProps.pageChrome || graphDocumentChromeChannel"
-      >
-        <template #inspector-extra>
-          <GraphDocumentsList
-            :documents="graphDocuments"
-            :loading="graphDocumentsLoading"
-            :error="graphDocumentsError"
-            :active-id="String(activeGraphDocument?._id || '')"
-            :dirty="Boolean(graphDocumentChrome?.dirty)"
-            :saving="Boolean(graphDocumentChrome?.saving)"
-            :renaming-id="renamingGraphId"
-            :renaming-name="renamingGraphName"
-            @open="openGraphDocument"
-            @create="openBlankGraphDocument"
-            @close="closeGraphDocument"
-            @rename-start="beginGraphRename"
-            @rename-input="value => renamingGraphName = value"
-            @rename-apply="applyGraphRename"
-          />
-        </template>
-      </GraphEditorSurface>
+      />
       <GraphEditorSurface
         v-else
         :session="processSession"
@@ -192,24 +173,84 @@
                 </div>
               </Popover>
 
-              <!-- The graphs list (SPEC §28.14): the same list carries the
-                   organization's graph files and process definitions. -->
-              <GraphDocumentsList
-                :documents="graphDocuments"
-                :loading="graphDocumentsLoading"
-                :error="graphDocumentsError"
-                :active-id="String(activeGraphDocument?._id || '')"
-                :dirty="Boolean(graphDocumentChrome?.dirty)"
-                :saving="Boolean(graphDocumentChrome?.saving)"
-                :renaming-id="renamingGraphId"
-                :renaming-name="renamingGraphName"
-                @open="openGraphDocument"
-                @create="openBlankGraphDocument"
-                @close="closeGraphDocument"
-                @rename-start="beginGraphRename"
-                @rename-input="value => renamingGraphName = value"
-                @rename-apply="applyGraphRename"
-              />
+                    @click="openBlankGraphDocument"
+                  />
+                </div>
+                <div v-if="graphDocumentsLoading" class="text-supporting text-muted">…</div>
+                <Message v-else-if="graphDocumentsError" severity="error">{{ graphDocumentsError }}</Message>
+                <div
+                  v-for="doc in graphDocuments"
+                  v-else
+                  :key="doc._id"
+                  class="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-ui px-2 py-1.5"
+                  :class="isActiveGraphDocument(doc) ? 'bg-subtle' : 'hover:bg-subtle'"
+                  @click="openGraphDocument(doc)"
+                >
+                  <template v-if="renamingGraphId === String(doc._id)">
+                    <InputText
+                      v-model="renamingGraphName"
+                      class="min-w-0 flex-1"
+                      size="small"
+                      :aria-label="$t('common.rename')"
+                      @click.stop
+                      @keydown.enter.prevent.stop="applyGraphRename(doc)"
+                    />
+                    <Button
+                      icon="pi pi-check"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      :disabled="!renamingGraphName.trim()"
+                      @click.stop="applyGraphRename(doc)"
+                    />
+                  </template>
+                  <template v-else>
+                    <span class="min-w-0 flex-1 truncate" :title="doc.name">{{ doc.name }}</span>
+                    <span
+                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.dirty"
+                      class="h-2 w-2 shrink-0 rounded-full bg-primary"
+                      :title="$t('common.unsavedChanges')"
+                      aria-hidden="true"
+                    />
+                    <span
+                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.saving"
+                      class="pi pi-spin pi-spinner shrink-0 text-muted"
+                      aria-hidden="true"
+                    />
+                    <Button
+                      v-if="isActiveGraphDocument(doc)"
+                      icon="pi pi-times"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      severity="secondary"
+                      :aria-label="$t('processDesigner.closeGraphDocument')"
+                      @click.stop="closeGraphDocument"
+                    />
+                    <Button
+                      icon="pi pi-pencil"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      severity="secondary"
+                      :aria-label="$t('common.rename')"
+                      @click.stop="beginGraphRename(doc)"
+                    />
+                  </template>
+                </div>
+              </div>
+            </TabPanel>
+            <TabPanel value="inspector">
+              <GraphInspector
+                :selected-node="selectedNode"
+                :selected-process-node="selectedProcessNode"
+                :selected-entity="selectedEntity"
+                :selected-entity-available="selectedEntityAvailable"
+                :selected-declaration-edge="selectedDeclarationEdge"
+                :declaration-node-types="declarationNodeTypes"
+                :class-type-id-valid="classTypeIdValid"
+                :class-declaration-diagnostics="classDeclarationDiagnostics"
+                :declaration-type-options="declarationTypeOptions"
             </TabPanel>
             <TabPanel value="inspector">
               <GraphInspector
@@ -642,7 +683,6 @@ import { useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.j
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import GraphEditorSurface from '~/components/process-designer/GraphEditorSurface.vue';
-import GraphDocumentsList from '~/components/process-designer/GraphDocumentsList.vue';
 import GraphInspector from '~/components/process-designer/GraphInspector.vue';
 import GraphPreviewPanel from '~/components/process-designer/GraphPreviewPanel.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
