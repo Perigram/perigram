@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView, payloadAccepts } from './index.js';
+import { deriveSections } from './render.js';
 
 // The graph document type (SPEC §28): an authored graph as an ordinary
 // file instance — it compiles in every registry view, projects as an
@@ -40,6 +41,10 @@ describe('graph-document framework type', () => {
     // editor create beside it.
     expect(domain.construction['graph-document'].modes).toEqual(['upload', 'editor']);
     expect(domain.construction['graph-document'].modeInputs.editor).toEqual([]);
+  });
+
+  it('keeps the stored graph identity out of derived display sections', () => {
+    expect(deriveSections(graphDocument.fields).every(section => !section.fields.includes('graphId'))).toBe(true);
   });
 
   it('accepts JSON payloads and refuses others through the payload traits', () => {

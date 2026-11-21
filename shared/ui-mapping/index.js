@@ -321,6 +321,7 @@ export function createUiMapping(overrides = {}) {
     const identifier = typeRecord.identifier || null;
     const facts = Object.entries(typeRecord.fields || {})
       .filter(([name, descriptor]) => name !== identifier
+        && descriptor.display !== 'hidden'
         && SCALAR_BASES.includes(descriptor.base)
         && !isLongText(descriptor))
       .length;
@@ -1217,10 +1218,10 @@ export function regionSideSpanFor(weight = 0) {
 
 // resolveFieldGroups(type): the derived-section projection — the bundle's
 // `sections` (base-derived, total field assignment) with descriptor
-// labels attached. Fields a stale bundle did not assign trail in an
-// unlabeled default group so no field ever disappears.
+// labels attached. Unassigned fields trail in an unlabeled default group.
 export function resolveFieldGroups(type = {}) {
   const entries = Object.entries(type.fields || {})
+    .filter(([, descriptor]) => descriptor.display !== 'hidden')
     .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) }));
   const sections = Array.isArray(type.sections) ? type.sections : [];
   const assigned = new Set(sections.flatMap(section => section.fields || []));

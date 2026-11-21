@@ -33,6 +33,7 @@ function sectionForDescriptor(descriptor = {}) {
 export function deriveSections(fields = {}) {
   const bySection = new Map(SECTION_ORDER.map(id => [id, []]));
   for (const [fieldId, descriptor] of Object.entries(fields)) {
+    if (descriptor.display === 'hidden') continue;
     bySection.get(sectionForDescriptor(descriptor)).push(fieldId);
   }
   return Object.freeze(
