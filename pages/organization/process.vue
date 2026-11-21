@@ -286,7 +286,9 @@
                 :designer="designer"
                 :grants="selectedProcessNodeGrants"
                 :effective-access="selectedProcessNodeEffectiveAccess"
-                :inputs="selectedNode?.type === 'processNode' ? processNodeInputs(selectedProcessNode) : []"
+                :inputs="selectedProcessNodeInputs"
+                :operation-options="selectedNode?.type === 'processNode' ? processNodeOperationOptions(selectedProcessNode) : []"
+                :status-options="selectedNode?.data?.processStatusOptions || []"
                 :preview="{
                   supported: selectedNodeSupportsPreview,
                   running: channelPreviewRunning,
@@ -991,6 +993,16 @@ const {
 });
 
 const applyBusy = computed(() => applyState.value === 'saving' || applyState.value === 'applying');
+
+const selectedProcessNodeInputs = computed(() => {
+  if (selectedNode.value?.type !== 'processNode') return [];
+  const connected = new Set(selectedNode.value.data?.processConnectedInputIds || []);
+  return processNodeInputs(selectedProcessNode.value || {}).map(input => ({
+    ...input,
+    base: input.type?.base || 'json',
+    connected: connected.has(input.id)
+  }));
+});
 
 // Authored vocabulary for the type-migration step dialog: class names,
 // field labels (tree first, stored descriptors for removed fields), and

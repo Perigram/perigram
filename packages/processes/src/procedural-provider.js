@@ -1,16 +1,59 @@
 import {
+  CAST_BASES,
+  CONVERT_UNITS,
   getProcessNodeDefinition,
   PROCESS_NODE_CATALOG,
   resolveCatalogNodePorts
 } from './node-catalog.js';
 import { executeProcessDataNode } from './evaluator.js';
 import { createDataPacket, packetValue } from './data-tree.js';
+import { defaultProcessNodeOperation, PROCESS_NODE_OPERATIONS_BY_KIND } from './authoring.js';
 import { PROCESS_PORT_COMPATIBILITY_PROFILE } from './port-compatibility.js';
 
 export const PROCESS_PROCEDURAL_PROVIDER = 'perigram.processes';
 export const PROCESS_PROCEDURAL_VERSION = '1';
 
 const CORE_FAMILIES = new Set(['sources', 'values', 'collections', 'records']);
+
+// Authoring fields the graph editor inspector renders (SPEC §28.14).
+export function processNodeConfigurationSchema(kind = '') {
+  const properties = {};
+  const defaults = {};
+  if (kind === 'collection.sort') {
+    properties.direction = { type: 'string', enum: ['asc', 'desc'], default: 'asc' };
+    defaults.direction = 'asc';
+  } else {
+    const operations = PROCESS_NODE_OPERATIONS_BY_KIND[kind] || [];
+    if (operations.length) {
+      const operation = defaultProcessNodeOperation(kind);
+      properties.operation = { type: 'string', enum: [...operations], default: operation };
+      defaults.operation = operation;
+    }
+  }
+  if (String(kind).startsWith('source.literal')) {
+    const value = kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null;
+    properties.value = {
+      type: kind === 'source.literalItem' ? 'string' : kind === 'source.literalList' ? 'array' : 'object',
+      default: value
+    };
+    defaults.value = value;
+  }
+  if (kind === 'value.format') {
+    properties.template = { type: 'string', default: '' };
+    defaults.template = '';
+  }
+  if (kind === 'value.convertUnit') {
+    properties.fromUnit = { type: 'string', enum: [...CONVERT_UNITS], default: 'mm' };
+    properties.toUnit = { type: 'string', enum: [...CONVERT_UNITS], default: 'm' };
+    defaults.fromUnit = 'mm';
+    defaults.toUnit = 'm';
+  }
+  if (kind === 'value.cast') {
+    properties.outputType = { type: 'string', enum: [...CAST_BASES], default: 'record' };
+    defaults.outputType = 'record';
+  }
+  return { type: 'object', additionalProperties: true, properties, default: { kind, ...defaults } };
+}
 
 const executionKind = catalog => ({
   control: 'control',
@@ -40,7 +83,7 @@ export function createProcessGraphNodeDefinition(kind, record = {}, catalogConte
       deterministic: catalog.pure === true,
       idempotent: catalog.pure === true
     },
-    configuration: { type: 'object', additionalProperties: true, default: { kind } }
+    configuration: processNodeConfigurationSchema(kind)
   };
 }
 
@@ -89,11 +132,7 @@ export function createProcessProceduralNodeDefinition(kind, record = {}, catalog
       deterministic: true,
       idempotent: true
     },
-    configuration: {
-      type: 'object',
-      additionalProperties: true,
-      default: { kind }
-    }
+    configuration: processNodeConfigurationSchema(kind)
   };
 }
 
