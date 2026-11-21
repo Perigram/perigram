@@ -10,6 +10,19 @@
 - [ ] WAITING — Open a graph file chip in the graph editor page with that record loaded.
 - [ ] WAITING — Keep the stored `graphId` field out of generated detail and card displays.
 
+## Editor navigation and file commands (SPEC §28, owner direction 2026-11-21)
+
+- [ ] WAITING — Keep the graphs list visible while a graph document is open in the editor.
+- [ ] WAITING — Move the explicit Apply action from the inspector toolbar into the editor file panel; keep migration consent gates.
+- [ ] WAITING — Autosave process drafts after edits on a debounce.
+
+### Agent Notes (2026-11-21, agent/graph-collection-apply-20261121)
+
+- The graphs list is one `GraphDocumentsList` component mounted in both editor mounts; `GraphEditorSurface` exposes an `inspector-extra` slot for hosts that keep the list beside the selected-node inspector.
+- The process plane passes its own file chrome through `chrome-override`; `DesignerFilePanel` renders Apply from that chrome while migration gate dialogs stay in the apply state machine.
+- Autosave persists process drafts after a 1.2s debounce and re-baselines the dirty signature after each successful save.
+- Owner revised the original direction: Apply stays explicit because compilation is long.
+
 ### Agent Notes (2026-11-21, agent/graph-badge-open-20261121)
 
 - The card payload chip routes editor-bound types through the workspace page-open seam, so a graph file opens the `graph-editor` page with its record loaded.
