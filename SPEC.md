@@ -2000,7 +2000,10 @@ references a specific graph identity and an explicit immutable graph
 revision. Its sockets derive from that revision's public interface. It
 does not copy or inline the child graph's nodes into the caller's authored
 canvas. Updating to a newer child revision is an explicit caller edit and
-validation, never an automatic floating reference.
+validation, never an automatic floating reference. Every palette entry
+carries a readable saved graph's exact id, immutable revision, and public
+interface snapshot, so a placed invocation validates and exposes its
+sockets at insertion.
 
 Graph invocation executes the pinned child revision with explicit input
 bindings and returns its declared outputs. Execution records preserve the
@@ -2387,6 +2390,13 @@ single UI: the organization graphs page. Process authoring and
 graph-document authoring both open in it. The graph-document
 file-surface mount retires; opening a graph file navigates to the
 unified editor with that graph loaded. The editor is headerless.
+
+**Graph file identity (owner direction 2026-11-21).** A saved graph
+document carries the dedicated `.perigram-graph` extension while its
+payload and mime stay JSON. File chips, card previews, and hover peeks
+render the graph payload as a visual graph preview. Activating a graph
+file chip opens the unified editor with that graph loaded. Every blank
+graph creation opens a fresh editor session.
 
 **Workspace anatomy.** The editor is a full working surface in the
 application's existing visual language, not a floating tool demo. Use the

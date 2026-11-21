@@ -160,7 +160,9 @@ adapter delegates flat CTS transition candidates to that same validator.
 - `pack/page.js` — `pageTypeDeclaration`/`PAGE_TYPE_ID`: the default Page
   class seeded as an organization type by the pages feature.
 - `pack/framework.js` — `frameworkTypes`: the framework's own type
-  declarations, exported from the index.
+  declarations, exported from the index. The `graph-document` type saves
+  under `GRAPH_DOCUMENT_EXTENSION` (`.perigram-graph`) with a JSON mime and
+  a `graph` payload preview.
 - `index.js` — public exports.
 
 ## Consumption

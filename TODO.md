@@ -1,5 +1,21 @@
 # TODO
 
+## Graph management correctness (SPEC §28, owner direction 2026-11-21)
+
+- [ ] WAITING — Give graph documents the dedicated `.perigram-graph` extension on save and blank creation; keep the JSON payload and mime.
+- [ ] WAITING — Render graph file payloads as a visual graph preview in card previews and hover peeks.
+- [ ] WAITING — Open the unified editor when a graph file chip is activated; keep downloads for unbound file types.
+- [ ] WAITING — Open a fresh editor session for every blank graph creation.
+- [ ] WAITING — Populate the Use Graph palette only with saved entries pinned to an exact id and revision with their interface snapshot, and refresh the catalog after a graph save.
+
+### Agent Notes (2026-11-21, agent/graph-management-20261121)
+
+- The Use Graph palette now carries entries from the validated saved-graph catalog, each pinned to its graph id, revision, and interface snapshot. The editor reloads that catalog after each save.
+- Blank graph mounts use a per-creation key; the editor binds its created instance id back to the page so the graphs list adopts the saved graph.
+- Graph documents save under `.perigram-graph` with a JSON mime. The server editor-create endpoint derives the filename from the type's `payload.accept`.
+- `FilePayloadViewer` renders graph payload nodes and edges as SVG; the card payload chip follows the type's editor binding.
+- Focused vitest suites and docs/architecture/framework guards pass. Two construction-service cases timed out under parallel load and pass in isolation.
+
 ## Priority: Dockview home and editor workspaces (SPEC §4, owner direction 2026-11-20)
 
 - [ ] WAITING — owner verification: home workspace panes, tabs, drag/dock

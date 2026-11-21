@@ -50,7 +50,8 @@ The `graphDocuments` input is the authorized catalog projection from the
 graph workspace. Each available entry carries its validated payload as
 `graph`; the dedicated Use Graph palette group places an invocation already
 pinned to that graph identity, immutable revision, and public interface.
-The current graph is excluded from its own palette.
+The current graph is excluded from its own palette. A blank graph enters the
+palette after its first save and catalog refresh.
 
 `useGraphDocumentCatalog({ withPayloads })` is the one catalog fetch both
 consumers share: the graphs list on the process page (names and ids) and

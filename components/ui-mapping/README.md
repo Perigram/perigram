@@ -510,8 +510,9 @@ application.
   column (`LAYOUT.previewSide`) beside identity, status, and the
   labeled budgeted facts; the `plain` stack
   (every other type) renders the payload chip beside identity in
-  `#title` (opening the payload download — the escape hatch for modes
-  the viewer cannot render), and the facts in `#content`; the identity
+  `#title`: an editor-bound file type opens its record through the card's
+  open handler; unbound types download the payload.
+  The facts render in `#content`; the identity
   surface carries the lineage trail on cross-cut lists. Card ordering
   lives in the region header's view popover (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid

@@ -545,11 +545,15 @@ derived from payload traits) plus the payload download URL (instance
 payload blobs live in the `files` GridFS bucket). `resolveAttachmentPeek`
 is the bare-descriptor twin for stored file references without a served
 type (chat attachments, generator blobs): it sniffs the renderable peek
-mode (`image`, `svg`, `pdf`, `text`, `dxf` — mime-first, extension
-fallbacks) and returns `{ mode, fileUrl }` honoring the descriptor's
-bucket, or null for files without a bounded preview. Modes that the shared
+mode (`image`, `svg`, `pdf`, `text`, `dxf`, `graph` — extension-first for
+`.perigram-graph`, then mime-first with extension fallbacks) and returns
+`{ mode, fileUrl }` honoring the descriptor's
+bucket, or null for files without a bounded preview. Graph documents save
+under the `.perigram-graph` extension with a JSON payload; their file chip
+and card preview render the graph payload visually; the chip's open event
+carries the record to its editor binding. Modes that the shared
 viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
-`docx`, `table`, `workbook`, `text` — single-homed as
+`docx`, `table`, `workbook`, `text`, `graph` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated
 to `FilePayloadViewer` through its `source` prop; `attachment`/
 `download`/unknown modes degrade to a download action instead of an empty
