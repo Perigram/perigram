@@ -55,6 +55,7 @@
             :graph-documents="graphDocuments"
             :graph-documents-loading="graphDocumentsLoading"
             :graph-documents-error="graphDocumentsError"
+            :consumer-graphs="graphConsumers"
             :graph-revisions="graphRevisions"
             :graph-revisions-loading="graphRevisionsLoading"
             :graph-revisions-error="graphRevisionsError"
@@ -101,6 +102,7 @@ import GraphDocumentInspector from '~/components/process-designer/GraphDocumentI
 import GraphDocumentPreviewPanel from '~/components/process-designer/GraphDocumentPreviewPanel.vue';
 import { useGraphDocumentSession } from '~/composables/useGraphDocumentSession.js';
 import { parseGraphPayload, useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.js';
+import { graphInvocationConsumers } from '~/utils/graphInvocation.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 import { GRAPH_DOCUMENT_EXTENSION } from '#packages/cts';
 import { useClientEngines } from '~/composables/useClientEngines.js';
@@ -292,11 +294,41 @@ const defaultCanvasItems = computed(() => [
 ]);
 const activeCanvasItems = computed(() => props.canvasItems || defaultCanvasItems.value);
 
-const isDirty = computed(() => !readOnly.value
-  && Boolean(graphDocument?.value)
-  && designerSignature() !== savedSignature.value);
+// A drag marks the draft dirty immediately; the whole-graph signature
+// comparison settles once the interaction stops, so no frame serializes
+// the graph.
+const dirty = ref(false);
+let dirtyTimer = null;
+function settleDirty() {
+  dirtyTimer = null;
+  dirty.value = !readOnly.value
+    && Boolean(graphDocument?.value)
+    && designerSignature() !== savedSignature.value;
+}
+function markSaved() {
+  savedSignature.value = designerSignature();
+  dirty.value = false;
+  if (dirtyTimer) clearTimeout(dirtyTimer);
+  dirtyTimer = null;
+}
+watch(
+  () => [nodes.value, edges.value, graphDocument.value],
+  () => {
+    dirty.value = true;
+    if (dirtyTimer) clearTimeout(dirtyTimer);
+    dirtyTimer = setTimeout(settleDirty, 150);
+  },
+  { deep: true }
+);
+onBeforeUnmount(() => {
+  if (dirtyTimer) clearTimeout(dirtyTimer);
+});
+const graphConsumers = computed(() => graphInvocationConsumers(
+  graphDocuments.value,
+  String(graphDocument?.value?.id || '')
+));
 const canBakeToSavedGraph = computed(() => Boolean(
-  persisted.value && !isDirty.value
+  persisted.value && !dirty.value
   && executionRecord?.value?.graph?.id === graphDocument?.value?.id
   && executionRecord?.value?.graph?.revision === graphDocument?.value?.revision
 ));
@@ -441,7 +473,7 @@ async function loadGraphDocument() {
         name: recordName.value
       });
     }
-    savedSignature.value = designerSignature();
+    markSaved();
   } catch (error) {
     loadError.value = error?.data?.message || error?.message || t('processDesigner.invalidGraphPayload');
   } finally {
@@ -451,7 +483,7 @@ async function loadGraphDocument() {
 
 async function refreshPreviewAndRecord() {
   const result = await refreshPreview();
-  if (executionRecord.value && instanceId && !isDirty.value && typeof props.persistence.recordExecution === 'function') {
+  if (executionRecord.value && instanceId && !dirty.value && typeof props.persistence.recordExecution === 'function') {
     try {
       await props.persistence.recordExecution(executionRecord.value);
     } catch (error) {
@@ -467,7 +499,7 @@ async function refreshPreviewAndRecord() {
 }
 
 async function bakeGraphOutput({ outputId, pageId, path, conflictPolicy, execution } = {}) {
-  if (bakingOutput.value || readOnly.value || !persisted.value || isDirty.value) return;
+  if (bakingOutput.value || readOnly.value || !persisted.value || dirty.value) return;
   if (typeof props.persistence.bakeFile !== 'function') {
     toast.add({ severity: 'error', summary: t('processDesigner.bakeOutput'), detail: t('processDesigner.bakeUnavailable'), life: 5000 });
     return;
@@ -526,7 +558,7 @@ async function saveGraphDocument() {
     instanceId = String(updated?._id || updated?.id || instanceId);
     persisted.value = Boolean(instanceId);
     if (updated?.name) recordName.value = updated.name;
-    savedSignature.value = designerSignature();
+    markSaved();
     await loadGraphCatalog(t);
     await refreshPreviewAndRecord();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
@@ -554,7 +586,7 @@ async function renameGraphDocument(name) {
     const updated = await props.persistence.rename(trimmed);
     recordName.value = updated?.name || trimmed;
     graphDocument.value.name = recordName.value;
-    savedSignature.value = designerSignature();
+    markSaved();
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -572,7 +604,7 @@ const chromeApi = Object.assign(
   reactive({
     name: computed(() => recordName.value),
     instanceId: computed(() => instanceId),
-    dirty: isDirty,
+    dirty,
     saving,
     diverged: false
   }),

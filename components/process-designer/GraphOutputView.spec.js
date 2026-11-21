@@ -31,6 +31,19 @@ describe('graph output value renderer', () => {
     expect(html).toContain('f1');
   });
 
+  it('mounts the interactive viewer for 3D scene values', async () => {
+    const html = await render({
+      value: {
+        representation: 'perigram.scene-3d',
+        vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]],
+        faces: [[0, 1, 2]]
+      },
+      alt: 'Mesh'
+    });
+    expect(html).toContain('data-scene-3d');
+    expect(html).toContain('<polygon');
+  });
+
   it('falls back to JSON for structured values without a better view', async () => {
     const html = await render({ value: { a: 1 } });
     expect(html).toContain('&quot;a&quot;: 1');

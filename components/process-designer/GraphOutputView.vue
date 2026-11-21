@@ -21,16 +21,11 @@
       <text v-else-if="primitive.type === 'text'" :x="primitive.x" :y="primitive.y" fill="currentColor" stroke="none">{{ primitive.text }}</text>
     </g>
   </svg>
-  <svg
+  <Scene3DViewer
     v-else-if="view === 'scene-3d' && scene3dReady"
-    viewBox="0 0 800 500"
-    class="h-80 w-full"
-    role="img"
-    :aria-label="alt"
-  >
-    <polygon v-for="(face, index) in scene3d.faces" :key="`f${index}`" :points="face" fill="currentColor" fill-opacity="0.08" stroke="currentColor" stroke-opacity="0.35" />
-    <line v-for="(edge, index) in scene3d.edges" :key="`e${index}`" :x1="edge.x1" :y1="edge.y1" :x2="edge.x2" :y2="edge.y2" stroke="currentColor" stroke-width="1.5" />
-  </svg>
+    :value="value"
+    :alt="alt"
+  />
   <pre v-else-if="view === 'text' && typeof value === 'string'" class="whitespace-pre-wrap break-words text-supporting">{{ value }}</pre>
   <div v-else-if="view === 'markdown' && typeof value === 'string'" class="whitespace-pre-wrap break-words text-supporting">{{ value }}</div>
   <div v-else-if="view === 'table' && tableReady" class="overflow-x-auto">
@@ -61,6 +56,7 @@
 // values through this component.
 import { computed } from 'vue';
 import { graphOutputViews, graphOutputTableColumns } from '~/utils/graphOutputViews.js';
+import Scene3DViewer from '~/components/shared/Scene3DViewer.vue';
 
 const props = defineProps({
   value: { type: null, default: null },
@@ -86,24 +82,6 @@ const scene2dViewBox = computed(() => {
   return `${Number(bounds.x || 0)} ${Number(bounds.y || 0)} ${Math.max(1, Number(bounds.width || 100))} ${Math.max(1, Number(bounds.height || 100))}`;
 });
 const scene3dReady = computed(() => Array.isArray(props.value?.vertices) && props.value.vertices.length > 0);
-const scene3d = computed(() => {
-  const vertices = Array.isArray(props.value?.vertices) ? props.value.vertices : [];
-  if (!vertices.length) return { faces: [], edges: [] };
-  const projected = vertices.map(vertex => {
-    const [x = 0, y = 0, z = 0] = (Array.isArray(vertex) ? vertex : []).map(Number);
-    return { x: (x - y) * 0.8660254, y: (x + y) * 0.5 - z };
-  });
-  const xs = projected.map(point => point.x), ys = projected.map(point => point.y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const scale = Math.min(720 / Math.max(1, maxX - minX), 420 / Math.max(1, maxY - minY));
-  const points = projected.map(point => ({ x: 400 + (point.x - (minX + maxX) / 2) * scale, y: 250 - (point.y - (minY + maxY) / 2) * scale }));
-  const faces = (props.value.faces || []).filter(face => Array.isArray(face) && face.length >= 3 && face.every(index => Number.isInteger(index) && points[index])).map(face => face.map(index => `${points[index].x},${points[index].y}`).join(' '));
-  const edgePairs = Array.isArray(props.value.edges) && props.value.edges.length
-    ? props.value.edges
-    : (props.value.faces || []).flatMap(face => face.map((index, position) => [index, face[(position + 1) % face.length]]));
-  const edges = edgePairs.filter(edge => Array.isArray(edge) && edge.length === 2 && points[edge[0]] && points[edge[1]]).map(([a, b]) => ({ x1: points[a].x, y1: points[a].y, x2: points[b].x, y2: points[b].y }));
-  return { faces, edges };
-});
 const tableReady = computed(() => Array.isArray(props.value)
   && props.value.length > 0
   && props.value.every(item => item && typeof item === 'object' && !Array.isArray(item)));

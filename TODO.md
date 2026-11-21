@@ -33,6 +33,23 @@
 - `FilePayloadViewer` renders graph payload nodes and edges as SVG; the card payload chip follows the type's editor binding.
 - Focused vitest suites and docs/architecture/framework guards pass. Two construction-service cases timed out under parallel load and pass in isolation.
 
+## Graph editor polish (SPEC §28, owner direction 2026-11-21)
+
+- [ ] WAITING — Gate graph-document validation, node-definition derivation, and dirty detection on an authoring signature so drags and selection churn re-serialize nothing per frame.
+- [ ] WAITING — Name placed Use Graph cards by the invoked graph and place reusable-graph entries in the graph-boundary palette section.
+- [ ] WAITING — Apply boundary interface declarations live from the inspector and warn when the edited graph is pinned by other graph documents.
+- [ ] WAITING — Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.14); the static SVG projection is not a 3D viewport.
+- [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
+
+### Agent Notes (2026-11-21, agent/graph-editor-polish-20261121-1904)
+
+- Validation, node definitions, and derived ports update through one authoring signature (declared interface + node operation/config + edges); position and selection are outside it, so drags and selection churn re-run nothing. `useGraphDocumentSession.spec.js` pins the cached-validation behavior.
+- The editor's dirty marker marks immediately and compares the whole-graph signature once the interaction settles (150 ms).
+- Use Graph entries ride the `graph-boundary` palette section; a placed invocation card resolves its label from the catalog record's stored `graphId` and re-enriches when the catalog loads or renames.
+- Boundary interface controls commit on edit; a graph pinned by other readable graph documents lists those consumers in the inspector.
+- `perigram.scene-3d` outputs mount the shared interactive `Scene3DViewer` (pointer orbit, wheel zoom); projection math is the pure `utils/scene3d.js`.
+- Open design question: tab grouping for plugin-native previews stays under §28.4's representation/channel law; the occt channel and cast node are not implemented.
+
 ## Application-wide drag and drop (SPEC §4, owner direction 2026-11-21)
 
 - [ ] WAITING — Adopt one drag-and-drop engine over pointer and touch

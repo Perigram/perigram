@@ -1945,10 +1945,11 @@ provider-specific authoring or execution code.
 The palette has distinct semantic groups for platform values and
 operations, data/query operations, flow/collection operations, installed
 plugin contributions, and reusable graphs. Reusable graph invocations
-appear under a dedicated **Use Graph** (or **Graphs**) palette group,
-separate from ordinary operation nodes and plugin categories. The group
-supports finding a saved graph and placing an invocation node; it is not
-a second registry of copied node implementations.
+appear in the graph-boundary platform section beside **Graph Input** and
+**Graph Output** (§28.14) — the dedicated **Use Graph** (or **Graphs**)
+grouping, separate from ordinary operation nodes and plugin categories.
+The group supports finding a saved graph and placing an invocation node; it
+is not a second registry of copied node implementations.
 
 Every output may expose one or more preview representations. A plugin
 may provide a specialized renderer and versioned renderer contract; the
@@ -2467,6 +2468,19 @@ provider attribution without making provider identity the only organizing
 principle. Palette entries preview the actual node species they insert.
 The palette is defined by the normalized registry; no parallel hardcoded
 list of generic operations is maintained in the UI.
+
+A placed **Use Graph** card names the invoked graph, read from the node's
+pinned graph identity; the generic operation name is the fallback when that
+graph is unreadable.
+
+**Live interface declarations (owner direction 2026-11-21).** Graph
+boundary interface edits apply as authored: each control commits its
+change without an explicit apply step. When another readable graph
+document pins the edited graph through a Use Graph node, the inspector
+surfaces a migration warning naming the consuming graphs. Pinned
+invocations keep their interface snapshot until each caller re-pins;
+changing an interface is a graph revision, never a silent propagation to
+callers.
 
 **Inspector and procedural configuration.** The inspector is a projection
 of the selected normalized node definition and its current configuration.

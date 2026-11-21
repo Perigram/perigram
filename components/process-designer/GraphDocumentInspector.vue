@@ -6,44 +6,56 @@
       <div class="flex flex-col gap-2">
         <label class="text-supporting text-muted">{{ $t('processDesigner.graphInterfaceDeclaration') }}</label>
         <ValueSelect
-          v-model="declarationShape"
+          :model-value="declarationShape"
           :options="shapeOptions"
           option-label="label"
           option-value="value"
           size="small"
           class="w-full"
+          @update:model-value="value => { declarationShape = value; commitDeclaration(); }"
         />
         <ValueSelect
-          v-model="declarationBase"
+          :model-value="declarationBase"
           :options="baseOptions"
           option-label="label"
           option-value="value"
           size="small"
           class="w-full"
           :aria-label="$t('processDesigner.graphSemanticBase')"
+          @update:model-value="value => { declarationBase = value; commitDeclaration(); }"
         />
-        <InputText v-model="declarationKind" size="small" :placeholder="$t('processDesigner.graphSemanticKind')" :aria-label="$t('processDesigner.graphSemanticKind')" />
+        <InputText
+          :model-value="declarationKind"
+          size="small"
+          :placeholder="$t('processDesigner.graphSemanticKind')"
+          :aria-label="$t('processDesigner.graphSemanticKind')"
+          @update:model-value="value => declarationKind = value"
+          @blur="commitDeclaration()"
+          @keydown.enter.prevent="commitDeclaration()"
+        />
         <div class="flex items-center justify-between">
           <label class="text-supporting">{{ $t('processDesigner.graphNullable') }}</label>
-          <ToggleSwitch v-model="declarationNullable" />
+          <ToggleSwitch :model-value="declarationNullable" @update:model-value="value => { declarationNullable = value; commitDeclaration(); }" />
         </div>
         <div class="flex items-center justify-between">
           <label class="text-supporting">{{ $t('processDesigner.graphRequired') }}</label>
-          <ToggleSwitch v-model="declarationRequired" />
+          <ToggleSwitch :model-value="declarationRequired" @update:model-value="value => { declarationRequired = value; commitDeclaration(); }" />
         </div>
         <div class="flex items-center justify-between">
           <label class="text-supporting">{{ $t('processDesigner.graphDefaultValue') }}</label>
-          <ToggleSwitch v-model="declarationHasDefault" />
+          <ToggleSwitch :model-value="declarationHasDefault" @update:model-value="value => { declarationHasDefault = value; commitDeclaration(); }" />
         </div>
         <TypedValueControl
           v-if="declarationHasDefault"
           :base="declarationBase"
           :model-value="declarationDefault"
-          @update:model-value="declarationDefault = $event"
+          @update:model-value="value => { declarationDefault = value; commitDeclaration(); }"
         />
       </div>
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
-      <Button size="small" :label="$t('processDesigner.graphApplyInterfaceDeclaration')" @click="applyDeclaration" />
+      <Message v-if="consumerGraphs.length" severity="warn">
+        {{ $t('processDesigner.graphInterfaceConsumers', { graphs: consumerGraphs.map(item => item.name).join(', ') }) }}
+      </Message>
     </template>
     <template v-else-if="isGraphInvocation">
       <label class="text-supporting text-muted" for="graph-document-source">{{ $t('processDesigner.graphDocumentSource') }}</label>
@@ -213,6 +225,9 @@ const props = defineProps({
   graphDocuments: { type: Array, default: () => [] },
   graphDocumentsLoading: { type: Boolean, default: false },
   graphDocumentsError: { type: String, default: '' },
+  // Readable graph documents pinning this graph through Use Graph; their
+  // interface snapshot desynchronizes on an interface edit until re-pinned.
+  consumerGraphs: { type: Array, default: () => [] },
   graphRevisions: { type: Array, default: () => [] },
   graphRevisionsLoading: { type: Boolean, default: false },
   graphRevisionsError: { type: String, default: '' },
@@ -408,7 +423,7 @@ function updateConfigField(id, value) {
   emit('update-config', { nodeId: props.node.id, config: next });
 }
 
-function applyDeclaration() {
+function commitDeclaration() {
   const base = declarationBase.value.trim();
   if (!base) {
     declarationError.value = t('processDesigner.graphSemanticBaseRequired');
