@@ -215,9 +215,8 @@ the `section` field set.
   saved-query blocks mount `ViewEmbed.vue`, graph-output blocks mount
   `GraphOutputEmbed.vue`, and typed-reference blocks mount
   `ReferenceEmbed.vue` as sibling components outside any editor. Blocks
-  and the trailing line ride one document rhythm — the injected spacing
-  step's `screenRoot` — and embed blocks carry no vertical margin of
-  their own. `DocumentSectionShell` and
+  and the trailing line ride one tight stack — the ladder's step 1 — and
+  embed blocks carry no vertical margin of their own. `DocumentSectionShell` and
   `OverlayInsertControl` provide the gutter plus, drag reorder, and
   delete; the document's trailing line is
   [ui-mapping](../ui-mapping/README.md)'s shared `TrailingTextBlock`,
