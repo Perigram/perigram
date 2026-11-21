@@ -76,7 +76,11 @@ definition's JSON schema and edits graph interface transport shape,
 semantic base/kind/nullability, required status, and optional defaults. The
 process adapter's schema for its operations is owned by
 [packages/processes](../../packages/processes/README.md); plugin services
-declare theirs in their listings. Socket gestures,
+declare theirs in their listings. A `perigram.typed-value` contribution
+renders a base selector, an entity-type picker on the entity-reference
+base, and the shared base-aware value control; `perigram.value-base`
+renders the base selector alone. `TypedLiteralControl.vue` is the one
+control both editors use for literal authoring. Socket gestures,
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 
@@ -727,7 +731,8 @@ the process inspector body (`GraphInspector.vue`) and channel-tab strip
 (`GraphPreviewPanel.vue`), the built-in outputs channel
 (`GraphOutputsChannel.vue`), the one output-value renderer
 (`GraphOutputView.vue`), the value authoring controls
-(`TypedValueControl.vue`, `TemplateValuesControl.vue`),
+(`TypedValueControl.vue`, `TypedLiteralControl.vue`,
+`TemplateValuesControl.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list
 (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
