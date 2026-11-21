@@ -18,20 +18,24 @@ describe('graph editor workspace chrome', () => {
     expect(palette).toContain('data-designer-palette');
   });
 
-  it('exposes evaluation state as a direct toggle to the preview workspace', async () => {
+  it('mounts the preview workspace as a dock panel over the shared canvas', async () => {
     const canvas = await readComponent('./GraphCanvas.vue');
     const editor = await readComponent('./GraphEditorSurface.vue');
     const workspace = await readComponent('../shared/DesignerWorkspace.vue');
 
-    expect(canvas).toContain('data-canvas-status');
-    expect(canvas).toContain('onActivityClick');
     expect(canvas).toContain('workspace-id="graph-editor"');
-    expect(editor).toContain('openActivitySurface');
-    expect(editor).toContain("canvasFrame.value?.openPanel?.('preview')");
+    expect(editor).toContain("canvasFrame.value?.panels?.preview");
     expect(editor).toContain('GraphDocumentPreviewPanel');
     expect(canvas).toContain('<slot name="preview" />');
     expect(workspace).toContain('WorkspaceDock');
     expect(workspace).toContain('sizePanelToContent');
     expect(workspace).not.toContain('name="support"');
+  });
+
+  it('keeps the canvas free of standing state chrome', async () => {
+    const canvas = await readComponent('./GraphCanvas.vue');
+
+    expect(canvas).not.toContain('data-canvas-status');
+    expect(canvas).toContain("validation && (!validation.ok || (validation.warnings || []).length || validationDiffLines.length)");
   });
 });

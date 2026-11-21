@@ -17,7 +17,6 @@
         v-else
         :session="processSession"
         :canvas-items="canvasDockItems"
-        :canvas-status="processCanvasStatus"
         @preview-visibility="onPreviewRegionVisibility"
       :palette-placeholder="$t('processDesigner.searchOperations')"
       :empty-message="emptyCanvasMessage"
@@ -711,7 +710,6 @@ import { checkDeclarationsAgainstCts, compileClientBundle } from '@perigram/cts'
 import LaneBands from '~/components/process-designer/LaneBands.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
-import { canvasStatusOf } from '~/utils/processDesignerCanvasStatus.js';
 import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/utils/processDesignerArrangement.js';
 import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -783,13 +781,6 @@ const {
   serializeProcess: () => serializeProcess()
 });
 
-// The canvas status pill reads the channel evaluation lifecycle.
-const processCanvasStatus = computed(() => canvasStatusOf({
-  t,
-  running: channelPreviewRunning.value,
-  error: channelPreviewError.value,
-  result: channelPreviewPayload.value
-}));
 const previewRegionOpen = ref(false);
 
 function onPreviewRegionVisibility(open) {

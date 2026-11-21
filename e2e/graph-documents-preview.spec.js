@@ -92,8 +92,9 @@ test('saved Documents graph renders its Markdown file through the Documents prev
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, createdEntity);
 
-  // Open the support rail from the canvas status affordance.
-  await page.locator('[data-canvas-status]').click();
+  // Open the preview dock panel from the canvas header panel menu.
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Preview' }).click();
   const markdownInput = page.getByRole('textbox', { name: 'Markdown' });
   await expect(markdownInput).toBeVisible({ timeout: 15_000 });
   await markdownInput.fill('# Graph preview E2E\n\nRendered by the installed Documents plugin.');
@@ -212,7 +213,8 @@ test('typed Documents blocks preview and Bake Markdown and HTML files with prove
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await openGraphEditor(app, createdEntity);
-  await page.locator('[data-canvas-status]').click();
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Preview' }).click();
   const bodyInput = page.getByRole('textbox', { name: 'Body' });
   await expect(bodyInput).toBeVisible({ timeout: 15_000 });
   await bodyInput.fill('A typed paragraph from the Documents graph.');

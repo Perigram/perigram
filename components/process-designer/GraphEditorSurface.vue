@@ -11,8 +11,6 @@
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
       :chrome="chromeApi"
-      :canvas-status="props.canvasStatus || canvasStatus"
-      :on-activity-click="props.onActivityClick || openActivitySurface"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteGroups"
@@ -116,7 +114,6 @@ import {
   registerProcessPortCompatibilityProfile
 } from '#packages/processes';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { canvasStatusOf } from '~/utils/processDesignerCanvasStatus.js';
 
 const props = defineProps({
   record: { type: Object, default: null },
@@ -127,8 +124,6 @@ const props = defineProps({
   nodeProviders: { type: Array, default: () => [] },
   session: { type: Object, default: null },
   canvasItems: { type: Array, default: null },
-  canvasStatus: { type: Object, default: null },
-  onActivityClick: { type: Function, default: null },
   palettePlaceholder: { type: String, default: '' },
   emptyMessage: { type: String, default: '' },
   validationDiffLines: { type: Array, default: () => [] },
@@ -302,13 +297,6 @@ const canBakeToSavedGraph = computed(() => Boolean(
   && executionRecord?.value?.graph?.revision === graphDocument?.value?.revision
 ));
 
-const canvasStatus = computed(() => canvasStatusOf({
-  t,
-  running: Boolean(previewRunning?.value),
-  error: previewError?.value || '',
-  result: previewResult?.value || null
-}));
-
 // The workspace frame must be a ref: the preview-region watch tracks
 // `canvasFrame.value.panels` reactively.
 const canvasFrame = ref(null);
@@ -326,10 +314,6 @@ function bindCanvasPane(element) {
 watch(() => canvasFrame.value?.panels?.preview, open => {
   emit('preview-visibility', Boolean(open));
 });
-
-function openActivitySurface() {
-  canvasFrame.value?.openPanel?.('preview');
-}
 
 function providerLoadFailure(binding, error, contribution = null) {
   return {
