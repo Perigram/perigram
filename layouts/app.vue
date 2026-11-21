@@ -318,7 +318,8 @@
     // page chrome besides.
     const fileTypeView = useFileTypeView()
     const activeEditorSurface = computed(() => {
-        const typeId = activeGeneratedScreen.value?.typeId || ''
+        const screen = activeGeneratedScreen.value
+        const typeId = screen?.template === 'instanceDetail' ? (screen.typeId || '') : ''
         if (!typeId) return null
         const editor = (fileTypeView.editors.value || []).find(binding => binding?.type === typeId)
         if (!editor) return null
