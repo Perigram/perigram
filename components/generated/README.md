@@ -550,8 +550,9 @@ mode (`image`, `svg`, `pdf`, `text`, `dxf`, `graph` — extension-first for
 `{ mode, fileUrl }` honoring the descriptor's
 bucket, or null for files without a bounded preview. Graph documents save
 under the `.perigram-graph` extension with a JSON payload; their file chip
-and card preview render the graph payload visually; the chip's open event
-carries the record to its editor binding. Modes that the shared
+and card preview render the graph payload visually; activating the chip
+opens the `graph-editor` page through the workspace page-open seam with that
+record loaded. Modes that the shared
 viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
 `docx`, `table`, `workbook`, `text`, `graph` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated

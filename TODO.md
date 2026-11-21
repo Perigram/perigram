@@ -7,6 +7,12 @@
 - [ ] WAITING — Open the unified editor when a graph file chip is activated; keep downloads for unbound file types.
 - [ ] WAITING — Open a fresh editor session for every blank graph creation.
 - [ ] WAITING — Populate the Use Graph palette only with saved entries pinned to an exact id and revision with their interface snapshot, and refresh the catalog after a graph save.
+- [ ] WAITING — Open a graph file chip in the graph editor page with that record loaded.
+- [ ] WAITING — Keep the stored `graphId` field out of generated detail and card displays.
+
+### Agent Notes (2026-11-21, agent/graph-badge-open-20261121)
+
+- The card payload chip routes editor-bound types through the workspace page-open seam, so a graph file opens the `graph-editor` page with its record loaded.
 
 ### Agent Notes (2026-11-21, agent/graph-management-20261121)
 

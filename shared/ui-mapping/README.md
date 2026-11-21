@@ -405,6 +405,8 @@ surface, `item` → record card/row, `group` → collection, `process` →
 status-forward detail); the class obligations in
 [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §5 guarantee which slots
 are fillable. Unknown classes fall back to the generic record surface.
+Fields carrying `display: 'hidden'` stay out of derived detail groups and
+card fact counts; their stored values remain available to logic and transports.
 `resolvePreview(typeRecord)` keys on the declared payload `preview` mode
 (`image`, `geometry`, `graph`, `attachment`, `none`) — preview behavior is
 declared data. `RENDERABLE_PREVIEW_MODES`

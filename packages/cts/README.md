@@ -162,7 +162,8 @@ adapter delegates flat CTS transition candidates to that same validator.
 - `pack/framework.js` — `frameworkTypes`: the framework's own type
   declarations, exported from the index. The `graph-document` type saves
   under `GRAPH_DOCUMENT_EXTENSION` (`.perigram-graph`) with a JSON mime and
-  a `graph` payload preview.
+  a `graph` payload preview. Its `graphId` field is stored with
+  `display: 'hidden'`.
 - `index.js` — public exports.
 
 ## Consumption
