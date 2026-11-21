@@ -2398,9 +2398,7 @@ render the graph payload as a visual graph preview. Activating a graph
 file chip opens the unified editor with that graph loaded. Every blank
 graph creation opens a fresh editor session.
 
-**Editor navigation and file commands (owner direction 2026-11-21).** The
-graphs list stays available in every editor mount, including an open graph
-document. The file panel carries the explicit Apply action for process
+**Editor file commands (owner direction 2026-11-21).** The file panel carries the explicit Apply action for process
 authoring; declaration edits autosave their draft on a debounce. Activation
 gates keep their migration consent dialogs.
 
