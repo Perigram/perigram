@@ -420,7 +420,7 @@ shared `DesignerWorkspace` dock's center panel
 tokens alone. The node palette is the workspace's left dock panel
 (SPEC §28 interaction model): provenance-tier section chips, a search
 that spans the full catalog, and the active section's rows — picking a
-row places the node. The canvas carries no standing state chrome. The inspector
+row places the node. The inspector
 is a dock panel beside the canvas that the toolbar toggle opens
 and closes — canvas clicks keep it open, and canvas Escape clears graph
 selection. The preview workspace is a dock panel docked below the canvas
@@ -467,8 +467,7 @@ Apply saves, validates, and activates as one operation with
 first-diagnostic focus. Declaration-post failures abort before validation
 and land in the persistent validation feedback on the canvas, so an Apply
 refused by the registry keeps showing its cause after the toasts expire.
-The canvas validation strip renders errors, warnings, and apply diffs
-only — a valid draft renders nothing.
+The canvas validation strip renders errors, warnings, and apply diffs.
 Failed validation and activation responses carry structured diagnostics
 (`nodeId`, `edgeId`, `socketId`, `producerOutputId` anchors), and the
 first anchored diagnostic selects its edge or node on the canvas —
