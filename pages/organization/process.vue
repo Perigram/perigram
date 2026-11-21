@@ -173,6 +173,18 @@
                 </div>
               </Popover>
 
+              <!-- Graph documents: the same graphs list carries the
+                   organization's graph files; the loaded one edits in
+                   place, its save/rename riding the editor chrome. -->
+              <div class="mt-3 flex flex-col gap-1.5" data-graph-documents>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-label">{{ $t('processDesigner.graphDocuments') }}</span>
+                  <Button
+                    icon="pi pi-plus"
+                    size="small"
+                    text
+                    severity="secondary"
+                    :aria-label="$t('processDesigner.newGraphDocument')"
                     @click="openBlankGraphDocument"
                   />
                 </div>
@@ -239,18 +251,6 @@
                   </template>
                 </div>
               </div>
-            </TabPanel>
-            <TabPanel value="inspector">
-              <GraphInspector
-                :selected-node="selectedNode"
-                :selected-process-node="selectedProcessNode"
-                :selected-entity="selectedEntity"
-                :selected-entity-available="selectedEntityAvailable"
-                :selected-declaration-edge="selectedDeclarationEdge"
-                :declaration-node-types="declarationNodeTypes"
-                :class-type-id-valid="classTypeIdValid"
-                :class-declaration-diagnostics="classDeclarationDiagnostics"
-                :declaration-type-options="declarationTypeOptions"
             </TabPanel>
             <TabPanel value="inspector">
               <GraphInspector
