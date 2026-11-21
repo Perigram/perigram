@@ -322,6 +322,14 @@ ellipsis opens and closes the content panels. Designer surfaces declare
 chrome ownership so the editor strip replaces the page header on every
 mount.
 
+Drag and drop is one application-wide system (owner direction
+2026-11-21): document blocks, files, and sidebar entries drag through
+one engine over pointer and touch input. Blocks reorder within their
+document and drop onto other panes' documents; files drop onto pages,
+chats, and records; sidebar sections and pages reorder in place. Every
+droppable declares what it accepts; a drop performs the move or copy the
+source and target agree on, and refused drops change nothing.
+
 File creates follow the type's declared creation protocol (owner decision
 2026-10-12): an `editor` create opens the type's editor with no record —
 nothing exists until the editor's first save, which creates the instance
@@ -1653,13 +1661,14 @@ same entries, the gutter reserves its lane outside the content, and the
 drag handle is a six-dot grip. Collection headers switch their display
 layout in the view-setup popover.
 
-A page document ends with one empty text block rendered like every other
-block; typing in it appends a fresh empty block. A record document keeps
-its trailing line always mounted while no block editor holds focus —
-the idle placeholder alone, the live engine from the first activation
-(owner direction 2026-11-13); Enter commits
-the text as a block, and Backspace in its empty line resumes the last
-text block. Cursor arrows at a text
+A page document keeps its trailing line always mounted while no block
+editor holds focus — the idle placeholder alone, the live engine from the
+first activation; Enter commits the text as a block and leaves a fresh
+line, and Backspace in its empty line resumes the last text block. The
+trailing line is the document's single placeholder (owner direction
+2026-11-21): empty text blocks render nothing and drop when their editor
+closes. A record document carries the same trailing line (owner direction
+2026-11-13). Cursor arrows at a text
 block's visual edge continue in the adjacent text block at its start or
 end. A writable record document mounts the live engine in every text
 block, so the block reads the same while edited and while idle.

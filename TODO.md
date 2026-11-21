@@ -33,6 +33,21 @@
 - `FilePayloadViewer` renders graph payload nodes and edges as SVG; the card payload chip follows the type's editor binding.
 - Focused vitest suites and docs/architecture/framework guards pass. Two construction-service cases timed out under parallel load and pass in isolation.
 
+## Application-wide drag and drop (SPEC §4, owner direction 2026-11-21)
+
+- [ ] WAITING — Adopt one drag-and-drop engine over pointer and touch
+  (candidate: `@atlaskit/pragmatic-drag-and-drop`) and move the page/record
+  document block reorder onto it, replacing the native HTML5 drag handlers
+  in `DocumentSectionShell`.
+- [ ] WAITING — Drag document blocks onto other panes' documents to copy
+  or move them.
+- [ ] WAITING — Drop files onto page, chat, and record panes to attach or
+  insert them.
+- [ ] WAITING — Reorder sidebar sections and pages through the same
+  engine.
+- [ ] WAITING — Every droppable declares its accepted payloads; refused
+  drops change nothing.
+
 ## Priority: Dockview home and editor workspaces (SPEC §4, owner direction 2026-11-20)
 
 - [ ] WAITING — owner verification: home workspace panes, tabs, drag/dock
