@@ -3493,7 +3493,7 @@
     "scheduleInterval": "Повторять каждые",
     "scheduleIntervalPlaceholder": "ISO-длительность, напр. P1D",
     "startOnEvent": "Запуск по событию",
-    "graphBoundaries": "Границы графа",
+    "graphBoundaries": "Графы",
     "graphInput": "Вход графа",
     "graphInputDescription": "Опубликовать значение как вход графа",
     "graphOutputDescription": "Опубликовать значение как выход графа",
@@ -3521,7 +3521,6 @@
     "graphNodeOutputs": "Выходы узлов",
     "graphUnavailableNode": "Определение узла недоступно",
     "unknownNode": "Недоступный узел",
-    "graphComposition": "Композиция графов",
     "useGraph": "Использовать граф",
     "useGraphDescription": "Вызвать закреплённую ревизию другого графа",
     "graphInputValues": "Входы графа",
@@ -3549,7 +3548,6 @@
     "graphUnavailable": "Не удалось загрузить граф",
     "graphOutput": "Выход графа",
     "loading": "Загрузка…",
-    "graphApplyInterfaceDeclaration": "Применить объявление интерфейса",
     "graphConfigurationFieldRequired": "Поле «{field}» обязательно",
     "graphConfigurationFieldInvalid": "Поле «{field}» содержит недопустимое значение",
     "graphConfigurationFieldOutOfRange": "Значение поля «{field}» вне допустимого диапазона",
@@ -3561,7 +3559,8 @@
     "filesCouldNotLoad": "Не удалось загрузить список файлов",
     "templateValuesNeedPreview": "Запустите предпросмотр после подключения шаблона, чтобы определить его поля.",
     "templateSectionJsonHint": "Введите JSON-массив повторяющихся строк, например [{'{'}\"name\":\"Ада\"{'}'}].",
-    "templateSectionJsonInvalid": "Значение секции должно быть корректным JSON-массивом."
+    "templateSectionJsonInvalid": "Значение секции должно быть корректным JSON-массивом.",
+    "graphInterfaceConsumers": "Используется: {graphs}. Закреплённые вызовы сохраняют интерфейс, пока вызывающий граф не закрепит новую ревизию."
   },
   "generatedScreen": {
     "home": "Главная",

@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, unref } from 'vue';
+import { computed, nextTick, ref, shallowRef, unref, watch } from 'vue';
 import {
   CORE_GRAPH_PROVIDER,
   GRAPH_DOCUMENT_FORMAT,
@@ -18,6 +18,7 @@ import {
 import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider, normalizeNodeDefinition, TRANSPORT_SHAPES } from '@perigram/plugin-sdk/nodes';
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
+import { graphInvocationName } from '~/utils/graphInvocation.js';
 
 const operation = (id, version = '1') => ({
   provider: CORE_GRAPH_PROVIDER,
@@ -140,32 +141,26 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
         }
       ]
     }];
+    // Reusable graphs ride the same platform section as the boundaries
+    // (SPEC §28.14); each entry pins an exact saved revision.
     const savedGraphs = (unref(graphDocuments) || [])
       .map(item => item?.graph)
       .filter(graph => graph?.id && graph?.revision && graph.id !== graphDocument.value.id);
-    if (savedGraphs.length) {
-      groups.push({
-        source: 'graphs',
-        id: 'graph-invocation',
-        label: t('processDesigner.graphComposition'),
-        signal: 'structure',
-        items: savedGraphs.map(graph => ({
-          id: `use-graph:${graph.id}@${graph.revision}`,
-          label: graph.name || graph.id,
-          description: t('processDesigner.useGraphDescription'),
-          signal: 'structure',
-          operation: operation(GRAPH_INVOKE_OPERATION),
-          config: {
-            graphId: graph.id,
-            revision: graph.revision,
-            interface: {
-              inputs: graph.interface.inputs.map(port => cloneJson(port)),
-              outputs: graph.interface.outputs.map(port => cloneJson(port))
-            }
-          }
-        }))
-      });
-    }
+    groups[0].items.push(...savedGraphs.map(graph => ({
+      id: `use-graph:${graph.id}@${graph.revision}`,
+      label: graphInvocationName({ graphId: graph.id }, unref(graphDocuments), graph.name || graph.id),
+      description: t('processDesigner.useGraphDescription'),
+      signal: 'structure',
+      operation: operation(GRAPH_INVOKE_OPERATION),
+      config: {
+        graphId: graph.id,
+        revision: graph.revision,
+        interface: {
+          inputs: graph.interface.inputs.map(port => cloneJson(port)),
+          outputs: graph.interface.outputs.map(port => cloneJson(port))
+        }
+      }
+    })));
     const grouped = new Map();
     const pluginSections = new Map();
     for (const definition of registry.list()) {
@@ -293,8 +288,8 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       const ports = config.interface || {};
       return {
         provider: op.provider, id: op.id, version: op.version,
-        label: t('processDesigner.useGraph'),
-        palette: { group: 'graphs', label: t('processDesigner.graphComposition') },
+        label: graphInvocationName(config, unref(graphDocuments), t('processDesigner.useGraph')),
+        palette: { group: 'graphs', label: t('processDesigner.graphBoundaries') },
         inputs: (ports.inputs || []).map(port => ({
           id: port.id, label: port.label || port.id,
           ...(port.contract || defaultContract), required: port.required !== false
@@ -835,11 +830,46 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
 
+  // The authoring signature: everything validation and node definitions
+  // read, with presentation (position, selection) excluded — drags and
+  // selection churn never re-run the passes. Identical derived rewrites
+  // keep the string unchanged, so the derived state converges.
+  const authoringSignature = computed(() => JSON.stringify({
+    interface: graphDocument.value.interface || {},
+    nodes: nodes.value.map(node => ({
+      id: node.id,
+      operation: node.data?.operation || null,
+      config: node.data?.config || {}
+    })),
+    edges: edges.value.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      sourceHandle: edge.sourceHandle,
+      target: edge.target,
+      targetHandle: edge.targetHandle,
+      kind: edge.kind || null
+    }))
+  }));
+  const nodeDefinitions = shallowRef({});
+  // The catalog names invocation cards and feeds pinned-interface
+  // resolution; a later catalog load re-runs the enrichment pass so
+  // placed cards adopt the graph's current name.
+  const catalogSignature = computed(() => (unref(graphDocuments) || [])
+    .map(item => `${item?._id || ''}:${item?.name || ''}:${item?.fields?.graphId || ''}`)
+    .join('|'));
+  watch(catalogSignature, () => {
+    nodes.value = nodes.value.map(node => enrichNode(node));
+  }, { flush: 'sync' });
+  watch([authoringSignature, catalogSignature], () => {
+    validation.value = validateCurrentGraph();
+    nodeDefinitions.value = Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]));
+  }, { flush: 'sync', immediate: true });
+
   return {
     nodes,
     edges,
     graphDocument,
-    validation: computed(() => validateCurrentGraph()),
+    validation,
     previewResult,
     executionRecord,
     inputBindings,
@@ -850,7 +880,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       providerGeneration.value;
       return Object.fromEntries(providerPreviewRenderers);
     }),
-    nodeDefinitions: computed(() => Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]))),
+    nodeDefinitions,
     contextPaletteGroups,
     contextPalette,
     contextPaletteSearch,

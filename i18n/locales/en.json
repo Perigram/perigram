@@ -3493,7 +3493,7 @@
     "scheduleInterval": "Repeat every",
     "scheduleIntervalPlaceholder": "ISO duration, e.g. P1D",
     "startOnEvent": "Start on event",
-    "graphBoundaries": "Graph boundaries",
+    "graphBoundaries": "Graphs",
     "graphInput": "Graph Input",
     "graphOutput": "Graph Output",
     "graphInputDescription": "Expose a value as a graph input",
@@ -3522,7 +3522,6 @@
     "graphNodeOutputs": "Node outputs",
     "graphUnavailableNode": "Node definition unavailable",
     "unknownNode": "Unavailable node",
-    "graphComposition": "Graph composition",
     "useGraph": "Use Graph",
     "useGraphDescription": "Invoke a pinned revision of another graph",
     "graphInputValues": "Graph inputs",
@@ -3549,7 +3548,6 @@
     "graphPinned": "Graph revision pinned",
     "graphUnavailable": "Graph could not be loaded",
     "loading": "Loading…",
-    "graphApplyInterfaceDeclaration": "Apply interface declaration",
     "graphConfigurationFieldRequired": "{field} is required",
     "graphConfigurationFieldInvalid": "{field} has an invalid value",
     "graphConfigurationFieldOutOfRange": "{field} is outside its allowed range",
@@ -3561,7 +3559,8 @@
     "filesCouldNotLoad": "Readable files could not be loaded",
     "templateValuesNeedPreview": "Run preview after connecting a template to discover its fields.",
     "templateSectionJsonHint": "Enter a JSON array for repeated rows, for example [{'{'}\"name\":\"Ada\"{'}'}].",
-    "templateSectionJsonInvalid": "Section value must be a valid JSON array."
+    "templateSectionJsonInvalid": "Section value must be a valid JSON array.",
+    "graphInterfaceConsumers": "Used by {graphs}. Pinned invocations keep their interface until each caller re-pins."
   },
   "generatedScreen": {
     "home": "Home",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { useGraphDocumentSession } from './useGraphDocumentSession.js';
 import {
   PROCESS_NODE_CATALOG,
@@ -29,6 +29,13 @@ function createProcessSession() {
     frameworkProviders: [PROCESS_PROCEDURAL_PROVIDER],
     executors: { [PROCESS_PROCEDURAL_PROVIDER]: createProcessProceduralExecutor() }
   });
+}
+
+
+function invocationItem(session) {
+  return session.paletteGroups.value
+    .flatMap(group => group.items)
+    .find(item => item.operation?.id === 'perigram.core.use-graph');
 }
 
 describe('useGraphDocumentSession', () => {
@@ -631,15 +638,17 @@ describe('useGraphDocumentSession', () => {
       t: key => key,
       graphDocuments: [{ graph: savedGraph }]
     });
-    const group = caller.paletteGroups.value.find(item => item.source === 'graphs');
-    expect(group.items).toHaveLength(1);
-    expect(group.items[0]).toMatchObject({
+    const group = caller.paletteGroups.value.find(item => item.id === 'graph-boundaries');
+    const invocations = group.items.filter(item => item.operation?.id === 'perigram.core.use-graph');
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]).toMatchObject({
       label: savedGraph.name || savedGraph.id,
       operation: { id: 'perigram.core.use-graph' },
       config: { graphId: savedGraph.id, revision: savedGraph.revision }
     });
+    expect(caller.paletteGroups.value.some(item => item.source === 'graphs')).toBe(false);
 
-    const node = caller.addNode(group.items[0], { x: 120, y: 80 });
+    const node = caller.addNode(invocations[0], { x: 120, y: 80 });
     expect(node.data.config).toMatchObject({
       graphId: savedGraph.id,
       revision: savedGraph.revision,
@@ -750,7 +759,7 @@ describe('useGraphDocumentSession', () => {
     });
     const pinned = child.serializeGraph();
     const session = useGraphDocumentSession({ t: key => key, graphDocuments: [{ graph: pinned }] });
-    const invocation = session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0];
+    const invocation = invocationItem(session);
     const node = session.addNode(invocation, { x: 0, y: 0 });
 
     const config = session.hydrateGraphInvocation(node.id, pinned);
@@ -894,7 +903,7 @@ describe('useGraphDocumentSession', () => {
 
     const graphDocuments = ref([]);
     const session = useGraphDocumentSession({ t: key => key, graphDocuments });
-    expect(session.paletteGroups.value.some(group => group.id === 'graph-invocation')).toBe(false);
+    expect(invocationItem(session)).toBeUndefined();
 
     let releaseCatalog;
     const catalog = new Promise(resolve => { releaseCatalog = resolve; });
@@ -902,9 +911,8 @@ describe('useGraphDocumentSession', () => {
     releaseCatalog([{ graph: savedGraph }]);
     await catalog;
 
-    const group = session.paletteGroups.value.find(item => item.id === 'graph-invocation');
-    expect(group.items).toHaveLength(1);
-    expect(group.items[0]).toMatchObject({
+    const invocation = invocationItem(session);
+    expect(invocation).toMatchObject({
       id: `use-graph:${savedGraph.id}@${savedGraph.revision}`,
       label: savedGraph.id,
       operation: { id: 'perigram.core.use-graph' },
@@ -939,7 +947,7 @@ describe('useGraphDocumentSession', () => {
     const graphDocuments = ref([{ graph: childGraph }]);
     const session = useGraphDocumentSession({ t: key => key, graphDocuments });
     const invocation = session.addNode(
-      session.paletteGroups.value.find(group => group.id === 'graph-invocation').items[0],
+      invocationItem(session),
       { x: 200, y: 0 }
     );
     const [input, output] = session.paletteGroups.value[0].items;
@@ -968,4 +976,57 @@ describe('useGraphDocumentSession', () => {
     expect(session.previewError.value)
       .toContain(`Pinned subgraph ${childGraph.id}@${childGraph.revision} is unavailable`);
   });
+  it('names a placed invocation by its saved graph record', () => {
+    const source = createSession();
+    const [input, output] = source.paletteGroups.value[0].items;
+    source.addNode(input, { x: 0, y: 0 });
+    source.addNode(output, { x: 240, y: 0 });
+    const savedGraph = source.serializeGraph();
+
+    const caller = useGraphDocumentSession({
+      t: key => key,
+      graphDocuments: [{ _id: 'graph-record', name: 'Report graph', fields: { graphId: savedGraph.id }, graph: savedGraph }]
+    });
+    const invocation = caller.paletteGroups.value
+      .flatMap(group => group.items)
+      .find(item => item.operation?.id === 'perigram.core.use-graph');
+
+    const node = caller.addNode(invocation, { x: 120, y: 80 });
+    expect(node.data.label).toBe('Report graph');
+    expect(node.data.definition.label).toBe('Report graph');
+  });
+
+  it('keeps derived validation cached across position-only changes', async () => {
+    const session = createSession();
+    const [input, output] = session.paletteGroups.value[0].items;
+    session.addNode(input, { x: 0, y: 0 });
+    const outputNode = session.addNode(output, { x: 240, y: 0 });
+    await nextTick();
+    const cached = session.validation.value;
+
+    session.nodes.value = session.nodes.value.map(node => (
+      node.id === outputNode.id ? { ...node, position: { x: 480, y: 120 } } : node
+    ));
+    await nextTick();
+    expect(session.validation.value).toBe(cached);
+
+    session.addNode(session.paletteGroups.value[0].items[0], { x: 100, y: 100 });
+    await nextTick();
+    expect(session.validation.value).not.toBe(cached);
+  });
+  it('re-derives invocation labels when the catalog renames the graph', () => {
+    const source = createSession();
+    const [input, output] = source.paletteGroups.value[0].items;
+    source.addNode(input, { x: 0, y: 0 });
+    source.addNode(output, { x: 240, y: 0 });
+    const savedGraph = source.serializeGraph();
+    const graphDocuments = ref([{ _id: 'graph-record', name: 'Report graph', fields: { graphId: savedGraph.id }, graph: savedGraph }]);
+    const caller = useGraphDocumentSession({ t: key => key, graphDocuments });
+    const node = caller.addNode(invocationItem(caller), { x: 120, y: 80 });
+    expect(node.data.label).toBe('Report graph');
+
+    graphDocuments.value = [{ ...graphDocuments.value[0], name: 'Renamed graph' }];
+    expect(caller.nodes.value.find(item => item.id === node.id).data.label).toBe('Renamed graph');
+  });
+
 });
