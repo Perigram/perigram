@@ -929,8 +929,8 @@ transcription stay in the host composer.
   contract in `assets/css/main.css`.
 - **`DesignerFilePanel.vue`**: The file panel body — the edited
   document's identity row rendered from the editor-page chrome api: the
-  name with in-place rename, the divergence refresh, and the
-  dirty-marked save. Mounted by `DesignerWorkspace` as the `file` dock
+  name with in-place rename, the divergence refresh, the
+  dirty-marked save, and the optional explicit Apply action. Mounted by `DesignerWorkspace` as the `file` dock
   panel above the canvas and as the compact strip row.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in: full

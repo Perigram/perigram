@@ -130,11 +130,11 @@ entity workflows, services, sockets, and field policies — and loads the
 organization's graph documents in place through the canonical graph session
 (the graphs list in the inspector owns open/create/rename/save). The
 checkmark apply
-action (on the graphs list) saves or forks the visible graph, activates the
-resulting process
+action lives in the editor's file panel; it saves the visible graph, activates
+the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
-canvas panel. When the next contract removes workflow states still held by
+canvas panel. Process drafts autosave on a debounce after each edit. When the next contract removes workflow states still held by
 live instances, Apply pauses in the migration dialog: the author maps each
 removed state to a retained target, and activation re-targets the affected
 instances (the canonical Apply migration contract lives in
@@ -160,7 +160,8 @@ service. Flow exposes conditional and bounded control operations.
 The route uses the authenticated app layout with a full canvas workspace
 — the page is the `graph-editor` file surface, so graph files and blank
 graph creation open here with that graph loaded; every blank creation gets
-a new editor session key — and the shared
+a new editor session key. The graphs list stays mounted while a graph document
+is open — and the shared
 `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell — the app's
 shared chrome tokens alone. Document and canvas commands render in the
 shell's floating PrimeVue

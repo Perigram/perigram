@@ -519,14 +519,15 @@ marker is attention, never a persistence gate. Re-activation records the
 superseded graph in the definition's history. New Draft, Save, and Apply
 run independent of node selection or inspector tab.
 
-The right pane owns the graphs list (the Graphs tab, the file/lifecycle
-home — SPEC §28.14). Process definitions render as a `Listbox` in the
+The graphs list is the file/lifecycle home (SPEC §28.14) and stays mounted in
+both editor mounts, including an open graph document. Process definitions render as a `Listbox` in the
 chats-inbox anatomy: each option is one line — the name
 (option click loads the definition into the designer; inline rename swaps
 the name span for an input), the activation switch (on = member of the
 additive active set; the switch is the state signal), and the versions +
-ellipsis buttons. The loaded definition's lifecycle commands (New Draft,
-dirty-gated Save, Apply) ride the list header. The versions button opens a `Popover` anchored at the
+ellipsis buttons. The loaded definition's lifecycle commands (New Draft, Save) ride the list
+header; Apply rides the editor's file panel. Process drafts autosave on a
+debounce after each edit. The versions button opens a `Popover` anchored at the
 row listing activation versions (`data.history`, newest first) with
 restore — the snapshot becomes the definition's data and goes live
 through activation. History rows render the timestamp only. The
@@ -726,7 +727,8 @@ nodes, which show no inspection action.
 
 ## Structure
 
-20 SFCs at folder root — canvas nodes (`ProcessNode.vue` — the one
+21 SFCs at folder root — the graphs list shared by both editor mounts
+(`GraphDocumentsList.vue`), canvas nodes (`ProcessNode.vue` — the one
 operation card; `GraphDocumentNode.vue` — its graph-document adapter;
 `CtsTypeNode.vue`),
 the shared canvas presentation (`GraphCanvas.vue`), the graph-document
