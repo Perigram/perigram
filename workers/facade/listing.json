@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, and sheet instances as an installable fabrication plugin; generic polygon nesting is provided by the Nesting plugin",
-  "version": "49",
+  "version": "50",
   "requires": [
     "tech-drawing",
     "nesting"
