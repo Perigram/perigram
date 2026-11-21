@@ -175,7 +175,10 @@ The workspace has six distinct concerns:
 5. Preview workspace: selected graph output and its available renderers,
    in a resizable region with sufficient space for document and 3D views.
 6. Diagnostics: validation, execution errors, and optional intermediate
-   node-output inspection.
+   node-output inspection. Diagnostics render on condition — errors,
+   warnings, and apply diffs — and the canvas carries no standing state
+   chrome: a valid draft shows no badge, and evaluation state has no
+   permanent pill.
 
 The preview workspace is not an inspector tab or right-side inspector
 section. It is a separate bottom panel or dedicated workspace pane. The

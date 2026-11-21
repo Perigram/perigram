@@ -61,18 +61,6 @@
           <template #fallback><div class="absolute inset-0" /></template>
         </ClientOnly>
 
-        <button
-          v-if="canvasStatus && onActivityClick"
-          type="button"
-          data-canvas-status
-          class="pointer-events-auto absolute left-1/2 top-3 z-30 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-content-border bg-content px-3 py-1.5 text-supporting text-muted shadow-overlay"
-          :aria-label="$t('processDesigner.canvasStatusAria', { status: canvasStatus.label, count: canvasStatus.count })"
-          @click="onActivityClick()"
-        >
-          <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDotClass(canvasStatus.state)" aria-hidden="true"></span>
-          <span>{{ canvasStatus.label }}</span>
-          <span class="rounded-full bg-subtle px-1.5 py-0.5">{{ canvasStatus.count }}</span>
-        </button>
         <!-- Selection speed dial: the quiet-card policy keeps nodes free of
              per-node chrome, so selection actions float beside the last
              selected node instead. -->
@@ -131,10 +119,13 @@
       </template>
     </DesignerWorkspace>
 
-    <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
+    <!-- The canvas validation strip speaks when there is something to
+         say: errors, warnings, apply diffs. A valid draft renders
+         nothing. -->
+    <div v-if="validation && (!validation.ok || (validation.warnings || []).length || validationDiffLines.length)" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
       <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
-        <Message :severity="validation.ok ? 'success' : 'error'">
-          {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
+        <Message v-if="!validation.ok" severity="error">
+          {{ validation.errors.join('; ') }}
         </Message>
         <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
         <Message v-if="validationDiffLines.length" severity="info">
@@ -223,21 +214,10 @@ const props = defineProps({
   onConnect: { type: Function, required: true },
   handleNodeDragStop: { type: Function, default: null },
   handleCanvasNodesChange: { type: Function, default: null },
-  readOnly: { type: Boolean, default: false },
-  canvasStatus: { type: Object, default: null },
-  onActivityClick: { type: Function, default: null }
+  readOnly: { type: Boolean, default: false }
 });
 
 const { t } = useI18n();
-
-function statusDotClass(state) {
-  return {
-    idle: 'bg-signal-identity',
-    running: 'bg-signal-temporal',
-    ready: 'bg-signal-data',
-    error: 'bg-signal-effect'
-  }[state] || 'bg-signal-identity';
-}
 
 function openPaletteAtPane(event) {
   if (!props.readOnly) props.openPanePalette(event);
