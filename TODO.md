@@ -186,6 +186,16 @@
   cross-plugin import and the cassette surface refuses to load; installs
   in executor mode (the owner's) stream it from the tech-drawing
   executor and work.
+- Owner reported the canvas still missing after the v50 upgrade. The
+  generated record page of an editor-bound type was never a bounded
+  workspace route: its height chain ran through `min-h-[100dvh]` and an
+  indefinite main, so the designer dock measured and laid out at ~100px
+  and the native host painted into a 59px strip. The layout now bounds
+  record pages whose type view carries an editor binding, and an
+  `ownsChrome` surface also suppresses the desktop header and flush
+  padding — the v49 chrome law never reached the layout. Verified live on
+  a v50 org: dock 1268×505, canvas 305px, one native host seeding the
+  face hatch and dims.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
