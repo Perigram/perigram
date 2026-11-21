@@ -238,7 +238,7 @@ export function parametersOf(text = '') {
 }
 
 export default function createSurface({ vue, components, locale, queries, records, notify, access }) {
-  const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
+  const { h, ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
   if (!queries || !records || !notify || !access) {
@@ -267,6 +267,8 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const cassetteTree = ref(createCassetteV2GraphTree());
       const cassetteNameDraft = ref(t('cassette.newCassette'));
+      const fileDirty = ref(false);
+      const fileSaving = ref(false);
       const selectedNodeId = ref(cassetteTree.value.rootId);
       const selectedWorkpieceOverrideId = ref('');
       const selectedRelationId = ref('');
@@ -959,7 +961,10 @@ export default function createSurface({ vue, components, locale, queries, record
       let suppressAutosave = false;
       let autosaveTimer = null;
 
-      const resetDesignerHistory = () => designerHistory.reset();
+      const resetDesignerHistory = () => {
+        designerHistory.reset();
+        fileDirty.value = false;
+      };
       const undoDesignerChange = () => designerHistory.undo();
       const redoDesignerChange = () => designerHistory.redo();
       const canUndo = designerHistory.canUndo;
@@ -1137,20 +1142,29 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       // A blank tab has no record yet: its draft name rides the first save.
-      const applyRename = async () => {
-        const name = cassetteNameDraft.value.trim();
+      const applyRename = async (nextName) => {
+        const name = String(nextName ?? cassetteNameDraft.value).trim();
         closeDockPopover();
+        if (!name) return;
+        cassetteNameDraft.value = name;
         const target = selectedTemplateId.value ? (props.record || blankCreatedTarget) : null;
-        if (!name || !target || recordTitle(target) === name) return;
+        if (!target || recordTitle(target) === name) {
+          fileDirty.value = false;
+          return;
+        }
         try {
           await props.persistence.rename(target, name);
           if (loadedDocument.value) loadedDocument.value = { ...loadedDocument.value, name };
+          fileDirty.value = false;
         } catch (error) {
           notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || t('cassette.errors.saveFailed') });
         }
       };
 
       const saveTemplate = async ({ saveAs = false } = {}) => {
+        if (fileSaving.value) return;
+        fileSaving.value = true;
+        try {
         const tree = JSON.parse(JSON.stringify(cassetteTree.value));
         const definition = await createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
         const name = cassetteNameDraft.value || t('cassette.newCassette');
@@ -1202,6 +1216,10 @@ export default function createSurface({ vue, components, locale, queries, record
           window.sessionStorage.removeItem(autosaveStorageKey.value);
         }
         sessionDraftAvailable.value = false;
+        fileDirty.value = false;
+        } finally {
+          fileSaving.value = false;
+        }
       };
 
       let previewToken = 0;
@@ -1269,6 +1287,7 @@ export default function createSurface({ vue, components, locale, queries, record
           return;
         }
         designerHistory.commit();
+        fileDirty.value = true;
       }, { deep: true });
       watch([cassetteTree, cassetteNameDraft, autosaveStorageKey], () => {
         if (!isClient()) return;
@@ -4453,6 +4472,18 @@ export default function createSurface({ vue, components, locale, queries, record
         templateThumbnails.value.get(`${record?._id || ''}:${record?.updatedAt || ''}`) || null
       );
 
+      // The editor-page chrome api (SPEC §4): the workspace file panel
+      // renders the cassette's name, dirty state, save, and rename.
+      const cassetteChrome = Object.assign(
+        reactive({
+          name: computed(() => cassetteNameDraft.value || t('cassette.newCassette')),
+          dirty: fileDirty,
+          saving: fileSaving,
+          diverged: false
+        }),
+        readOnly.value ? {} : { save: () => saveTemplate(), rename: name => applyRename(name) }
+      );
+
       return () => h(DesignerSurface, {
         class: 'relative gap-3',
         onKeydown: event => {
@@ -4464,6 +4495,7 @@ export default function createSurface({ vue, components, locale, queries, record
           layout: 'lanes',
           workspaceId: 'cassette-designer',
           class: 'min-h-0 flex-1',
+          chrome: cassetteChrome,
           canvasItems: [...(sketchMode.value ? [] : documentDockItems.value), ...canvasDockItems.value]
         }, {
           palette: renderPalette,
