@@ -312,7 +312,7 @@ function markSaved() {
   dirtyTimer = null;
 }
 watch(
-  () => [nodes.value, edges.value, graphDocument.value],
+  () => [nodes.value, edges.value, graphDocument?.value],
   () => {
     dirty.value = true;
     if (dirtyTimer) clearTimeout(dirtyTimer);
