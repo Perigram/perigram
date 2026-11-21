@@ -2,6 +2,7 @@ import {
   CAST_BASES,
   CONVERT_UNITS,
   getProcessNodeDefinition,
+  PROCESS_AUTHORED_BASES,
   PROCESS_NODE_CATALOG,
   resolveCatalogNodePorts
 } from './node-catalog.js';
@@ -31,12 +32,29 @@ export function processNodeConfigurationSchema(kind = '') {
     }
   }
   if (String(kind).startsWith('source.literal')) {
-    const value = kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null;
+    const isStructure = kind === 'source.literalList' || kind === 'source.literalTree';
+    const base = isStructure ? 'json' : 'string';
+    const value = kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : '';
     properties.value = {
-      type: kind === 'source.literalItem' ? 'string' : kind === 'source.literalList' ? 'array' : 'object',
+      title: 'Value',
+      semantic: {
+        kind: 'perigram.typed-value',
+        bases: [...PROCESS_AUTHORED_BASES],
+        typeField: 'type',
+        typeIdField: 'typeId'
+      },
       default: value
     };
+    defaults.type = { base, nullable: false };
     defaults.value = value;
+  }
+  if (['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(kind)) {
+    properties.type = {
+      title: 'Value type',
+      semantic: { kind: 'perigram.value-base', bases: [...PROCESS_AUTHORED_BASES] },
+      default: { base: 'string', nullable: false }
+    };
+    defaults.type = { base: 'string', nullable: false };
   }
   if (kind === 'value.format') {
     properties.template = { type: 'string', default: '' };

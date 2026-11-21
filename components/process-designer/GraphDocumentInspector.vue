@@ -111,6 +111,27 @@
             :model-value="configFieldValue(field)"
             @update:model-value="value => updateConfigField(field.id, value)"
           />
+          <TypedLiteralControl
+            v-else-if="field.schema.semantic?.kind === 'perigram.typed-value'"
+            :bases="field.schema.semantic.bases || []"
+            :base="configDraft.type?.base || 'string'"
+            :type-id="configDraft[field.schema.semantic.typeIdField || 'typeId'] || ''"
+            :model-value="configFieldValue(field)"
+            :type-options="typeOptions"
+            @update:base="base => setConfigValueBase(field, base)"
+            @update:type-id="value => updateTypeFieldId(field, value)"
+            @update:model-value="value => updateConfigField(field.id, value)"
+          />
+          <InstanceSelect
+            v-else-if="field.schema.semantic?.kind === 'perigram.value-base'"
+            :model-value="configDraft[field.id]?.base || 'string'"
+            :options="baseSelectOptions(field.schema.semantic.bases || [])"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="w-full"
+            @update:model-value="value => updateConfigField(field.id, { base: value, nullable: false })"
+          />
           <TypedValueControl
             v-else
             :base="configBase(field.schema)"
@@ -140,16 +161,18 @@ import ValueSelect from '~/components/shared/ValueSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
+import TypedLiteralControl from '~/components/process-designer/TypedLiteralControl.vue';
 import TemplateValuesControl from '~/components/process-designer/TemplateValuesControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_INVOKE_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 import { SEMANTIC_BASES, TRANSPORT_SHAPES } from '@perigram/plugin-sdk/nodes';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const props = defineProps({
   node: { type: Object, default: null },
+  typeOptions: { type: Array, default: () => [] },
   boundaryDeclaration: { type: Object, default: null },
   graphDocuments: { type: Array, default: () => [] },
   graphDocumentsLoading: { type: Boolean, default: false },
@@ -249,6 +272,58 @@ function configBase(schema = {}) {
   if (schema.type === 'integer' || schema.type === 'number') return schema.type;
   if (schema.type === 'boolean') return 'boolean';
   return 'string';
+}
+
+function baseSelectOptions(bases) {
+  return bases.map(value => {
+    const key = `processDesigner.dataTypes.${value}`;
+    return { label: te(key) ? t(key) : value, value };
+  });
+}
+
+function setConfigValueBase(field, base) {
+  const semantic = field.schema.semantic || {};
+  const typeField = semantic.typeField || 'type';
+  const typeIdField = semantic.typeIdField || 'typeId';
+  const typeId = configDraft.value[typeIdField] || '';
+  const type = { base, nullable: false, ...(base === 'entityRef' ? { typeId } : {}) };
+  const value = base === 'boolean' ? false
+    : ['number', 'integer'].includes(base) ? 0
+      : base === 'json' ? {}
+        : '';
+  configDraft.value = {
+    ...configDraft.value,
+    [typeField]: type,
+    [field.id]: value,
+    ...(base === 'entityRef' ? { [typeIdField]: typeId } : {})
+  };
+  commitConfigDraft();
+}
+
+function updateTypeFieldId(field, value) {
+  const semantic = field.schema.semantic || {};
+  const typeField = semantic.typeField || 'type';
+  const typeIdField = semantic.typeIdField || 'typeId';
+  configDraft.value = {
+    ...configDraft.value,
+    [typeIdField]: value || '',
+    [typeField]: { ...(configDraft.value[typeField] || {}), base: 'entityRef', typeId: value || '' },
+    [field.id]: null
+  };
+  commitConfigDraft();
+}
+
+function commitConfigDraft() {
+  const schema = props.node?.data?.definition?.configuration || {};
+  const required = schema.required || [];
+  for (const fieldId of required) {
+    if (configDraft.value[fieldId] == null || configDraft.value[fieldId] === '') {
+      configError.value = t('processDesigner.graphConfigurationFieldRequired', { field: fieldId });
+      return;
+    }
+  }
+  configError.value = '';
+  emit('update-config', { nodeId: props.node.id, config: { ...configDraft.value } });
 }
 
 function updateConfigField(id, value) {

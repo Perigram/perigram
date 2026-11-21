@@ -20,8 +20,19 @@ describe('process procedural provider adapter', () => {
 
   it('declares authored configuration so the graph inspector renders node settings', () => {
     const literal = createProcessGraphNodeDefinition('source.literalItem');
-    expect(literal.configuration.properties.value).toMatchObject({ type: 'string', default: null });
-    expect(literal.configuration.default).toMatchObject({ kind: 'source.literalItem', value: null });
+    expect(literal.configuration.properties.value.semantic).toMatchObject({
+      kind: 'perigram.typed-value',
+      typeField: 'type',
+      typeIdField: 'typeId'
+    });
+    expect(literal.configuration.properties.value.semantic.bases).toContain('entityRef');
+    expect(literal.configuration.default).toMatchObject({
+      kind: 'source.literalItem',
+      type: { base: 'string', nullable: false },
+      value: ''
+    });
+    expect(createProcessGraphNodeDefinition('value.format').configuration.properties.type.semantic.kind)
+      .toBe('perigram.value-base');
 
     const math = createProcessGraphNodeDefinition('value.math');
     expect(math.configuration.properties.operation.enum).toContain('add');

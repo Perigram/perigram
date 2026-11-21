@@ -255,6 +255,13 @@ export const CAST_BASES = Object.freeze(['json', 'record', 'list', 'string', 'nu
 // table defines (`CONVERT_UNIT_FACTORS` in the operation registry).
 export const CONVERT_UNITS = Object.freeze(Object.keys(CONVERT_UNIT_FACTORS));
 
+// The bases a literal or typed-value utility authors over; the inspector's
+// base selector and the typed-value control share this vocabulary.
+export const PROCESS_AUTHORED_BASES = Object.freeze([
+  'string', 'number', 'integer', 'boolean', 'json',
+  'date', 'dateTime', 'duration', 'enum', 'entityRef'
+]);
+
 
 function declarationTypePin(record = {}) {
   const typeId = typeIdOf(record);
