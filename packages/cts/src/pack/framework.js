@@ -1,6 +1,8 @@
 // Framework-owned types (SPEC §4 tenancy): party types are
 // framework-only declarations, present in every registry view regardless of
 // mounted packs.
+export const GRAPH_DOCUMENT_EXTENSION = '.perigram-graph';
+
 export const frameworkTypes = [
   {
     id: 'organization',
@@ -73,7 +75,8 @@ export const frameworkTypes = [
     glyph: 'pi pi-share-alt',
     payload: {
       mime: ['application/json'],
-      accept: ['.json', 'application/json'],
+      accept: [GRAPH_DOCUMENT_EXTENSION, 'application/json'],
+      preview: 'graph',
       maxSize: 5242880,
       creation: ['upload', 'editor']
     },

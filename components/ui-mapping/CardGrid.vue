@@ -126,7 +126,7 @@
                 <FileChip
                   v-if="instance.payload?.fileId"
                   :file="instance.payload"
-                  @open="downloadPayload(instance)"
+                  @open="openFileChip(instance)"
                 />
                 <InstanceIdentity
                   :instance="instance"
@@ -203,6 +203,7 @@ import {
   resolveActionButton, actionLabelKey, stateDisplayFor, titleFor, iconFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
+import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import TraceChain from '../shared/links/TraceChain.vue';
@@ -279,9 +280,13 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
   })));
 
-// A plain-stack card's payload chip opens the payload download — the
-// preview contract's escape hatch for modes the viewer cannot render.
-function downloadPayload(instance) {
+// The payload chip follows the type's editor binding: an editor-bound file
+// opens its record; unbound types download the payload.
+function openFileChip(instance) {
+  if (resolveFileSurface(null, String(props.type?.id || ''))) {
+    emit('open', instance);
+    return;
+  }
   const url = instancePayloadFileUrl(instance?.payload);
   if (url) window.open(`${url}&download=1`, '_blank', 'noopener');
 }

@@ -76,6 +76,38 @@
       />
       <p v-else :class="variant === 'card' ? 'line-clamp-[12] m-0 whitespace-pre-wrap break-words' : 'm-0 whitespace-pre-wrap break-words'">{{ text }}</p>
     </div>
+    <svg
+      v-else-if="hasFile && mode === 'graph' && ready"
+      :viewBox="graphViewBox"
+      preserveAspectRatio="xMidYMid meet"
+      class="h-full w-full"
+      data-graph-payload-preview
+    >
+      <line
+        v-for="edge in graphEdges"
+        :key="edge.id"
+        :x1="edge.x1"
+        :y1="edge.y1"
+        :x2="edge.x2"
+        :y2="edge.y2"
+        stroke="currentColor"
+        stroke-width="1.5"
+        class="text-muted"
+      />
+      <g v-for="node in graphNodes" :key="node.id" class="text-muted">
+        <rect
+          :x="node.x"
+          :y="node.y"
+          :width="GRAPH_NODE_WIDTH"
+          :height="GRAPH_NODE_HEIGHT"
+          rx="6"
+          fill="var(--p-content-background)"
+          stroke="currentColor"
+          stroke-width="1.5"
+        />
+        <text :x="node.x + 8" :y="node.y + 19" fill="currentColor" class="text-[10px]">{{ node.label }}</text>
+      </g>
+    </svg>
     <StateBlock v-else-if="hasFile && asyncMode && pending" state="loading" />
     <StateBlock v-else-if="!hasFile" state="empty" :message="$t('file.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
@@ -110,8 +142,12 @@ const props = defineProps({
   source: { type: Object, required: true },
   variant: { type: String, default: 'pane' }
 });
+const GRAPH_NODE_WIDTH = 132;
+const GRAPH_NODE_HEIGHT = 52;
+
 const docxHost = ref(null);
 const text = ref('');
+const graphPayload = ref(null);
 const rows = ref([]);
 const columns = ref([]);
 const error = ref('');
@@ -124,17 +160,49 @@ const fileName = computed(() => props.source?.attachment?.name || '');
 const mimeType = computed(() => props.source?.attachment?.mime || 'application/octet-stream');
 // Modes whose whole render depends on the payload fetch: they state
 // loading and surface a failed download.
-const asyncMode = computed(() => ['docx', 'table', 'workbook', 'text'].includes(mode.value)
+const asyncMode = computed(() => ['docx', 'table', 'workbook', 'text', 'graph'].includes(mode.value)
   || (mode.value === 'pdf' && props.variant === 'card'));
 const ready = computed(() => fetchState.value === 'ready');
 const pending = computed(() => ['idle', 'loading'].includes(fetchState.value));
 // The text preview mode is markdown prose: it renders through the shared
 // pipeline like the text editor and agent answers.
 const renderedMarkdown = computed(() => (mode.value === 'text' ? renderMarkdown(text.value) : ''));
+
+const graphNodes = computed(() => (Array.isArray(graphPayload.value?.nodes) ? graphPayload.value.nodes : []).map(node => ({
+  id: String(node.id || ''),
+  x: Number(node.position?.x) || 0,
+  y: Number(node.position?.y) || 0,
+  label: String(node.config?.label || String(node.operation?.id || '').split('.').pop() || '').slice(0, 18)
+})));
+const graphNodeById = computed(() => new Map(graphNodes.value.map(node => [node.id, node])));
+const graphEdges = computed(() => (Array.isArray(graphPayload.value?.edges) ? graphPayload.value.edges : [])
+  .map(edge => {
+    const source = graphNodeById.value.get(String(edge.source?.node || ''));
+    const target = graphNodeById.value.get(String(edge.target?.node || ''));
+    if (!source || !target) return null;
+    return {
+      id: String(edge.id || `${source.id}-${target.id}`),
+      x1: source.x + GRAPH_NODE_WIDTH,
+      y1: source.y + GRAPH_NODE_HEIGHT / 2,
+      x2: target.x,
+      y2: target.y + GRAPH_NODE_HEIGHT / 2
+    };
+  })
+  .filter(Boolean));
+const graphViewBox = computed(() => {
+  const nodes = graphNodes.value;
+  if (!nodes.length) return '0 0 320 180';
+  const xs = nodes.flatMap(node => [node.x, node.x + GRAPH_NODE_WIDTH]);
+  const ys = nodes.flatMap(node => [node.y, node.y + GRAPH_NODE_HEIGHT]);
+  const pad = 16;
+  const minX = Math.min(...xs) - pad;
+  const minY = Math.min(...ys) - pad;
+  return `${minX} ${minY} ${Math.max(...xs) - minX + pad} ${Math.max(...ys) - minY + pad}`;
+});
 // Modes that need the payload bytes client-side: the readers, the
 // blob-backed image swap, and the card's pdf thumbnail.
 function needsFetch() {
-  if (['docx', 'table', 'workbook', 'text', 'image'].includes(mode.value)) return true;
+  if (['docx', 'table', 'workbook', 'text', 'graph', 'image'].includes(mode.value)) return true;
   return mode.value === 'pdf' && props.variant === 'card';
 }
 // The pane's PDF iframe targets the file URL itself: the viewer params
@@ -183,7 +251,7 @@ function releaseBlob() {
 
 async function load() {
   releaseBlob();
-  text.value = ''; rows.value = []; columns.value = []; error.value = '';
+  text.value = ''; graphPayload.value = null; rows.value = []; columns.value = []; error.value = '';
   fetchState.value = 'idle';
   if (!hasFile.value || ['dxf', 'svg', 'sketch'].includes(mode.value)) return;
     // The payload fetch is relative and client-owned: the server paints
@@ -193,8 +261,10 @@ async function load() {
   try {
     const response = await fetch(fileUrl.value);
     if (!response.ok) throw new Error(response.statusText);
-    if (mode.value === 'text') {
-      text.value = await response.text();
+    if (mode.value === 'text' || mode.value === 'graph') {
+      const body = await response.text();
+      if (mode.value === 'text') text.value = body;
+      else graphPayload.value = JSON.parse(body);
       fetchState.value = 'ready';
       return;
     }

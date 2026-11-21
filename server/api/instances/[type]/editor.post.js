@@ -50,11 +50,9 @@ export default defineEventHandler(async event => {
     ? declaration.payload.mime
     : [declaration.payload.mime].filter(Boolean);
   const mime = mimes[0] || 'application/octet-stream';
-  const extension = mime === 'application/json' ? 'json'
-    : mime === 'text/markdown' ? 'md'
-      : mime === 'text/csv' ? 'csv'
-        : '';
-  const filename = `${name}${extension ? `.${extension}` : ''}`;
+  const accepted = [].concat(declaration.payload.accept || []);
+  const extension = accepted.find(entry => String(entry).startsWith('.')) || '';
+  const filename = `${name}${extension}`;
 
   const stored = await filesService.uploadFile(bytes, filename, {
     userId: auth.userId,
