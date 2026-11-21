@@ -12,11 +12,31 @@
         :persistence="graphDocumentPersistence"
         :mode="pageProps.mode"
         :page-chrome="pageProps.pageChrome || graphDocumentChromeChannel"
-      />
+      >
+        <template #inspector-extra>
+          <GraphDocumentsList
+            :documents="graphDocuments"
+            :loading="graphDocumentsLoading"
+            :error="graphDocumentsError"
+            :active-id="String(activeGraphDocument?._id || '')"
+            :dirty="Boolean(graphDocumentChrome?.dirty)"
+            :saving="Boolean(graphDocumentChrome?.saving)"
+            :renaming-id="renamingGraphId"
+            :renaming-name="renamingGraphName"
+            @open="openGraphDocument"
+            @create="openBlankGraphDocument"
+            @close="closeGraphDocument"
+            @rename-start="beginGraphRename"
+            @rename-input="value => renamingGraphName = value"
+            @rename-apply="applyGraphRename"
+          />
+        </template>
+      </GraphEditorSurface>
       <GraphEditorSurface
         v-else
         :session="processSession"
         :canvas-items="canvasDockItems"
+        :chrome-override="processChrome"
         @preview-visibility="onPreviewRegionVisibility"
       :palette-placeholder="$t('processDesigner.searchOperations')"
       :empty-message="emptyCanvasMessage"
@@ -72,14 +92,6 @@
                   severity="secondary"
                   :disabled="applyBusy || creatingDraft"
                   @click="saveDraftWithToast"
-                />
-                <Button
-                  :label="t('processDesigner.apply')"
-                  icon="pi pi-check"
-                  size="small"
-                  :disabled="!draft?._id || applyBusy || creatingDraft"
-                  :loading="applyState === 'applying'"
-                  @click="applyProcess"
                 />
               </div>
               <Listbox
@@ -180,84 +192,24 @@
                 </div>
               </Popover>
 
-              <!-- Graph documents: the same graphs list carries the
-                   organization's graph files; the loaded one edits in
-                   place, its save/rename riding the editor chrome. -->
-              <div class="mt-3 flex flex-col gap-1.5" data-graph-documents>
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-label">{{ $t('processDesigner.graphDocuments') }}</span>
-                  <Button
-                    icon="pi pi-plus"
-                    size="small"
-                    text
-                    severity="secondary"
-                    :aria-label="$t('processDesigner.newGraphDocument')"
-                    @click="openBlankGraphDocument"
-                  />
-                </div>
-                <div v-if="graphDocumentsLoading" class="text-supporting text-muted">…</div>
-                <Message v-else-if="graphDocumentsError" severity="error">{{ graphDocumentsError }}</Message>
-                <div
-                  v-for="doc in graphDocuments"
-                  v-else
-                  :key="doc._id"
-                  class="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-ui px-2 py-1.5"
-                  :class="isActiveGraphDocument(doc) ? 'bg-subtle' : 'hover:bg-subtle'"
-                  @click="openGraphDocument(doc)"
-                >
-                  <template v-if="renamingGraphId === String(doc._id)">
-                    <InputText
-                      v-model="renamingGraphName"
-                      class="min-w-0 flex-1"
-                      size="small"
-                      :aria-label="$t('common.rename')"
-                      @click.stop
-                      @keydown.enter.prevent.stop="applyGraphRename(doc)"
-                    />
-                    <Button
-                      icon="pi pi-check"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      :disabled="!renamingGraphName.trim()"
-                      @click.stop="applyGraphRename(doc)"
-                    />
-                  </template>
-                  <template v-else>
-                    <span class="min-w-0 flex-1 truncate" :title="doc.name">{{ doc.name }}</span>
-                    <span
-                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.dirty"
-                      class="h-2 w-2 shrink-0 rounded-full bg-primary"
-                      :title="$t('common.unsavedChanges')"
-                      aria-hidden="true"
-                    />
-                    <span
-                      v-if="isActiveGraphDocument(doc) && graphDocumentChrome?.saving"
-                      class="pi pi-spin pi-spinner shrink-0 text-muted"
-                      aria-hidden="true"
-                    />
-                    <Button
-                      v-if="isActiveGraphDocument(doc)"
-                      icon="pi pi-times"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      severity="secondary"
-                      :aria-label="$t('processDesigner.closeGraphDocument')"
-                      @click.stop="closeGraphDocument"
-                    />
-                    <Button
-                      icon="pi pi-pencil"
-                      class="shrink-0"
-                      size="small"
-                      text
-                      severity="secondary"
-                      :aria-label="$t('common.rename')"
-                      @click.stop="beginGraphRename(doc)"
-                    />
-                  </template>
-                </div>
-              </div>
+              <!-- The graphs list (SPEC §28.14): the same list carries the
+                   organization's graph files and process definitions. -->
+              <GraphDocumentsList
+                :documents="graphDocuments"
+                :loading="graphDocumentsLoading"
+                :error="graphDocumentsError"
+                :active-id="String(activeGraphDocument?._id || '')"
+                :dirty="Boolean(graphDocumentChrome?.dirty)"
+                :saving="Boolean(graphDocumentChrome?.saving)"
+                :renaming-id="renamingGraphId"
+                :renaming-name="renamingGraphName"
+                @open="openGraphDocument"
+                @create="openBlankGraphDocument"
+                @close="closeGraphDocument"
+                @rename-start="beginGraphRename"
+                @rename-input="value => renamingGraphName = value"
+                @rename-apply="applyGraphRename"
+              />
             </TabPanel>
             <TabPanel value="inspector">
               <GraphInspector
@@ -663,7 +615,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Menu from 'primevue/menu';
@@ -690,6 +642,7 @@ import { useGraphDocumentCatalog } from '~/composables/useGraphDocumentCatalog.j
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import GraphEditorSurface from '~/components/process-designer/GraphEditorSurface.vue';
+import GraphDocumentsList from '~/components/process-designer/GraphDocumentsList.vue';
 import GraphInspector from '~/components/process-designer/GraphInspector.vue';
 import GraphPreviewPanel from '~/components/process-designer/GraphPreviewPanel.vue';
 import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
@@ -1044,6 +997,33 @@ const defaultEdgeOptions = {
 
 const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+
+// The file panel's explicit commands: save and activation stay user-owned;
+// draft persistence itself rides the debounced autosave below.
+const processChrome = reactive({
+  name: computed(() => String(draft.value?.identity?.name || draft.value?.name || '')),
+  dirty: isDirty,
+  saving: computed(() => applyState.value === 'saving'),
+  applyBusy,
+  canApply: computed(() => Boolean(draft.value?._id) && !applyBusy.value && !creatingDraft.value),
+  apply: applyProcess,
+  save: saveDraftWithToast
+});
+
+let autosaveTimer = null;
+watch(isDirty, dirty => {
+  if (!dirty || !draft.value?._id || applyBusy.value || creatingDraft.value) return;
+  if (!['idle', 'error'].includes(applyState.value)) return;
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    autosaveTimer = null;
+    try {
+      if (await saveDraft()) savedDraftSignature.value = designerSignature();
+    } catch {
+      // The manual save reports its error; autosave stays quiet.
+    }
+  }, 1200);
+});
 // Lanes — the authorization surface, canonical in
 // components/process-designer README "Lanes". ONLY effects participate
 // (they alone carry access): one lane per role in fixed order plus an
@@ -1454,6 +1434,7 @@ onMounted(async () => {
   reconcilePollTimer = setInterval(reconcileOutOfBandDraft, RECONCILE_POLL_MS);
 });
 onBeforeUnmount(() => {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
   if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
   window.removeEventListener('focus', reconcileOutOfBandDraft);
   if (reconcilePollTimer) clearInterval(reconcilePollTimer);

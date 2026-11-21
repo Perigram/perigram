@@ -10,7 +10,7 @@
       :bind-canvas-pane="bindCanvasPane"
       :bind-context-palette-search="bindContextPaletteSearch"
       :canvas-items="activeCanvasItems"
-      :chrome="chromeApi"
+      :chrome="activeChrome"
       :touch-pan-drag="touchPanDrag"
       :default-edge-options="{ type: 'default' }"
       :palette-groups="paletteGroups"
@@ -47,6 +47,7 @@
       <template v-if="!readOnly" #inspector>
         <slot v-if="$slots.inspector" name="inspector" />
         <div v-else class="flex h-full min-h-0 flex-col overflow-y-auto p-3">
+          <slot name="inspector-extra" />
           <GraphDocumentInspector
             :node="selectedNode"
             :type-options="graphTypeOptions"
@@ -123,6 +124,7 @@ const props = defineProps({
   persistence: { type: Object, default: null },
   mode: { type: String, default: 'edit' },
   pageChrome: { type: Object, default: null },
+  chromeOverride: { type: Object, default: null },
   nodeProviders: { type: Array, default: () => [] },
   session: { type: Object, default: null },
   canvasItems: { type: Array, default: null },
@@ -578,6 +580,7 @@ const chromeApi = Object.assign(
   readOnly.value ? {} : { save: saveGraphDocument, rename: renameGraphDocument }
 );
 props.pageChrome?.bind?.(chromeApi);
+const activeChrome = computed(() => props.chromeOverride || chromeApi);
 
 onMounted(async () => {
   if (props.session) return;

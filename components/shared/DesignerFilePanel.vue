@@ -38,6 +38,17 @@
       :disabled="!chromeApi.dirty"
       @click="chromeApi.save()"
     />
+    <Button
+      v-if="chromeApi.apply"
+      :label="$t('processDesigner.apply')"
+      icon="pi pi-check"
+      size="small"
+      text
+      severity="secondary"
+      :loading="chromeApi.applyBusy"
+      :disabled="!chromeApi.canApply"
+      @click="chromeApi.apply()"
+    />
   </div>
 </template>
 
