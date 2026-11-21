@@ -357,9 +357,9 @@ describe('field control resolution', () => {
     expect(cardAnatomyFor({
       id: 'graph-document',
       identifier: 'name',
-      fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string' } },
+      fields: { name: { base: 'string', identifier: true }, graphId: { base: 'string', display: 'hidden' } },
       payload: { preview: 'graph' }
-    })).toBe('side');
+    })).toBe('tile');
     expect(cardAnatomyFor({ id: 'part', identifier: 'name', fields: { name: { base: 'string', identifier: true }, width: { base: 'number' } } })).toBe('plain');
     const declared = { id: 'design', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, previewSource: { display: 'geometry' } };
     expect(cardAnatomyFor(declared)).toBe('tile');
@@ -813,6 +813,10 @@ describe('title, glyph, and field groups', () => {
     expect(groups[2].label).toBeNull();
     expect(groups[2].fields.map(field => field.name)).toEqual(['c']);
     expect(resolveFieldGroups({ fields: { a: { base: 'string' } } }).map(group => group.id)).toEqual(['default']);
+    expect(resolveFieldGroups({ fields: {
+      a: { base: 'string' },
+      stored: { base: 'string', display: 'hidden' }
+    } })[0].fields.map(field => field.name)).toEqual(['a']);
   });
 });
 

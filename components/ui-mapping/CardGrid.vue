@@ -204,6 +204,8 @@ import {
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
+import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
+import { useInstancesStore } from '~/stores/instances';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import TraceChain from '../shared/links/TraceChain.vue';
@@ -213,6 +215,7 @@ import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from '~/components/shared/chip-surface
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
+const instances = useInstancesStore();
 
 // The tile anatomy carries its whole card in the header slot; the body
 // slot stays hidden so no empty padded box trails the media.
@@ -281,11 +284,16 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   })));
 
 // The payload chip follows the type's editor binding: an editor-bound file
-// opens its record; unbound types download the payload.
+// opens its file-surface editor; unbound types download the payload.
 function openFileChip(instance) {
-  if (resolveFileSurface(null, String(props.type?.id || ''))) {
-    emit('open', instance);
-    return;
+  const typeId = String(props.type?.id || '');
+  const surface = resolveFileSurface(null, typeId);
+  if (surface?.workspacePage) {
+    const entity = instances.dtoFor(instances.canonicalTypeKey(typeId), String(instance?.id || instance?._id || ''));
+    if (entity?._id) {
+      openWorkspacePageFromChrome({ pageId: surface.surface, typeId, entity });
+      return;
+    }
   }
   const url = instancePayloadFileUrl(instance?.payload);
   if (url) window.open(`${url}&download=1`, '_blank', 'noopener');
