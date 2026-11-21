@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" :class="spacing ? spacing.screenRoot : LAYOUT.stackSection">
+  <div ref="root" :class="[spacing ? spacing.screenRoot : LAYOUT.stackSection, 'h-full', 'min-h-0']">
     <RegionChildren
       :regions="composed.regions"
       :arrangement="composed.regionsArrangement"

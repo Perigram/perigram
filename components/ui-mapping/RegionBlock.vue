@@ -193,7 +193,7 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'relative', recordDocument && !editorSurface ? LAYOUT.measure : '']">
+  <div v-else :class="[stackFor, 'w-full', 'relative', 'h-full', 'min-h-0', recordDocument && !editorSurface ? LAYOUT.measure : '']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0">
       <!-- The editor page (SPEC §4, owner direction 2026-11-07): a
