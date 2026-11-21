@@ -243,6 +243,19 @@ application.
   editor while later keystrokes queue the next write; the header's
   cluster slot keeps the flush-now save.
 
+## Drag payloads
+
+Native drag payloads carry app-private MIME types, so dropping a dragged
+item over an editor or text field inserts nothing.
+
+| Source | Type | Value |
+|---|---|---|
+| Document section handle | `application/x-perigram-doc-section` | section key |
+| Board card | `application/x-perigram-instance` | instance id |
+
+Drop targets resolve the drag through their in-memory state (the session's
+`dragKey`, the board's dragged instance).
+
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
