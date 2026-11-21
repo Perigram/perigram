@@ -45,7 +45,7 @@
           keep-empty-lists
           @open-instance="openClassInstance"
         />
-        <div v-if="session.loaded" :class="[spacing.screenRoot, 'w-full']">
+        <div v-if="session.loaded" class="flex w-full flex-col gap-2">
           <DocumentSectionShell
             v-for="(key, index) in session.order"
             :key="key"

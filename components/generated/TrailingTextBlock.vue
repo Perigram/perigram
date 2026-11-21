@@ -65,8 +65,9 @@ function commit(focusNext = false) {
     props.session.appendTextBlock?.(draft.value);
     draft.value = '';
     editorKey.value += 1;
+    // The remounted engine takes the focus on ready; focusing now would
+    // land on the host the remount is replacing.
     focusAfterCommit.value = focusNext;
-    nextTick(focusIfRequested);
     return;
   }
   if (focusNext) {
