@@ -49,6 +49,8 @@ it — is `genericPaletteItemForKind`.
 
 The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition.
 
+`processNodeConfigurationSchema` (`src/procedural-provider.js`) is the one home for the authoring fields the [graph editor's inspector](../../components/process-designer/README.md#inspector-anatomy) renders from the node definition: `operation` (with the kind's default) for polymorphic operations, `direction` for sort, `value` for literals, `template` for format, `fromUnit`/`toUnit` for convertUnit, and `outputType` for cast. A palette drop seeds node config from that schema's default, so the setting the inspector shows is the one the evaluator runs.
+
 ## Authoring seam
 
 A process definition is data and its authoring path is one seam:

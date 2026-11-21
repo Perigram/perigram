@@ -73,7 +73,10 @@ with the selected output; input bindings and Bake follow it.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
-semantic base/kind/nullability, required status, and optional defaults. Socket gestures,
+semantic base/kind/nullability, required status, and optional defaults. The
+process adapter's schema for its operations is owned by
+[packages/processes](../../packages/processes/README.md); plugin services
+declare theirs in their listings. Socket gestures,
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 
