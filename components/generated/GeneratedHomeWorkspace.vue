@@ -113,8 +113,7 @@
              its suggestions flyout and carries active call rooms as rows
              only while calls run — then one panel per top-level explorer
              type, the user sections with their nested pages, and loose
-             root pages; the new-section affordance sits at the foot.
-             Default rows carry the registry icons and title-resolver
+             root pages. Default rows carry the registry icons and title-resolver
              labels. The capture click handler splits header and row
              clicks from collapse toggling (chevron-only); the same seam
              routes context gestures (right-click, long-press) on user

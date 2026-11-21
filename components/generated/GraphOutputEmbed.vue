@@ -1,5 +1,5 @@
 <template>
-  <div class="my-2 rounded border border-surface p-3">
+  <div class="rounded border border-surface p-3">
     <div v-if="view.phase === 'loading'" class="text-supporting text-muted">{{ t('editors.loadingGraphResult') }}</div>
     <div v-else-if="view.phase === 'unavailable'" class="text-supporting text-muted">{{ t('editors.graphResultUnavailable') }}</div>
     <template v-else>
