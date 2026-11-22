@@ -49,6 +49,17 @@ describe('useGraphDocumentSession', () => {
     expect(session.draftSignature()).not.toBe(baseline);
   });
 
+  it('captures an immutable document and signature for an in-flight save', () => {
+    const session = createSession();
+    const submitted = session.createSaveSnapshot();
+    const submittedNodeCount = submitted.document.nodes.length;
+    const boundary = session.paletteGroups.value[0].items[0];
+    session.addNode(boundary, { x: 120, y: 80 });
+
+    expect(submitted.document.nodes).toHaveLength(submittedNodeCount);
+    expect(session.draftSignature()).not.toBe(submitted.signature);
+  });
+
   it('executes the Documents Markdown-to-file workflow through listing-derived graph nodes', async () => {
     const documents = createDocumentsRuntime();
     const [provider] = documents.providers;
