@@ -7,6 +7,8 @@
 import { CONVERT_UNIT_FACTORS } from './operations.js';
 import { PROCESS_DATA_ACCESS } from './data-tree.js';
 
+export { PROCESS_DATA_ACCESS };
+
 export const PROCESS_PROTOCOL_VERSION = 4;
 
 export const PROCESS_OPERATION_LEVELS = Object.freeze([
