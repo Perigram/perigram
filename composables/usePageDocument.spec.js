@@ -82,6 +82,7 @@ describe('usePageDocumentSession pickers', () => {
   });
 
   it('isolates nested block payloads in an in-flight save snapshot', async () => {
+    vi.useFakeTimers();
     let resolveSave;
     pageMocks.saveDocument.mockImplementationOnce(() => new Promise(resolve => {
       resolveSave = resolve;
@@ -101,6 +102,8 @@ describe('usePageDocumentSession pickers', () => {
     resolveSave();
     await saving;
     expect(doc.dirty).toBe(true);
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   it('drops trailing empty text blocks on the seed', () => {
