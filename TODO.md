@@ -7,6 +7,12 @@
 - [ ] WAITING — `POST /api/auth/leave-org` removes the caller's membership and role assignment with the last-member and last-owner guards.
 - [ ] WAITING — Owner verification: standalone login, orgless home workspace, create/switch/leave, and invitation acceptance.
 
+### Agent Notes (2026-11-22, agent/standalone-users-20261122)
+
+- Authenticated entry always runs the home ladder; orgless accounts render the home workspace with chats, calls, and account controls. The orgless type-view cache resolves an empty view without requesting `/api/admin/cts/types`.
+- Account settings render each membership as an open/switch/leave menu; leave asks for confirmation. `POST /api/auth/leave-org` removes the membership and role assignment, selects another active membership or no organization, and refuses the last active member or owner.
+- Focused `users.spec.js`, SSR smoke, architecture, and documentation guards pass. Headless login verified the orgless home workspace with no 4xx requests and the member settings menu with open/switch/leave entries.
+
 ## Graph management correctness (SPEC §28, owner direction 2026-11-21)
 
 - [ ] WAITING — Give graph documents the dedicated `.perigram-graph` extension on save and blank creation; keep the JSON payload and mime.

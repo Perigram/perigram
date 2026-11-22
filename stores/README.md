@@ -253,6 +253,9 @@ and `rolled-back` are settled observations; the next write re-enters
   compiled permissions. Tenant-management chrome can also check
   `tenantPermissions` through `hasTenantPermission()`, which reads explicit
   active membership grants for organization/team/process management recovery.
+  `switchOrganization()` and `leaveOrganization()` re-hydrate through
+  `setUser()`; leaving the active organization selects the server's fallback
+  membership or no organization.
   State surfaces derive their vocabulary through
   [composables/useStatePolicy](../composables/README.md#usestatepolicy--the-flat-state-vocabulary-source),
   the flat contract over the hydration payload's compiled producer workflows.
