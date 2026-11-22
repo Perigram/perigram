@@ -284,10 +284,12 @@ export function usePageDocumentSession({ docId, tabKey }) {
     if (!dirty.value || saving.value || !id.value) return false;
     saving.value = true;
     const submittedSignature = draftSignature();
-    const snapshot = {
-      blocks: draftBlocks.value.map(block => ({ ...block })),
-      order: [...draftOrder.value]
-    };
+    // Persistence receives an isolated JSON snapshot; nested collection/view
+    // payloads must not remain aliased to the live reactive draft.
+    const snapshot = JSON.parse(JSON.stringify({
+      blocks: draftBlocks.value,
+      order: draftOrder.value
+    }));
     try {
       await pagesStore.saveDocument(id.value, snapshot);
       if (draftSignature() === submittedSignature) {
