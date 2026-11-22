@@ -127,6 +127,7 @@
     "newClass": "Новый класс",
     "createTitle": "Новый класс",
     "editTitle": "Редактировать класс",
+    "deleteConfirm": "Удалить класс {name}?",
     "fields": "Поля",
     "children": "Дочерние классы",
     "addChild": "Добавить дочерний класс",

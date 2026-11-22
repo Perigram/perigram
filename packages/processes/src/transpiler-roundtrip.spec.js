@@ -7,7 +7,7 @@
 // canvas -> definition -> canvas preserves labels, and the compiled tree
 // still declares the wired fields/states/nesting/children after it.
 import { describe, expect, it } from 'vitest';
-import { canvasToDefinition, definitionToCanvas } from './transpiler.js';
+import { canvasToDefinition, definitionToCanvas, hasCanonicalProcessSource } from './transpiler.js';
 import { compileTreeDeclarations } from './designer.js';
 
 function declarationCanvas() {
@@ -97,5 +97,24 @@ describe('declaration wire labels round-trip', () => {
     expect(diagnostics).toEqual([]);
     expect(declarations.find(declaration => declaration.id === 'widget').edges.children.gadgets)
       .toMatchObject({ types: ['gadget'], onRemove: 'restrict' });
+  });
+
+  it('treats an empty canonical graph as editable source', () => {
+    const empty = {
+      schemaVersion: 1,
+      dataflowVersion: 5,
+      graph: { nodes: [], edges: [] },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      ctsTypes: {},
+      processNodes: {},
+      compiled: { actions: {} }
+    };
+    expect(hasCanonicalProcessSource(empty)).toBe(true);
+    expect(() => definitionToCanvas(empty)).not.toThrow();
   });
 });

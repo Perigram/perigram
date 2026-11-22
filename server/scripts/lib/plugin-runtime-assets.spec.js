@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { buildDocumentsRuntime } from '../../../workers/documents/build-runtime.mjs';
-import { collectRuntimeAssetFiles } from './plugin-runtime-assets.js';
+import { collectRuntimeAssetFiles, prepareListingRelease } from './plugin-runtime-assets.js';
 import build123dListing from '../../../workers/build123d/listing.json' with { type: 'json' };
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
 import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
@@ -73,6 +73,13 @@ describe('managed plugin runtime asset collection', () => {
     expect(paths.has('runtime/server.mjs')).toBe(true);
     expect(paths.has('assets/vendor/clipper2/clipper2z.js')).toBe(true);
     expect(paths.has('assets/vendor/clipper2/clipper2z.wasm')).toBe(true);
+  });
+
+  it('packages the Documents editor surface stylesheets', () => {
+    const packageRoot = fileURLToPath(new URL('../../../workers/documents', import.meta.url));
+    const paths = new Set(prepareListingRelease(documentsListing, packageRoot).map(asset => asset.path));
+    expect(paths.has('assets/text-editor.css')).toBe(true);
+    expect(paths.has('assets/vendor/crepe-theme.css')).toBe(true);
   });
 
   it('refuses runtime entry paths that escape the plugin package', () => {

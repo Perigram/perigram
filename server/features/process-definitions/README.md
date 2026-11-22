@@ -75,7 +75,9 @@ unavailable while activation proceeds.
 The compiled runtime contract is derived from fresh semantic records for
 every validate/apply/evaluation. Stored definitions containing only
 `data.compiled` are rejected at validation and activation: the compiled
-snapshot serves inspection, and authoring edits the semantic records.
+snapshot serves inspection, and authoring edits the semantic records. An
+empty canonical graph carries semantic source; only a compiled snapshot
+with no graph source is rejected.
 
 ## Migration gate and plan (canonical)
 

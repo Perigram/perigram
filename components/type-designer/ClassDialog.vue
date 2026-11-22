@@ -13,6 +13,26 @@
     @cancel="close"
     @save="save"
   >
+    <template v-if="!readOnly" #footer>
+      <div class="flex w-full items-center gap-2">
+        <Button
+          v-if="!isCreate"
+          :label="$t('common.delete')"
+          icon="pi pi-trash"
+          severity="danger"
+          text
+          @click="requestDelete"
+        />
+        <span class="flex-1" />
+        <Button :label="$t('common.cancel')" text severity="secondary" @click="close" />
+        <Button
+          :label="draftMode ? $t('common.add') : (isCreate ? $t('common.create') : $t('common.save'))"
+          :loading="saving"
+          :disabled="!canSave"
+          @click="save"
+        />
+      </div>
+    </template>
     <div v-if="readOnly" class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
       <div class="grid items-end gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
         <div class="flex flex-col gap-1">
@@ -281,6 +301,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ClassFieldRow from '~/components/type-designer/ClassFieldRow.vue';
@@ -306,6 +327,7 @@ const emit = defineEmits(['update:visible', 'saved', 'draft']);
 
 const { t } = useI18n();
 const toast = useToast();
+const confirm = useConfirm();
 const view = useFileTypeView();
 const readonlyType = computed(() => props.type || view.typeById(props.typeId));
 const readonlyFields = computed(() => Object.entries(readonlyType.value?.fields || {}).map(([name, descriptor]) => ({
@@ -663,6 +685,38 @@ async function persistDraftTree(entry, createdIds) {
   });
   entry.typeId = result.type.id;
   createdIds.push(result.type.id);
+}
+
+function requestDelete() {
+  if (isCreate.value || !draft.value.id) return;
+  const typeId = String(draft.value.id);
+  confirm.require({
+    message: t('classes.deleteConfirm', { name: draft.value.name || typeId }),
+    header: t('common.delete'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      saving.value = true;
+      error.value = '';
+      try {
+        await $fetch(`/api/admin/cts/types/${encodeURIComponent(typeId)}`, { method: 'DELETE' });
+        await view.refresh();
+        toast.add({
+          severity: 'success',
+          summary: t('common.delete'),
+          detail: draft.value.name || typeId,
+          life: 2400
+        });
+        emit('saved', null);
+        close();
+      } catch (failure) {
+        error.value = failure?.data?.message || failure?.message || t('common.error');
+      } finally {
+        saving.value = false;
+      }
+    }
+  });
 }
 
 async function save() {
