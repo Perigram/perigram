@@ -593,7 +593,8 @@ under two characters clears the results.
 ## useFileTypeView
 
 Organization-scoped cached read of the served CTS type view
-(`GET /api/admin/cts/types`). One in-flight fetch per organization is
+(`GET /api/admin/cts/types`); an orgless account resolves the empty view
+without a request. One in-flight fetch per organization is
 shared by every consumer; components resolve type records by id through
 `typeById(typeId)` — exact kebab ids first, then snake/camel spellings
 normalized to kebab, so legacy callers resolve the same declaration. File
