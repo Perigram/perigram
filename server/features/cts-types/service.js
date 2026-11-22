@@ -450,7 +450,7 @@ async function removeTypeInternal(typeId, { organizationId, actor = null, abando
     if (boundBy.length > 0) parts.push(`bound by ${boundBy.length} process definition(s): ${boundBy.map(b => b.name || b.id).join(', ')}`);
     throw createError({
       statusCode: 409,
-      message: `Type ${typeId} still has ${parts.join(' and ')} — pass abandon: true to abandon (root SPEC §15)`,
+      message: `Type ${typeId} still has ${parts.join(' and ')}`,
       data: { instances, boundBy }
     });
   }
