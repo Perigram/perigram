@@ -66,17 +66,9 @@ const valueProps = computed(() => [
 
 async function redirectIfAuthenticated() {
   if (authStore.userIsSet) {
-    // Orgless users have no workspace yet; their entry point is the
-    // organization page, which owns orgless onboarding (creation).
-    const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
-    if (!hasOrganization) {
-      await navigateTo('/organization');
-      return;
-    }
     // The home screen is the default screen: the entry ladder ends at the
     // stable home route, so a missing or broken active definition still lands
-    // organization members on the workspace's definition-independent
-    // surfaces.
+    // every account on the workspace's definition-independent surfaces.
     await navigateTo(resolveProcessEntryRoute({
       screens: authStore.screenManifest,
       navigation: authStore.navigationManifest

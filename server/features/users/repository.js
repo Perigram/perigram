@@ -89,6 +89,19 @@ export async function removeMembership(userId, organizationId) {
   );
 }
 
+export async function setActiveOrganization(userId, organizationId, permissions = {}) {
+  const db = await connectDB();
+  return db.collection('users').updateOne(
+    { _id: toFlexibleId(userId) },
+    {
+      $set: {
+        'lineage.organizationId': organizationId ? toFlexibleId(organizationId) : null,
+        'data.permissions': permissions || {}
+      }
+    }
+  );
+}
+
 export async function addMembership(userId, membership, { activeOrganizationId = null } = {}) {
   const db = await connectDB();
   const update = { $push: { 'data.memberships': membership } };
