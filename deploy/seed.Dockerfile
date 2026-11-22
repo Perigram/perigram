@@ -16,11 +16,11 @@ COPY packages/plugin-sdk ./packages/plugin-sdk
 RUN mkdir -p node_modules/@perigram && ln -s /app/packages/plugin-sdk node_modules/@perigram/plugin-sdk
 # The catalog seeder validates each listing and packages the complete,
 # statically discoverable runtime import graph before publishing anything.
-# Keep the source trees for runtime entrypoints and their relative imports;
-# copying listing.json alone makes collectRuntimeAssetFiles fail before the
-# catalog upsert, silently leaving the previously published listing in place.
+# Keep the source trees that runtime entries and their relative imports need.
 COPY workers/documents ./workers/documents
 COPY workers/facade ./workers/facade
-COPY workers/tech-drawing/listing.json ./workers/tech-drawing/listing.json
+COPY workers/tech-drawing ./workers/tech-drawing
+COPY workers/nesting/listing.json ./workers/nesting/listing.json
+COPY workers/nesting/runtime ./workers/nesting/runtime
 COPY workers/build123d/listing.json ./workers/build123d/listing.json
 CMD ["node", "server/scripts/seed-plugin-catalog.js"]
