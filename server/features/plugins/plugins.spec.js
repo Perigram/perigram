@@ -105,7 +105,7 @@ import {
   projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService, invokeEndpointValueService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, publishPluginAsset,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, listInstalledGraphNodeDefinitions, executeManagedGraphNode, invokePreviewValueService, invokeConstructionValueService
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview, managedRuntimePackageForTask, resolveInstalledGraphNodeDefinition, listInstalledGraphNodeDefinitions, listInstalledGraphProviderConversions, executeManagedGraphNode, invokePreviewValueService, invokeConstructionValueService
 } from './service.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -2214,6 +2214,59 @@ describe('starter constructs and service-resolved projections', () => {
       });
       expect(repository.findOrganizationPluginAssetMeta).toHaveBeenCalledWith(ORG, 'coatings', '3', 'runtime/shared-bundle.mjs');
     } finally {
+      repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+      repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.alloc(0));
+    }
+  });
+
+  it('lists installed provider conversions from the pinned runtime only', async () => {
+    const definition = provider => ({
+      provider,
+      id: 'convert',
+      version: '1',
+      label: 'Convert',
+      palette: { group: 'geometry' },
+      inputs: [],
+      outputs: [],
+      execution: { kind: 'pure' }
+    });
+    const runtimeSource = `export function createRuntime() {
+      return { providers: [
+        { provider: 'plugin.coatings', definitions: [${JSON.stringify(definition('plugin.coatings'))}], conversions: [{
+          id: 'length.mm-to-m',
+          from: { base: 'number', unit: 'mm' },
+          to: { base: 'number', unit: 'm' },
+          deterministic: true,
+          fidelity: 'lossless'
+        }] },
+        { provider: 'plugin.other', definitions: [${JSON.stringify(definition('plugin.other'))}], conversions: [{
+          id: 'length.other',
+          from: { base: 'number', unit: 'mm' },
+          to: { base: 'number', unit: 'cm' },
+          fidelity: 'lossless'
+        }] }
+      ] };
+    }`;
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...managedProjectionInstall,
+      declarations: {
+        ...managedProjectionInstall.declarations,
+        runtimes: [{ ...managedProjectionInstall.declarations.runtimes[0], entry: '/runtime/conversions.mjs' }]
+      },
+      packageAssets: { count: 1, assets: [{ path: 'runtime/conversions.mjs', contentHash: 'sha256:abc' }] }
+    }]);
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from(runtimeSource));
+    try {
+      const conversions = await listInstalledGraphProviderConversions({ auth: AUTH });
+      expect(conversions).toEqual([expect.objectContaining({
+        id: 'length.mm-to-m',
+        from: { base: 'number', unit: 'mm' },
+        to: { base: 'number', unit: 'm' },
+        fidelity: 'lossless'
+      })]);
+    } finally {
+      repository.listInstallsByOrganization.mockResolvedValue([]);
       repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
       repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.alloc(0));
     }

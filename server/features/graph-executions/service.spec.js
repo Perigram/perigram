@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   runOrganizationChange: vi.fn(),
   resolveInstalledGraphNodeDefinition: vi.fn(),
   executeManagedGraphNode: vi.fn(),
+  listInstalledGraphProviderConversions: vi.fn(),
   listRevisions: vi.fn(),
   pinnedRevisionFile: vi.fn(),
   assertRevisionSourceReadable: vi.fn()
@@ -42,7 +43,8 @@ vi.mock('../files/service.js', () => ({
 }));
 vi.mock('../plugins/service.js', () => ({
   resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
-  executeManagedGraphNode: mocks.executeManagedGraphNode
+  executeManagedGraphNode: mocks.executeManagedGraphNode,
+  listInstalledGraphProviderConversions: mocks.listInstalledGraphProviderConversions
 }));
 vi.mock('../instance-revisions/service.js', () => ({
   ensureRevisionIndexes: vi.fn(async () => {}),
@@ -168,6 +170,7 @@ describe('graph execution service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.listInstalledGraphProviderConversions.mockResolvedValue([]);
     delete payloadService.processGetById;
     session.withTransaction.mockImplementation(async callback => await callback());
     mocks.connectDB.mockResolvedValue({ client: { startSession: () => session } });
@@ -280,6 +283,32 @@ describe('graph execution service', () => {
     expect(ir.operations.map(operation => operation.nodeId)).toEqual(['input-1', 'format-1', 'output-1']);
     expect(ir.dependencies.map(dependency => dependency.edgeId)).toEqual(['edge-1', 'edge-2']);
     expect(ir.executionTarget).toBe('server');
+  });
+
+  it('registers installed provider conversions in the server compatibility registry', async () => {
+    const conversion = {
+      id: 'length.mm-to-m',
+      from: { base: 'number', unit: 'mm' },
+      to: { base: 'number', unit: 'm' },
+      provider: 'plugin.documents',
+      deterministic: true,
+      fidelity: 'lossless'
+    };
+    mocks.listInstalledGraphProviderConversions.mockResolvedValue([conversion]);
+    mocks.resolveInstalledGraphNodeDefinition.mockResolvedValue({
+      provider: 'plugin.documents',
+      id: 'document.compose',
+      version: '3',
+      execution: { kind: 'pure', targets: ['server'], capabilities: [] },
+      inputs: [{ id: 'source', required: true, shape: 'item', semantic: { base: 'number', unit: 'm' } }],
+      outputs: [{ id: 'document', required: true, shape: 'item', semantic: { base: 'document' } }],
+      packagePin: { pluginId: 'documents', version: '31', runtimeId: 'documents-shared', operationId: 'document.compose' }
+    });
+    const convertible = graph();
+    convertible.interface.inputs[0].contract = { shape: 'item', semantic: { base: 'number', unit: 'mm' } };
+    const { ir } = await graphExecutionsService.preflightGraphForServer(convertible, auth);
+    const decision = ir.dependencies.find(dependency => dependency.edgeId === 'edge-1').decision;
+    expect(decision).toMatchObject({ status: 'conversion-required', compatible: false, conversions: [conversion] });
   });
 
   it('preflight maps unresolved operations and invalid documents as diagnostics, not throws', async () => {

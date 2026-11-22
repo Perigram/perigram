@@ -17,7 +17,8 @@ const mocks = vi.hoisted(() => ({
   declarationForType: vi.fn(),
   runOrganizationChange: vi.fn(),
   resolveInstalledGraphNodeDefinition: vi.fn(),
-  executeManagedGraphNode: vi.fn()
+  executeManagedGraphNode: vi.fn(),
+  listInstalledGraphProviderConversions: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: mocks.getAppRegistry }));
 vi.mock('~/server/db/mongo', () => ({ connectDB: mocks.connectDB }));
@@ -31,7 +32,8 @@ vi.mock('../files/service.js', () => ({
 }));
 vi.mock('../plugins/service.js', () => ({
   resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
-  executeManagedGraphNode: mocks.executeManagedGraphNode
+  executeManagedGraphNode: mocks.executeManagedGraphNode,
+  listInstalledGraphProviderConversions: mocks.listInstalledGraphProviderConversions
 }));
 vi.mock('../instance-revisions/service.js', () => ({ ensureRevisionIndexes: vi.fn(async () => {}) }));
 vi.mock('../pages/service.js', () => ({
@@ -67,6 +69,7 @@ describe('graph execution target parity (server)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.listInstalledGraphProviderConversions.mockResolvedValue([]);
     graphService.processGetById.mockResolvedValue({
       _id: 'graph-instance-1',
       organizationId: 'org-1',
