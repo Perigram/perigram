@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { emitInstanceChanged, isSelfPublished } from '~/utils/instance-events.js';
 import { useConnections } from '~/composables/useConnections.js';
+import { refreshFileTypeView } from '~/composables/useFileTypeView.js';
 import { useAuthStore } from './auth';
 
 const POLL_INTERVAL_MS = 15_000;
@@ -34,7 +35,9 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
                 await useAuthStore().setUser();
             } catch {
                 // The next poll cycle or route change re-hydrates.
+                return;
             }
+            await refreshFileTypeView(useAuthStore().user?.organizationId || '');
         }, CONTRACT_REFRESH_DEBOUNCE_MS);
     }
 

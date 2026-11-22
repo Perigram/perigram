@@ -364,6 +364,15 @@ describe('screen composition', () => {
     });
     expect(staleScope.regions[1].dataState).toBe('missing');
     expect(staleScope.regions[1].instances).toEqual([]);
+
+    // A reported empty/missing describes the fetch, not the data: rows
+    // the pool gained after it (a created record lands with a snapshot
+    // while the screen stays mounted) render as ready.
+    const arrived = composeScreen(screen, contract, bundle, pool, {
+      sourceStates: { list: 'empty', detail: 'missing' }
+    });
+    expect(arrived.regions[0].dataState).toBe('ready');
+    expect(arrived.regions[1].dataState).toBe('ready');
   });
 
   it('arranges relation child collections through the weight ladder', () => {

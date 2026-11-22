@@ -27,15 +27,16 @@ export function useFileTypeView() {
 
   if (!cache.has(cacheKey)) {
     const entry = { types: ref([]), editors: ref([]), surfaces: ref([]), previews: ref([]), loaded: ref(false), promise: null };
+    entry.refresh = () => fetchTypeView(organizationId).then((view) => {
+      entry.types.value = view.types;
+      entry.editors.value = view.editors;
+      entry.surfaces.value = view.surfaces;
+      entry.previews.value = view.previews;
+      entry.loaded.value = true;
+      return view;
+    });
     cache.set(cacheKey, entry);
-    entry.promise = fetchTypeView(organizationId)
-      .then((view) => {
-        entry.types.value = view.types;
-        entry.editors.value = view.editors;
-        entry.surfaces.value = view.surfaces;
-        entry.previews.value = view.previews;
-        entry.loaded.value = true;
-      })
+    entry.promise = entry.refresh()
       .catch(() => {
         // Consumers keep their declaration-less fallbacks (no preview,
         // no editor surface) when the view cannot be loaded, and the
@@ -63,16 +64,6 @@ export function useFileTypeView() {
     return entry.types.value.find(type => type.id === normalized) || null;
   }
 
-  async function refresh() {
-    const view = await fetchTypeView(organizationId);
-    entry.types.value = view.types;
-    entry.editors.value = view.editors;
-    entry.surfaces.value = view.surfaces;
-    entry.previews.value = view.previews;
-    entry.loaded.value = true;
-    return view;
-  }
-
   return {
     types: entry.types,
     editors: entry.editors,
@@ -80,6 +71,16 @@ export function useFileTypeView() {
     previews: entry.previews,
     loaded: entry.loaded,
     typeById,
-    refresh
+    refresh: entry.refresh
   };
+}
+
+// The contract-change seam: served declarations are the input of every
+// open screen's editor and surface resolution, so the organization's
+// cached view refreshes in place; mounted consumers hold the entry refs
+// and see the new declarations through normal reactivity.
+export async function refreshFileTypeView(organizationId = '') {
+  const entry = cache.get(organizationId ? String(organizationId) : 'system');
+  if (!entry) return null;
+  return await entry.refresh().catch(() => null);
 }

@@ -261,4 +261,36 @@ describe('contract refresh hint', () => {
         await vi.advanceTimersByTimeAsync(2_000);
         expect(fetchMock.mock.calls.filter(call => String(call[0]).includes('/api/auth/me'))).toHaveLength(1);
     });
+
+    it('refreshes the organization file-type view when the contract changes', async () => {
+        const { useAuthStore } = await import('./auth.js');
+        useAuthStore().user = { userId: 'u-2', organizationId: 'org-2' };
+
+        const typeViewCalls = [];
+        const fetchMock = vi.fn(async url => {
+            const target = String(url);
+            if (target.includes('/api/admin/cts/types')) {
+                typeViewCalls.push(target);
+                return { types: [], editors: [], surfaces: [], previews: [] };
+            }
+            if (target.includes('/api/auth/me')) return { userId: 'u-2', organizationId: 'org-2' };
+            return { cursor: 1, events: [] };
+        });
+        vi.stubGlobal('$fetch', fetchMock);
+
+        const { useFileTypeView } = await import('~/composables/useFileTypeView.js');
+        useFileTypeView();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(typeViewCalls).toHaveLength(1);
+
+        const store = useEntityEventsStore();
+        store.connect();
+        await vi.advanceTimersByTimeAsync(0);
+
+        for (const handler of orgTopicHandlers.get('org:org-2') || []) {
+            handler({ type: 'contractChanged', data: { kind: 'registry' } });
+        }
+        await vi.advanceTimersByTimeAsync(2_000);
+        expect(typeViewCalls).toHaveLength(2);
+    });
 });

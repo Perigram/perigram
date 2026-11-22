@@ -14,7 +14,12 @@ import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-f
 // scoped instance is absent past 'missing'.
 function dataStateFor(source, surfaceKind, instances, providedStates) {
   const provided = providedStates?.[source.id];
-  if (provided && provided !== 'ready') return provided;
+  // A fetch outcome describes the fetch, not the data: reported empty or
+  // missing yields to rows the pool gained after it (a created record
+  // lands in the pool with a snapshot while the screen stays mounted).
+  // Loading/denied/error stay authoritative.
+  if (provided && provided !== 'ready'
+    && !(instances.length && (provided === 'empty' || provided === 'missing'))) return provided;
   if (instances.length) return 'ready';
   return surfaceKind === 'detail' ? 'missing' : 'empty';
 }
