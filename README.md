@@ -65,7 +65,7 @@ E2E tests require the development stack to be running.
 
 ## Production
 
-A push to `staging`, or a manual dispatch of [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), calls `scripts/deploy.sh`. The script builds and replaces the app, plugin executors, and managed plugin runtime worker, publishes the plugin catalog, applies plugin migrations, backfills per-instance revision tokens, materializes installed plugin assets into organization-owned storage, and verifies the deployed app assets. It includes the build123d executor.
+A push to `staging`, or a manual dispatch of [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), calls `scripts/deploy.sh`. The script reclaims the runner's Docker build cache and unused images, builds and replaces the app, plugin executors, and managed plugin runtime worker, publishes the plugin catalog, applies plugin migrations, backfills per-instance revision tokens, materializes installed plugin assets into organization-owned storage, and verifies the deployed app assets. It includes the build123d executor.
 
 Before the first deploy, an operator must:
 
