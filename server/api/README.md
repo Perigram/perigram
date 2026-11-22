@@ -184,6 +184,10 @@ Routes are grouped into sub-directories corresponding to features:
 
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
+- **Dynamic Segments:** sibling dynamic directories under one parent share
+  one placeholder name (`invitations/[invitation]/…`). Radix3 selects a
+  sibling placeholder by remaining path depth, so two names at the same
+  position leave the deeper route unreachable.
 - **Multipart Uploads:** Every upload route reads the binary from a form
   part named `file` (`files/`, `instances/` payload, and
   `users/:id/avatar`); clients must
