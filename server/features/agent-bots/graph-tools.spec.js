@@ -372,6 +372,44 @@ describe('apply_graph_patch', () => {
         expect(mockedGraphService.replacePayload).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ['null', null],
+        ['string', 'not-an-array'],
+        ['object', { id: 'replacement' }]
+    ])('rejects malformed setInterface inputs (%s) without writing', async (_label, inputs) => {
+        const result = await executeTool('apply_graph_patch', {
+            graphDocumentInstanceId: 'graph-instance-1',
+            expectedRevision: 'rev-01',
+            edits: [{ op: 'setInterface', inputs }]
+        }, AUTH);
+        expect(result).toMatchObject({ applied: false });
+        expect(result.message).toMatch(/setInterface inputs must be an array/);
+        expect(mockedGraphService.replacePayload).not.toHaveBeenCalled();
+    });
+
+    it('allows an explicit empty interface array to clear a direction', async () => {
+        const result = await executeTool('apply_graph_patch', {
+            graphDocumentInstanceId: 'graph-instance-1',
+            expectedRevision: 'rev-01',
+            edits: [{ op: 'setInterface', inputs: [] }]
+        }, AUTH);
+        expect(result.applied).toBe(true);
+        expect(result.document.interface.inputs).toEqual([]);
+        expect(mockedGraphService.replacePayload).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects non-object interface entries before preflight or persistence', async () => {
+        const result = await executeTool('apply_graph_patch', {
+            graphDocumentInstanceId: 'graph-instance-1',
+            expectedRevision: 'rev-01',
+            edits: [{ op: 'setInterface', outputs: [null] }]
+        }, AUTH);
+        expect(result).toMatchObject({ applied: false });
+        expect(result.message).toMatch(/setInterface outputs entries must be objects/);
+        expect(mockedGraphExecutions.preflightGraphForServer).not.toHaveBeenCalled();
+        expect(mockedGraphService.replacePayload).not.toHaveBeenCalled();
+    });
+
     it('refuses an edit naming an unknown node, naming the edit', async () => {
         const result = await executeTool('apply_graph_patch', {
             graphDocumentInstanceId: 'graph-instance-1',
