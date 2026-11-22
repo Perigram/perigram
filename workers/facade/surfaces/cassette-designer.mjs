@@ -1669,6 +1669,7 @@ export default function createSurface({ vue, components, locale, queries, record
           syncAssemblyView(assemblyViewBox());
         } catch {
           host.destroy();
+          if (assemblyHostMountEl === container) assemblyHostMountEl = null;
         }
       };
 

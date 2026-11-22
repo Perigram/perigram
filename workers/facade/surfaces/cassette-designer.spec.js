@@ -6,11 +6,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { createSSRApp, h, ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, Teleport } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-const { hostMounts } = vi.hoisted(() => ({ hostMounts: [] }));
+const { hostMounts, hostMountFailures } = vi.hoisted(() => ({ hostMounts: [], hostMountFailures: { count: 0 } }));
 vi.mock('cadcraft', () => ({
   CadCraftHost: class CadCraftHost {
     constructor({ container }) { this.container = container; }
-    async mount() { hostMounts.push(this.container); return this; }
+    async mount() {
+      hostMounts.push(this.container);
+      if (hostMountFailures.count > 0) {
+        hostMountFailures.count -= 1;
+        throw new Error('native host mount failed');
+      }
+      return this;
+    }
     setGrid() {}
     seed() {}
     lockLayers() {}
@@ -149,6 +156,48 @@ describe('cassette designer native host mount', () => {
       hostRef(first);
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(hostMounts, 'refires inside the mount window mount one host').toEqual([first, second, first]);
+    } finally {
+      global.window = previousWindow;
+    }
+  });
+
+  it('retries a container whose native host mount failed', async () => {
+    hostMounts.length = 0;
+    hostMountFailures.count = 0;
+    let hostRef = null;
+    const context = mountContext();
+    context.vue = {
+      ...context.vue,
+      h: (...args) => {
+        const vnode = h(...args);
+        if (typeof vnode.ref?.r === 'function') hostRef = vnode.ref.r;
+        return vnode;
+      }
+    };
+    const app = createSSRApp(surfaceModule.default(context), { record, persistence });
+    await renderToString(app);
+
+    const previousWindow = global.window;
+    global.window = {
+      sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      addEventListener() {}, removeEventListener() {},
+      setTimeout: () => 0, clearTimeout() {},
+      document: { addEventListener() {}, removeEventListener() {} }
+    };
+    const container = { tagName: 'DIV' };
+    try {
+      hostMountFailures.count = 1;
+      hostRef(container);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await nextTick();
+      expect(hostMounts, 'the failed attempt releases its mount claim').toEqual([container]);
+
+      hostRef(null);
+      await nextTick();
+      hostRef(container);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(hostMounts, 'the next attempt mounts the same container again').toEqual([container, container]);
     } finally {
       global.window = previousWindow;
     }
