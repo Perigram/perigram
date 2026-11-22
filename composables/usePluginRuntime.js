@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
-import { collectTransferableBuffers } from '../shared/plugin-runtime.js';
+import { collectTransferableBuffers } from '#shared/plugin-runtime.js';
 
 export function usePluginRuntime({
   createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
