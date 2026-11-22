@@ -489,37 +489,51 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   }
 
   // Installed package assets are organization data. The global catalog
-  // remains the distribution source; installed reads resolve the caller's
-  // materialized organization/version copy.
-  if (Number(install.packageAssets?.count) > 0 || install.declarations?.engine || install.declarations?.runtimes?.length) {
-    const organizationOwned = Number(install.packageAssets?.count) > 0;
-    const asset = organizationOwned
-      ? await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, install.version, segments.join('/'))
-      : await repository.findPluginAssetMeta(pluginId, install.version, segments.join('/'));
-    if (!asset) throw createError({ statusCode: 404, message: `Plugin ${pluginId} package does not carry ${segments.join('/')}` });
-    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
-    const raw = organizationOwned
-      ? await repository.readOrganizationPluginAsset(asset)
-      : await repository.readPluginAsset(asset);
-    if (organizationOwned) {
-      const manifestAsset = (install.packageAssets?.assets || []).find(item => item.path === segments.join('/'));
-      if (!manifestAsset || !manifestAsset.contentHash
-        || filesService.contentHash(raw) !== manifestAsset.contentHash) {
-        throw createError({ statusCode: 409, message: `Installed package asset ${segments.join('/')} failed its content digest check` });
-      }
-    }
+  // remains the distribution source; an organization copy that misses a
+  // path or fails its digest falls back to the same pinned release.
+  const moduleAssetPath = segments.join('/');
+  const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
+  const moduleResponse = (raw, contentType) => {
     const body = isJsModule
       ? Buffer.from(rewriteDeclaredImports(raw.toString('utf8'), pluginId, install.declarations?.dependencies || []), 'utf8')
       : raw;
     return {
-      contentType: asset.contentType || 'application/octet-stream',
+      contentType: contentType || 'application/octet-stream',
       body,
       etag: `"${createHash('sha1').update(body).digest('hex')}"`
     };
+  };
+  const packageOwned = Number(install.packageAssets?.count) > 0
+    || Boolean(install.declarations?.engine)
+    || Boolean(install.declarations?.runtimes?.length);
+  if (packageOwned) {
+    const organizationOwned = Number(install.packageAssets?.count) > 0;
+    const manifestAsset = organizationOwned
+      ? (install.packageAssets?.assets || []).find(item => item.path === moduleAssetPath)
+      : null;
+    if (organizationOwned) {
+      const organizationAsset = await repository.findOrganizationPluginAssetMeta(organizationId, pluginId, install.version, moduleAssetPath);
+      if (organizationAsset) {
+        const raw = await repository.readOrganizationPluginAsset(organizationAsset);
+        if (!manifestAsset || !manifestAsset.contentHash
+          || filesService.contentHash(raw) === manifestAsset.contentHash) {
+          return moduleResponse(raw, organizationAsset.contentType);
+        }
+      }
+    }
+    const catalogAsset = await repository.findPluginAssetMeta(pluginId, install.version, moduleAssetPath);
+    if (catalogAsset) {
+      return moduleResponse(await repository.readPluginAsset(catalogAsset), catalogAsset.contentType);
+    }
   }
 
   const origin = install.executorOrigin || endpointOriginOf(install);
-  if (!origin) throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
+  if (!origin) {
+    if (packageOwned) {
+      throw createError({ statusCode: 404, message: `Plugin ${pluginId} package does not carry ${moduleAssetPath}` });
+    }
+    throw createError({ statusCode: 503, message: `Plugin ${pluginId} has no connected executor endpoint` });
+  }
   const url = `${origin}/${segments.map(encodeURIComponent).join('/')}`;
   let response;
   try {
@@ -531,7 +545,6 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
     throw createError({ statusCode: 502, message: `Plugin ${pluginId} executor did not serve the module (${response.status})` });
   }
   const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
   // A JS module's declared dependencies (owner decision 2026-10-17)
   // resolve to the plugin's own vendor scope: bare specifiers rewrite to
   // same-origin proxied URLs, so a surface imports `three` and the

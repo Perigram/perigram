@@ -761,9 +761,12 @@ describe('plugin installs', () => {
       ...coatingInstall,
       packageAssets: { count: 1, assets: [{ path: 'runtime.mjs', contentHash: 'sha256:wrong' }] }
     });
-    await expect(fetchSurfaceModule({
+    repository.findPluginAssetMeta.mockResolvedValue({ id: 'catalog-asset', contentType: 'text/javascript' });
+    repository.readPluginAsset.mockResolvedValue(Buffer.from('export default "catalog";'));
+    const fallback = await fetchSurfaceModule({
       organizationId: ORG, pluginId: 'coatings', modulePath: 'runtime.mjs', auth: AUTH
-    })).rejects.toMatchObject({ statusCode: 409 });
+    });
+    expect(fallback.body.toString()).toBe('export default "catalog";');
   });
 
   it('materializes the pinned package into organization-owned data on install', async () => {
@@ -2503,6 +2506,87 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('falls back to the pinned catalog release when the organization copy misses a path', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      packageAssets: { count: 1, assets: [{ path: 'engine/index.mjs', contentHash: 'sha256:abc', bytes: 42 }] },
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+    repository.findPluginAssetMeta.mockResolvedValue({ id: 'catalog-asset', contentType: 'text/javascript' });
+    repository.readPluginAsset.mockResolvedValue(Buffer.from('export default "catalog";\n'));
+    const module = await fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/engine/index.mjs',
+      auth: AUTH
+    });
+    expect(repository.findPluginAssetMeta).toHaveBeenCalledWith('coatings', '2', 'engine/index.mjs');
+    expect(module.body.toString()).toBe('export default "catalog";\n');
+  });
+
+  it('falls back to the pinned catalog release when the organization copy fails its digest check', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      packageAssets: { count: 1, assets: [{ path: 'engine/index.mjs', contentHash: 'sha256:wrong', bytes: 42 }] },
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'corrupt-asset', contentType: 'text/javascript' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from('corrupt'));
+    repository.findPluginAssetMeta.mockResolvedValue({ id: 'catalog-asset', contentType: 'text/javascript' });
+    repository.readPluginAsset.mockResolvedValue(Buffer.from('export default "catalog";\n'));
+    const module = await fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/engine/index.mjs',
+      auth: AUTH
+    });
+    expect(module.body.toString()).toBe('export default "catalog";\n');
+  });
+
+  it('falls back to the configured executor when neither package copy carries the path', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: { match: 'https://executor.example/match' },
+      packageAssets: { count: 1, assets: [{ path: 'engine/index.mjs', contentHash: 'sha256:abc', bytes: 42 }] },
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue(null);
+    repository.findPluginAssetMeta.mockResolvedValue(null);
+    const fetchMock = vi.fn(async () => new Response('export default "origin";\n', {
+      status: 200,
+      headers: { 'content-type': 'application/javascript' }
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/engine/index.mjs',
+        auth: AUTH
+      });
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/engine/index.mjs', expect.anything());
+      expect(module.body.toString()).toBe('export default "origin";\n');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
 
   it('serves a packaged binary asset untouched under its stored type', async () => {
     const engineInstall = {
