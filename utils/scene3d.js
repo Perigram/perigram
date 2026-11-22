@@ -17,8 +17,7 @@ export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width
         ? coordinates.slice(0, 3)
         : null;
     });
-  const validVertices = vertices.filter(Boolean);
-  if (!validVertices.length) return { faces: [], edges: [] };
+  if (!vertices.some(Boolean)) return { faces: [], edges: [] };
 
   const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
   const cosPitch = Math.cos(pitch), sinPitch = Math.sin(pitch);
