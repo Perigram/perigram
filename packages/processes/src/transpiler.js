@@ -39,6 +39,7 @@ const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES];
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
+  if (data.graph && Array.isArray(data.graph.nodes)) return true;
   return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'stateDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
