@@ -273,6 +273,76 @@ describe('User Management & Auth', () => {
     )).rejects.toMatchObject({ statusCode: 403 });
   });
 
+  it('leaves an active organization and selects another active membership', async () => {
+    const org1 = new ObjectId();
+    const org2 = new ObjectId();
+    const userId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: userId,
+      identity: { uid: 'leaving-user', name: 'Leaving User' },
+      lineage: { organizationId: org1 },
+      data: {
+        permissions: { organizations: { level: 'admin' } },
+        memberships: [
+          { organizationId: org1, permissions: { organizations: { level: 'admin' } }, status: 'active' },
+          { organizationId: org2, permissions: { users: { level: 'admin' } }, status: 'active' }
+        ]
+      }
+    }, {
+      identity: { uid: 'remaining-user', name: 'Remaining User' },
+      data: { memberships: [{ organizationId: org1, permissions: {}, status: 'active' }] }
+    }]);
+
+    await expect(userService.leaveOrganization(userId.toString(), org1.toString()))
+      .resolves.toEqual({ success: true });
+
+    const updated = await db.collection('users').findOne({ _id: userId });
+    expect(updated.data.memberships.map(item => item.organizationId.toString())).toEqual([org2.toString()]);
+    expect(updated.lineage.organizationId.toString()).toBe(org2.toString());
+    expect(updated.data.permissions).toEqual({ users: { level: 'admin' } });
+  });
+
+  it('leaves the last organization and becomes orgless', async () => {
+    const orgId = new ObjectId();
+    const userId = new ObjectId();
+    await db.collection('users').insertMany([{
+      _id: userId,
+      identity: { uid: 'orgless-user', name: 'Orgless User' },
+      lineage: { organizationId: orgId },
+      data: {
+        permissions: { organizations: { level: 'admin' } },
+        memberships: [{ organizationId: orgId, permissions: { organizations: { level: 'admin' } }, status: 'active' }]
+      }
+    }, {
+      identity: { uid: 'remaining-user', name: 'Remaining User' },
+      data: { memberships: [{ organizationId: orgId, permissions: {}, status: 'active' }] }
+    }]);
+
+    await expect(userService.leaveOrganization(userId.toString(), orgId.toString()))
+      .resolves.toEqual({ success: true });
+
+    const updated = await db.collection('users').findOne({ _id: userId });
+    expect(updated.data.memberships).toEqual([]);
+    expect(updated.lineage.organizationId ?? null).toBeNull();
+    expect(updated.data.permissions).toEqual({});
+  });
+
+  it('refuses to leave as the last active organization user', async () => {
+    const orgId = new ObjectId();
+    const userId = new ObjectId();
+    await db.collection('users').insertOne({
+      _id: userId,
+      identity: { uid: 'sole-user', name: 'Sole User' },
+      lineage: { organizationId: orgId },
+      data: { memberships: [{ organizationId: orgId, permissions: {}, status: 'active' }] }
+    });
+
+    await expect(userService.leaveOrganization(userId.toString(), orgId.toString()))
+      .rejects.toMatchObject({ statusCode: 409 });
+    const unchanged = await db.collection('users').findOne({ _id: userId });
+    expect(unchanged.data.memberships).toHaveLength(1);
+  });
+
   it('hydrates auth from active membership rather than a stale suspended tenant', () => {
     const suspendedOrg = new ObjectId();
     const activeOrg = new ObjectId();

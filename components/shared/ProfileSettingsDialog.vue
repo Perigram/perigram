@@ -115,6 +115,7 @@ import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
 import Menu from 'primevue/menu';
 import ToggleSwitch from 'primevue/toggleswitch';
+import { useConfirm } from 'primevue/useconfirm';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import TargetedInvitations from '~/components/shared/TargetedInvitations.vue';
@@ -126,6 +127,7 @@ import { useProfileDialog } from '~/composables/useModalState';
 
 const { t } = useI18n();
 const toast = useToast();
+const confirm = useConfirm();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
 const profileVisible = useProfileDialog();
@@ -158,11 +160,20 @@ const activeOrganizationId = computed(() => authStore.userData.organizationId?.t
 const flatMenu = { root: { style: 'padding: 0' } };
 const activeOrganizationName = computed(() => authStore.organizationData?.identity?.name || '');
 const organizationMenuItems = computed(() => [
-  ...authStore.userOrganizations.map(org => ({
-    label: org.identity?.name || org.name || org.identity?.uid || t('common.unnamed'),
-    icon: (org._id?.toString() || org.id?.toString()) === activeOrganizationId.value ? 'pi pi-check text-status-success' : 'pi pi-building',
-    command: () => openOrganizationPane(org._id?.toString() || org.id?.toString())
-  })),
+  ...authStore.userOrganizations.map(org => {
+    const organizationId = org._id?.toString() || org.id?.toString();
+    const label = org.identity?.name || org.name || org.identity?.uid || t('common.unnamed');
+    const active = organizationId === activeOrganizationId.value;
+    return {
+      label,
+      icon: active ? 'pi pi-check text-status-success' : 'pi pi-building',
+      items: [
+        { label: t('profile.openOrganization'), icon: 'pi pi-external-link', command: () => openOrganizationPane(organizationId) },
+        ...(active ? [] : [{ label: t('profile.switchOrganization'), icon: 'pi pi-arrow-right-arrow-left', command: () => switchOrganization(organizationId) }]),
+        { label: t('profile.leaveOrganization'), icon: 'pi pi-sign-out', command: () => confirmLeaveOrganization(organizationId, label) }
+      ]
+    };
+  }),
   { separator: true },
   { label: t('auth.createOrg'), icon: 'pi pi-plus', command: openCreateOrg }
 ]);
@@ -171,6 +182,35 @@ function openOrganizationPane(orgId) {
   if (!orgId) return;
   profileVisible.value = false;
   openInstanceInWorkspace({ typeId: 'organization', instanceId: orgId });
+}
+
+async function switchOrganization(organizationId) {
+  try {
+    await authStore.switchOrganization(organizationId);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('profile.organizationSwitched'), life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
+  }
+}
+
+function confirmLeaveOrganization(organizationId, name) {
+  confirm.require({
+    message: t('profile.leaveOrganizationConfirm', { name }),
+    header: t('common.confirm'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptProps: { label: t('profile.leaveOrganization'), severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    accept: () => leaveOrganization(organizationId)
+  });
+}
+
+async function leaveOrganization(organizationId) {
+  try {
+    await authStore.leaveOrganization(organizationId);
+    toast.add({ severity: 'success', summary: t('common.success'), detail: t('profile.organizationLeft'), life: 3000 });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
+  }
 }
 
 function openCreateOrg() {

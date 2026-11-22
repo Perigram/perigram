@@ -3971,3 +3971,17 @@ build123d-flow main is commit
 OCP.wasm 8.0.1.1. Upstream removed its test suite in the latest commit;
 Perigram integration is blocked on restoring repeatable browser-runtime,
 catalog-discovery, geometry-operation, export, and graph-regression tests.
+
+## 32. Accounts and optional organizations (owner direction 2026-11-22)
+
+An account is the root identity; organization membership is optional.
+Registration and login create no organization. Every authenticated account
+enters the home workspace, with or without an organization; tenant screens,
+processes, and organization data appear only while an active membership is
+selected.
+
+Organization creation, switching, and leaving live in the account settings
+popup beside invitations. Leaving the active organization selects another
+active membership or the orgless home workspace. An organization retains at
+least one active user and one active owner, so the sole active member or sole
+owner cannot leave.

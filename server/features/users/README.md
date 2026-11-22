@@ -49,7 +49,9 @@ active flag.
 |---|---|---|
 | `pending` | organization admin approves (`confirmMembership`) | `active` |
 | `pending` | organization admin rejects | membership removed |
-| `active` | member removal | membership removed |
+| `pending` | invitee cancels from account settings | membership removed |
+| `active` | organization admin removes the member | membership removed |
+| `active` | member leaves from account settings | membership removed |
 
 Only `active` memberships enter the request auth context or permit an
 organization switch. `pending` and any other explicit non-active status grant
@@ -73,12 +75,17 @@ arbitrary organization id or role assignment.
 
 ## Public Signup
 `POST /api/auth/register` creates a password-backed user from credentials
-only — name, email, and password. The account starts orgless: orgless
-accounts are the normal post-signup state. Users join an organization by invitation (`/invitation/:token`
-creates the pending membership after login) or create their own
-organization through the authenticated organizations API from the profile
-page, which grants the creator the owner membership with permanent
-tenant-management grants.
+only — name, email, and password. The account starts orgless, and orgless
+accounts use the home workspace as their normal post-signup state. Users
+join an organization by invitation (`/invitation/:token` creates the pending
+membership after login) or create their own organization through the
+authenticated organizations API from account settings, which grants the
+creator the owner membership with permanent tenant-management grants.
+
+`leaveOrganization(userId, organizationId)` removes the caller's membership
+and organization role assignment. Leaving the active organization selects
+another active membership or no organization. The last active member and
+the last active owner cannot leave (`assertCanRemoveMembership`).
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.

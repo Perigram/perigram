@@ -165,6 +165,19 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function leaveOrganization(organizationId) {
+        try {
+            await $fetch('/api/auth/leave-org', {
+                method: 'POST',
+                body: { organizationId }
+            });
+            await setUser();
+        } catch (err) {
+            console.error('Failed to leave organization:', err);
+            throw err;
+        }
+    }
+
     function hasPermission(entity, level) {
         return hasPermissionGrant({ permissions: activePermissions.value, feature: entity, level });
     }
@@ -217,6 +230,7 @@ export const useAuthStore = defineStore('auth', () => {
         hasPermission,
         hasTenantPermission,
         can,
-        switchOrganization
+        switchOrganization,
+        leaveOrganization
     };
 });

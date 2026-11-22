@@ -208,6 +208,32 @@ export async function switchOrganization(userId, organizationId) {
   return await getById(userId);
 }
 
+export async function leaveOrganization(userId, organizationId) {
+  const user = await getById(userId);
+  if (!user) throw createError({ statusCode: 404, message: 'User not found' });
+
+  const target = String(organizationId || '');
+  const membership = (user.memberships || []).find(item => String(item.organizationId) === target);
+  if (!membership) throw createError({ statusCode: 404, message: 'Membership not found' });
+
+  await assertCanRemoveMembership({ userId, organizationId: target });
+  await usersRepository.removeMembership(userId, target);
+  await organizationsRepository.removeRoleAssignment(target, userId);
+
+  if (String(user.organizationId || '') === target) {
+    const next = (user.memberships || []).find(item => (
+      String(item.organizationId) !== target
+      && (!item.status || item.status === 'active')
+    ));
+    const permissions = next
+      ? (next.owner ? mergeOwnerPermissions(next.permissions || {}) : next.permissions || {})
+      : {};
+    await usersRepository.setActiveOrganization(userId, next?.organizationId || null, permissions);
+  }
+
+  return { success: true };
+}
+
 export async function confirmMembership(userId, organizationId, action, updaterUser) {
   if (!await canManageUsersInOrganization(updaterUser, organizationId)) {
     throw createError({ statusCode: 403, message: 'Forbidden' });

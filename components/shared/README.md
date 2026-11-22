@@ -1036,10 +1036,13 @@ transcription stay in the host composer.
   name, active organization, trailing avatar-action icon Buttons), then
   `Panel`s — Preferences (label + component rows: language,
   notifications), Targeted Invitations, and My Organizations, whose
-  entries are an inline `Menu` (building icon, active organization marked
-  by the success check, create entry after a separator) that closes the
-  dialog and opens the organization's in-home pane; organization creation
-  lives only here, outside the popover.
+  entries are a nested `Menu` (building icon, active organization marked
+  by the success check, create entry after a separator): each organization
+  row opens its in-home pane, switches to it, or leaves it with
+  confirmation. Leaving the active organization selects another active
+  membership or the orgless workspace; the last active member or owner is
+  refused by the server. Organization creation lives only here, outside the
+  popover.
   It only flips the `theme-mode` cookie; the app layout applies the theme
   class.
 - **`CommunicationMenu.vue`**: The Calls flyout: a popup PrimeVue

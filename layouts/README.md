@@ -96,11 +96,12 @@ remain children of `/organization`; administrative organization functions are
 not duplicated elsewhere in the account popover. Every entry — popover and
 the profile settings popup's Organizations section alike — opens the
 organization's in-home pane (the directory surface; see
-[components/directory](../components/directory/README.md)); context
-switching stays in that pane's own member actions. Organization creation lives in the
-profile settings popup (its Organizations section: all memberships, one
-pane-open entry each, create entry); an orgless account
-creates its first organization there or from the overview's orgless shell. The
+[components/directory](../components/directory/README.md)); the settings
+popup also switches to a membership and leaves it with confirmation.
+Organization creation lives in the profile settings popup (its Organizations
+section: all memberships, open/switch/leave entries each, create entry); an
+orgless account creates its first organization there or from the overview's
+orgless shell. The
 floating desktop chat launcher is hidden on `/chats` because the full inbox is
 already present. The launcher is viewport-anchored (`fixed bottom-8
 right-8`, desktop-only) through its plain wrapper element: PrimeVue's own

@@ -10,9 +10,10 @@ manifest with `template: "organizationOverview"` and a list of accessible
 organization system screens. The server decides which organization sections
 exist; the page renders the hydrated screen contract. It also owns two
 non-member states: the orgless shell (targeted invitations plus the inline
-organization-creation form) and the pending-only state — an account whose
-memberships are all pending has no compiled tenant screens, so the route
-renders the awaiting-approval message rather than the not-found block.
+organization-creation form, reachable from account settings) and the
+pending-only state — an account whose memberships are all pending has no
+compiled tenant screens, so the route renders the awaiting-approval message
+rather than the not-found block.
 
 `billing.vue` renders the generated organization billing screen from auth
 hydration. Billing packages are loaded from
