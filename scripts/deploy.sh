@@ -102,7 +102,7 @@ echo "Checking plugin executor plane..."
 docker run --rm --network host perigram:staging sh -ec '
   for port in 8000 8790 8792; do
     attempt=0
-    until curl -fsS -o /dev/null "http://127.0.0.1:$port/"; do
+    until curl -sS -o /dev/null "http://127.0.0.1:$port/"; do
       attempt=$((attempt + 1))
       if [ "$attempt" -ge 15 ]; then echo "service on :$port did not answer" >&2; exit 1; fi
       sleep 2
