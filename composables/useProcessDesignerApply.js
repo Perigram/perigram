@@ -61,9 +61,13 @@ export function useProcessDesignerApply({
     if (!draft.value?._id) return await createDraft({ empty: true });
     // One document for its whole life (process-definitions README):
     // saves persist in place, draft or active — no fork.
-    const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
+    const submitted = serializeProcess();
+    const submittedSignature = JSON.stringify(submitted);
+    const updated = await persistence.saveDraft(draft.value._id, submitted);
     upsertProcessDefinition(updated);
-    setDraft(updated);
+    // The response describes the submitted snapshot. Do not hydrate it over
+    // edits authored while the request was in flight.
+    if (JSON.stringify(serializeProcess()) === submittedSignature) setDraft(updated);
     return updated;
   }
 
