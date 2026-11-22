@@ -65,8 +65,9 @@ values use a JSON editor with declared base, shape, and nullability checks.
 Output representations derive from the shared graph-output view contract
 ([utils](../../utils/README.md) `graphOutputViews`): text, markdown,
 tables, images, documents, scene values, plugin renderers, with JSON as
-the explicit fallback view. `GraphOutputView.vue` is the one value
-renderer every preview surface composes — the selected output renders
+the explicit fallback view. The shared
+`GraphOutputView.vue` ([components/shared](../shared/README.md)) is the
+one value renderer every preview surface composes — the selected output renders
 its best supported view by default (JSON is an explicit choice), and the
 outputs channel selects one evaluated output first with the per-node
 listing as collapsed diagnostics. A `perigram.scene-3d` value mounts the
@@ -602,8 +603,9 @@ built-in outputs channel comes
 first: `GraphOutputsChannel.vue` selects one evaluated output (labeled
 `node · socket` over `graphOutputEntries`,
 [utils](../../utils/README.md)) and renders it through the shared
-`GraphOutputView.vue` (best representation first, JSON an explicit
-choice); node errors stay first-plane, and the per-node listing is the
+`GraphOutputView.vue` ([components/shared](../shared/README.md);
+best representation first, JSON an explicit choice); node errors stay
+first-plane, and the per-node listing is the
 collapsed diagnostics under the selected output. The process channel
 preview evaluates through the process-definition preview endpoint: CTS reads
 resolve through the authorized data environment and services dispatch through
@@ -743,8 +745,7 @@ editor mount (`GraphEditorSurface.vue`), graph-specific inspector and
 preview (`GraphDocumentInspector.vue`, `GraphDocumentPreviewPanel.vue`),
 the process inspector body (`GraphInspector.vue`) and channel-tab strip
 (`GraphPreviewPanel.vue`), the built-in outputs channel
-(`GraphOutputsChannel.vue`), the one output-value renderer
-(`GraphOutputView.vue`), the value authoring controls
+(`GraphOutputsChannel.vue`), the value authoring controls
 (`TypedValueControl.vue`, `TypedLiteralControl.vue`,
 `TemplateValuesControl.vue`),
 the palette dock (`PaletteDock.vue`), the context palette list

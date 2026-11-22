@@ -11,7 +11,7 @@ import * as filesService from '../files/service.js';
 import * as pagesService from '../pages/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { assertRevisionSourceReadable } from '~/server/utils/revision-access.js';
-import { resolveInstalledGraphNodeDefinition, executeManagedGraphNode } from '../plugins/service.js';
+import { resolveInstalledGraphNodeDefinition, executeManagedGraphNode, listInstalledGraphProviderConversions } from '../plugins/service.js';
 import { PLUGIN_RUNTIME_CAPABILITIES } from '#shared/plugin-runtime.js';
 
 function parseRecord(value) {
@@ -174,7 +174,14 @@ function createServerGraphResolution(auth) {
     });
     return definition;
   };
-  return { coreDataProvider, coreDefinitions, providerPins, providerCapabilities, resolveNodeDefinition };
+  return {
+    coreDataProvider,
+    coreDefinitions,
+    providerPins,
+    providerCapabilities,
+    resolveNodeDefinition,
+    conversions: listInstalledGraphProviderConversions({ auth })
+  };
 }
 
 // Lowering through the shared server stack; an unavailable pinned subgraph
@@ -182,6 +189,7 @@ function createServerGraphResolution(auth) {
 async function lowerGraphForServer(graph, resolution, auth) {
   const compatibilityRegistry = createPortCompatibilityRegistry();
   registerProcessPortCompatibilityProfile(compatibilityRegistry);
+  compatibilityRegistry.registerConversions(await resolution.conversions);
   return await lowerGraphToTypedIR({
     graph,
     resolveNodeDefinition: resolution.resolveNodeDefinition,

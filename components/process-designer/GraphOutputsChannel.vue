@@ -61,7 +61,7 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
-import GraphOutputView from '~/components/process-designer/GraphOutputView.vue';
+import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 import { formatPreviewPath, graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
 

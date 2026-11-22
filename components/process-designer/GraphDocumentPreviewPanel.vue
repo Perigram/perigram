@@ -179,7 +179,7 @@ import { useRegistryStore } from '~/stores/registry';
 import { graphFileOptions } from '~/utils/graph-file-options.js';
 import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
-import GraphOutputView from '~/components/process-designer/GraphOutputView.vue';
+import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 
 const props = defineProps({
   result: { type: Object, default: null },

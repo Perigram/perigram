@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   runOrganizationChange: vi.fn(),
   resolveInstalledGraphNodeDefinition: vi.fn(),
   executeManagedGraphNode: vi.fn(),
+  listInstalledGraphProviderConversions: vi.fn(),
   findByTypeId: vi.fn(),
   listByOrganization: vi.fn(),
   listDeclarationsByOrganization: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock('../files/service.js', () => ({
 vi.mock('../plugins/service.js', () => ({
   resolveInstalledGraphNodeDefinition: mocks.resolveInstalledGraphNodeDefinition,
   executeManagedGraphNode: mocks.executeManagedGraphNode,
+  listInstalledGraphProviderConversions: mocks.listInstalledGraphProviderConversions,
   executeConnectorService: vi.fn(),
   constructionsForOrganization: vi.fn(async () => ({}))
 }));
@@ -306,6 +308,7 @@ describe('SPEC §30.13 required convergence proof', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.listInstalledGraphProviderConversions.mockResolvedValue([]);
     instanceCollections.clear();
     session.withTransaction.mockImplementation(async callback => await callback());
     mocks.connectDB.mockResolvedValue({
@@ -731,6 +734,46 @@ describe('SPEC §30.13 required convergence proof', () => {
     ).catch(error => error);
     expect(rejection).toMatchObject({ statusCode: 400 });
     expect(rejection.data.errors).toEqual(['graph validation output valid did not evaluate to true']);
+    expect(items.insertOne).toHaveBeenCalledTimes(1);
+  });
+
+  it('fences the instance write on the graph validation organization sequence', async () => {
+    graphService.processList.mockImplementation(async filters => (
+      String(filters?.graphId) === 'graph.part-validation' ? [validationGraphDocument] : []
+    ));
+    const items = collectionStub('items');
+    mocks.executeManagedGraphNode.mockReset();
+    mocks.executeManagedGraphNode.mockResolvedValue({ valid: true });
+    mocks.sequenceGetOrganizationChangeSequence.mockResolvedValue(3);
+    mocks.sequenceRunOrganizationChange.mockImplementation(async (_organizationId, _metadata, mutate, options = {}) => {
+      if (options.expectedSequence !== 4) {
+        const error = new Error('Organization data changed after graph preview');
+        error.statusCode = 409;
+        error.code = 'STALE_ORGANIZATION_READ';
+        throw error;
+      }
+      return await mutate();
+    });
+
+    await instanceServiceResolver('part').create(
+      { name: 'Fenced part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    );
+    expect(items.insertOne).toHaveBeenCalledTimes(1);
+
+    mocks.sequenceRunOrganizationChange.mockImplementation(async () => {
+      const error = new Error('Organization data changed during validation');
+      error.statusCode = 409;
+      error.code = 'STALE_ORGANIZATION_READ';
+      throw error;
+    });
+    const conflict = await instanceServiceResolver('part').create(
+      { name: 'Stale part', fields: { code: 'C' } },
+      'user-1',
+      'org-1'
+    ).catch(error => error);
+    expect(conflict).toMatchObject({ statusCode: 409, code: 'STALE_ORGANIZATION_READ' });
     expect(items.insertOne).toHaveBeenCalledTimes(1);
   });
 

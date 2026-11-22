@@ -46,19 +46,12 @@ function refusingCapabilities() {
   return { call: refuse };
 }
 
-export async function executeSyncManagedOperation({
-  organizationId = '',
-  install = null,
-  runtime = null,
-  operationId = '',
-  input = null,
-  timeoutMs = PLUGIN_RUNTIME_MAX_EXECUTION_MS
-} = {}) {
+async function loadRuntimeModule({ organizationId = '', install = null, runtime = null } = {}) {
   const pluginId = String(install?.pluginId || '');
   const version = String(install?.version || '');
   const entry = String(runtime?.entry || '').replace(/^\//, '');
-  if (!organizationId || !pluginId || !version || !entry || !operationId) {
-    throw createError({ statusCode: 400, message: 'Synchronous managed projection identity is incomplete' });
+  if (!organizationId || !pluginId || !version || !entry) {
+    throw createError({ statusCode: 400, message: 'Synchronous managed runtime identity is incomplete' });
   }
   const manifestEntry = (install.packageAssets?.assets || []).find(item => String(item.path) === entry);
   if (!manifestEntry) {
@@ -88,6 +81,33 @@ export async function executeSyncManagedOperation({
   if (typeof createRuntime !== 'function') {
     throw createError({ statusCode: 502, message: `Runtime entry ${runtime.entry} does not export createRuntime` });
   }
+  return { cacheKey, createRuntime };
+}
+
+export async function loadSyncRuntimeProviders({ organizationId = '', install = null, runtime = null } = {}) {
+  const { createRuntime } = await loadRuntimeModule({ organizationId, install, runtime });
+  const runtimeInstance = await createRuntime();
+  const providers = typeof runtimeInstance?.providers === 'function'
+    ? await runtimeInstance.providers()
+    : (runtimeInstance?.providers || []);
+  if (!Array.isArray(providers)) {
+    throw createError({ statusCode: 502, message: `Runtime ${runtime.id} providers must be an array` });
+  }
+  return providers;
+}
+
+export async function executeSyncManagedOperation({
+  organizationId = '',
+  install = null,
+  runtime = null,
+  operationId = '',
+  input = null,
+  timeoutMs = PLUGIN_RUNTIME_MAX_EXECUTION_MS
+} = {}) {
+  if (!operationId) {
+    throw createError({ statusCode: 400, message: 'Synchronous managed projection identity is incomplete' });
+  }
+  const { cacheKey, createRuntime } = await loadRuntimeModule({ organizationId, install, runtime });
   const runtimeInstance = await createRuntime();
   if (typeof runtimeInstance?.execute !== 'function') {
     throw createError({ statusCode: 502, message: `Runtime ${runtime.id} must provide execute(operationId, input, context)` });

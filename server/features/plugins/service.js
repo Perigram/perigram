@@ -18,9 +18,9 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
-import { NODE_EXECUTION_KINDS, normalizeNodeDefinition } from '#packages/plugin-sdk/nodes';
+import { NODE_EXECUTION_KINDS, normalizeNodeDefinition, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
-import { executeSyncManagedOperation } from './sync-runtime.js';
+import { executeSyncManagedOperation, loadSyncRuntimeProviders } from './sync-runtime.js';
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
@@ -1077,6 +1077,50 @@ export async function listInstalledGraphNodeDefinitions({ provider = null, auth 
     }
   }
   return definitions;
+}
+
+// Conversion declarations ride the same installed package snapshot as node
+// definitions. They are compatibility candidates; executing their provider
+// operation still requires node resolution and the target gate.
+export async function listInstalledGraphProviderConversions({ auth = {} } = {}) {
+  const organizationId = String(auth.organizationId || auth.memberships?.[0]?.organizationId || '');
+  if (!organizationId) return [];
+  await resolveRunActor(auth, organizationId);
+  const installs = await repository.listInstallsByOrganization(organizationId);
+  const conversions = new Map();
+  for (const install of installs) {
+    const provider = `plugin.${install.pluginId}`;
+    for (const runtime of install.declarations?.runtimes || []) {
+      if (runtime.language !== 'javascript' || !runtime.targets?.includes('server')) continue;
+      let contributions;
+      try {
+        contributions = await loadSyncRuntimeProviders({ organizationId, install, runtime });
+      } catch {
+        continue;
+      }
+      for (const contribution of contributions) {
+        if (String(contribution?.provider || '') !== provider) continue;
+        try {
+          const normalized = normalizeNodeProvider({
+            provider,
+            definitions: contribution.definitions || [],
+            previewRenderers: {},
+            conversions: contribution.conversions || [],
+            execute: () => {}
+          });
+          for (const conversion of normalized.conversions) {
+            if (!conversions.has(conversion.id)) conversions.set(conversion.id, conversion);
+          }
+        } catch {
+          // An invalid provider contribution is already surfaced through node
+          // resolution; its conversions stay out of the compatibility registry.
+        }
+      }
+    }
+  }
+  return [...conversions.values()].sort((left, right) => (
+    left.id.localeCompare(right.id) || String(left.provider || '').localeCompare(String(right.provider || ''))
+  ));
 }
 
 function managedNodeAbortError(signal) {

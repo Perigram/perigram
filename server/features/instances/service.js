@@ -680,6 +680,26 @@ async function assertGraphValidated(declaration, instance, organizationId, { aut
   if (evaluation?.outputs?.[facet.outputId] !== true) {
     refuse(`graph validation output ${facet.outputId} did not evaluate to true`);
   }
+  return validatedGraphSequence(evaluation?.readSet, refuse);
+}
+
+// The graph validation's organization reads become the write's sequence
+// fence: the write commits only against the same stable snapshot the
+// validation observed.
+function validatedGraphSequence(readSet = {}, refuse) {
+  const consumedOrganizationData = [
+    ...(Array.isArray(readSet.instances) ? readSet.instances : []),
+    ...(Array.isArray(readSet.relations) ? readSet.relations : []),
+    ...(Array.isArray(readSet.queries) ? readSet.queries : [])
+  ];
+  if (!consumedOrganizationData.length) return null;
+  const start = readSet.organizationSequenceStart;
+  const end = readSet.organizationSequenceEnd;
+  const stable = Number.isSafeInteger(start) && Number.isSafeInteger(end) && start === end;
+  if (!stable) {
+    refuse('graph validation did not read a stable organization snapshot; retry the write');
+  }
+  return end;
 }
 
 async function requireDeclaration(typeId, organizationId) {
@@ -830,7 +850,7 @@ function instanceService(typeId) {
     const now = new Date().toISOString();
     const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
     const effectiveOrganizationId = organizationId ?? draft.organizationId ?? null;
-    const expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(effectiveOrganizationId);
+    let expectedSequence = expectedOrganizationSequence ?? await getOrganizationChangeSequence(effectiveOrganizationId);
     if (draft.fields != null && (typeof draft.fields !== 'object' || Array.isArray(draft.fields))) {
       throw createError({ statusCode: 400, message: 'Instance fields must be an object' });
     }
@@ -879,7 +899,8 @@ function instanceService(typeId) {
     }
     await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys], { session });
     await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId, { session });
-    await assertGraphValidated(declaration, toDto(doc), effectiveOrganizationId, { auth, userId });
+    const validationSequence = await assertGraphValidated(declaration, toDto(doc), effectiveOrganizationId, { auth, userId });
+    if (validationSequence != null) expectedSequence = validationSequence;
     await runOrganizationChange(effectiveOrganizationId, {
       kind: 'instance-created',
       typeId,
@@ -959,7 +980,7 @@ function instanceService(typeId) {
       // it, static types ignore it.
       const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
       const session = context && typeof context === 'object' ? context.session || null : null;
-      const expectedSequence = context?.expectedOrganizationSequence
+      let expectedSequence = context?.expectedOrganizationSequence
         ?? await getOrganizationChangeSequence(organizationId);
       const declaration = await requireDeclaration(typeId, organizationId);
       if (declaration.mutability === 'append-only') throw createError({ statusCode: 409, message: `${typeId} records are append-only` });
@@ -1025,7 +1046,8 @@ function instanceService(typeId) {
           relations: { ...current.relations, ...(patch.relations || {}) }
         };
         await assertPermanentConstraints(declaration, candidate, organizationId, { session });
-        await assertGraphValidated(declaration, candidate, organizationId, { auth: context?.auth, userId: context?.userId });
+        const validationSequence = await assertGraphValidated(declaration, candidate, organizationId, { auth: context?.auth, userId: context?.userId });
+        if (validationSequence != null) expectedSequence = validationSequence;
       }
       const patchedFieldIds = Object.keys(patch.fields || {}).filter(key => patch.fields[key] !== undefined);
       await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds, { session });

@@ -330,8 +330,11 @@ receives the candidate projection `{ fields }`, and a port whose id matches
 a declared field receives the candidate's field value; a required port with
 neither refuses the write naming the port. Unresolvable pins, evaluation
 failures, and every other verdict refuse the write with `400` diagnostics —
-fail closed. Validation runs entirely inside the evaluation boundary: the
-instance write under validation is the path's only mutation.
+fail closed. A validation that consumed organization instances, relations,
+or queries must return a stable organization sequence; that sequence becomes
+the write's expected sequence, so a dependency change between validation and
+commit rejects the write with a retryable `409`. The instance write under
+validation is the path's only mutation.
 
 ## Instance revisions
 

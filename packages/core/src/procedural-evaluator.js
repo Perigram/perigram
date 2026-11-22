@@ -455,17 +455,133 @@ function assertSemanticValue(node, portId, value, shape, semantic = {}) {
     if (base === 'json' || !base) return isJsonValue(item);
     return isJsonValue(item);
   };
-  let valid;
+  const checkItem = item => {
+    if (!validItem(item)) return `semantic base ${base || 'json'} and transport shape ${shape}`;
+    return semanticQualifierProblem(item, semantic);
+  };
+  let problem = null;
   if (shape === 'map') {
-    valid = isRecord(value) && Object.values(value).every(validItem);
+    if (!isRecord(value)) problem = `semantic base ${base || 'json'} and transport shape ${shape}`;
+    else {
+      for (const item of Object.values(value)) {
+        problem = checkItem(item);
+        if (problem) break;
+      }
+    }
   } else if (['list', 'tuple', 'tree'].includes(shape)) {
-    valid = Array.isArray(value) && value.every(validItem);
+    if (!Array.isArray(value)) problem = `semantic base ${base || 'json'} and transport shape ${shape}`;
+    else {
+      for (const item of value) {
+        problem = checkItem(item);
+        if (problem) break;
+      }
+    }
   } else {
-    valid = validItem(value);
+    problem = checkItem(value);
   }
-  if (!valid) {
-    throw new Error(`Node ${node.id} input ${portId} does not match semantic base ${base || 'json'} and transport shape ${shape}`);
+  if (problem) {
+    throw new Error(`Node ${node.id} input ${portId} does not match ${problem}`);
   }
+}
+
+const SEMANTIC_TAG_KEYS = Object.freeze({
+  kind: ['kind'],
+  representation: ['representation'],
+  nominal: ['nominal', '$type'],
+  typeId: ['typeId'],
+  identity: ['identity'],
+  provider: ['provider']
+});
+
+function semanticQualifierProblem(value, semantic = {}) {
+  if (!isRecord(value)) return constraintsProblem(value, semantic.constraints);
+  for (const [qualifier, aliases] of Object.entries(SEMANTIC_TAG_KEYS)) {
+    if (!Object.hasOwn(semantic, qualifier)) continue;
+    const actual = aliases.map(key => value[key]).find(candidate => candidate !== undefined);
+    if (actual === undefined) continue;
+    if (stableJson(actual) !== stableJson(semantic[qualifier])) {
+      return `semantic ${qualifier} ${stableJson(actual)} against the declared ${stableJson(semantic[qualifier])}`;
+    }
+  }
+  if (semantic.base === 'entityRef' && Object.hasOwn(semantic, 'typeId') && value.type !== undefined
+    && stableJson(value.type) !== stableJson(semantic.typeId)) {
+    return `semantic typeId ${stableJson(value.type)} against the declared ${stableJson(semantic.typeId)}`;
+  }
+  return constraintsProblem(value, semantic.constraints);
+}
+
+function constraintsProblem(value, constraints) {
+  if (!isRecord(constraints)) return null;
+  const violations = [];
+  checkConstraint(value, constraints, '$', violations);
+  return violations.length ? `semantic constraints (${violations.join('; ')})` : null;
+}
+
+// The runtime-checkable constraint subset: the JSON-schema-compatible bounds
+// shared by provider semantic descriptors. Providers enforce remaining keys
+// in their operations.
+function checkConstraint(value, constraints, path, violations) {
+  if (!isRecord(constraints)) return;
+  if (Object.hasOwn(constraints, 'const') && stableJson(value) !== stableJson(constraints.const)) {
+    violations.push(`${path} must equal ${stableJson(constraints.const)}`);
+    return;
+  }
+  if (Array.isArray(constraints.enum)
+    && !constraints.enum.some(candidate => stableJson(candidate) === stableJson(value))) {
+    violations.push(`${path} is outside the declared enum`);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (Number.isFinite(Number(constraints.minimum)) && value < Number(constraints.minimum)) violations.push(`${path} is below minimum ${constraints.minimum}`);
+    if (Number.isFinite(Number(constraints.maximum)) && value > Number(constraints.maximum)) violations.push(`${path} is above maximum ${constraints.maximum}`);
+    if (Number.isFinite(Number(constraints.exclusiveMinimum)) && value <= Number(constraints.exclusiveMinimum)) violations.push(`${path} is not above ${constraints.exclusiveMinimum}`);
+    if (Number.isFinite(Number(constraints.exclusiveMaximum)) && value >= Number(constraints.exclusiveMaximum)) violations.push(`${path} is not below ${constraints.exclusiveMaximum}`);
+    if (Number.isFinite(Number(constraints.multipleOf)) && Number(constraints.multipleOf) > 0
+      && Math.abs(value / Number(constraints.multipleOf) - Math.round(value / Number(constraints.multipleOf))) > Number.EPSILON) {
+      violations.push(`${path} is not a multiple of ${constraints.multipleOf}`);
+    }
+  }
+  if (typeof value === 'string') {
+    if (Number.isInteger(constraints.minLength) && value.length < constraints.minLength) violations.push(`${path} is shorter than ${constraints.minLength}`);
+    if (Number.isInteger(constraints.maxLength) && value.length > constraints.maxLength) violations.push(`${path} is longer than ${constraints.maxLength}`);
+    if (typeof constraints.pattern === 'string') {
+      try {
+        if (!new RegExp(constraints.pattern).test(value)) violations.push(`${path} does not match ${constraints.pattern}`);
+      } catch {
+        violations.push(`${path} declares an invalid pattern`);
+      }
+    }
+  }
+  if (Array.isArray(value)) {
+    if (Number.isInteger(constraints.minItems) && value.length < constraints.minItems) violations.push(`${path} has fewer than ${constraints.minItems} items`);
+    if (Number.isInteger(constraints.maxItems) && value.length > constraints.maxItems) violations.push(`${path} has more than ${constraints.maxItems} items`);
+    if (constraints.uniqueItems === true) {
+      const seen = new Set();
+      for (const item of value) {
+        const key = stableJson(item);
+        if (seen.has(key)) violations.push(`${path} requires unique items`);
+        seen.add(key);
+      }
+    }
+    if (isRecord(constraints.items)) value.forEach((item, index) => checkConstraint(item, constraints.items, `${path}[${index}]`, violations));
+  }
+  if (isRecord(value)) {
+    for (const key of constraints.required || []) {
+      if (!Object.hasOwn(value, key)) violations.push(`${path}.${key} is required`);
+    }
+    if (isRecord(constraints.properties)) {
+      for (const [key, nested] of Object.entries(constraints.properties)) {
+        if (Object.hasOwn(value, key)) checkConstraint(value[key], nested, `${path}.${key}`, violations);
+      }
+    }
+  }
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(stableJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + stableJson(value[key])).join(',') + '}';
+  }
+  return JSON.stringify(value);
 }
 
 function topologicalOrder(nodes, edges) {
