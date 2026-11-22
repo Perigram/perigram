@@ -30,6 +30,8 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
     const cases = [
       [{ base: 'string' }, { base: 'string' }],
       [{ base: 'quantity', unit: 'mm' }, { base: 'number', unit: 'mm' }],
+      [{ base: 'quantity', unit: 'min' }, { base: 'number', unit: 'minute' }],
+      [{ base: 'quantity', unit: 'deg' }, { base: 'number', unit: 'degree' }],
       [{ base: 'instant' }, { base: 'dateTime' }],
       [{ base: 'ref', accepts: ['queue'] }, { base: 'entityRef', typeId: 'queue' }],
       [{ base: 'ref', accepts: ['occs', 'cut-plan'] }, { base: 'entityRef', accepts: ['occs', 'cut-plan'] }],

@@ -5,7 +5,7 @@
       "kind": "graph-document",
       "mimeType": "application/json",
       "preview": {
-        "mode": "download"
+        "mode": "graph"
       }
     }
   ],

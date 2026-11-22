@@ -49,6 +49,7 @@
           v-else
           :value="selectedValue"
           :view="activeView"
+          :representation="selectedOutput?.contract?.semantic?.representation || ''"
           :alt="selectedOutput?.label || 'Graph output'"
         />
       </div>
@@ -251,11 +252,20 @@ const sourceNode = computed(() => {
   const edge = props.graph.edges?.find(item => item.target?.node === outputNode.value?.id && item.target?.port === 'value');
   return props.graph.nodes?.find(node => node.id === edge?.source?.node) || null;
 });
-const sourceDefinition = computed(() => props.nodeDefinitions?.[sourceNode.value?.id] || null);
+// A cast or conversion keeps the upstream plugin renderer available:
+// walk the value chain until a definition declares a renderer.
 const rendererForOutput = computed(() => {
-  const rendererId = sourceDefinition.value?.preview?.renderer;
-  if (!rendererId) return null;
-  return props.previewRenderers?.[`${sourceDefinition.value.provider}:${rendererId}`] || null;
+  const seen = new Set();
+  let node = sourceNode.value;
+  for (let depth = 0; node && depth < 16 && !seen.has(node.id); depth += 1) {
+    seen.add(node.id);
+    const definition = props.nodeDefinitions?.[node.id];
+    const rendererId = definition?.preview?.renderer;
+    if (rendererId) return props.previewRenderers?.[`${definition.provider}:${rendererId}`] || null;
+    const edge = props.graph.edges?.find(item => item.target?.node === node.id && item.target?.port === 'value');
+    node = props.graph.nodes?.find(candidate => candidate.id === edge?.source?.node) || null;
+  }
+  return null;
 });
 const activeChannel = computed(() => props.channels.find(channel => `channel:${channel.id}` === activeView.value) || null);
 const channelPayload = computed(() => ({
@@ -265,7 +275,10 @@ const channelPayload = computed(() => ({
   selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
 }));
 const availableViews = computed(() => {
-  const views = graphOutputViews(selectedValue.value, { hasPluginRenderer: Boolean(rendererForOutput.value) });
+  const views = graphOutputViews(selectedValue.value, {
+    hasPluginRenderer: Boolean(rendererForOutput.value),
+    representation: selectedOutput.value?.contract?.semantic?.representation || ''
+  });
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });

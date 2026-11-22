@@ -22,7 +22,7 @@ export function ctsFieldToProcessType(descriptor = {}) {
       ? { base: 'json', kind: String(descriptor.kind) }
       : { base: 'json' };
     case 'blob': return { base: 'attachmentRef' };
-    case 'quantity': return { base: 'number', unit: descriptor.unit };
+    case 'quantity': return { base: 'number', unit: CTS_UNIT_TO_LEGACY[descriptor.unit] || descriptor.unit };
     case 'ref': {
       const type = { base: 'entityRef' };
       if (descriptor.accepts?.length === 1) type.typeId = descriptor.accepts[0];

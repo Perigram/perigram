@@ -91,7 +91,7 @@ const props = defineProps({
   scroll: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view', 'request-reference', 'request-graph-output']);
+const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view', 'request-reference', 'request-graph-output', 'request-file-reference']);
 
 const { t } = useI18n();
 const instance = getCurrentInstance();
@@ -250,20 +250,19 @@ function applyImage(src) {
 }
 
 function applyFile(file) {
+  if (file?.typeId && file?.instanceId && file.entity) {
+    emit('request-file-reference', {
+      typeId: file.typeId,
+      instanceId: file.instanceId,
+      name: file.entity.name || file.name
+    });
+    openWorkspacePageFromChrome({ pageId: 'graph-editor', typeId: file.typeId, entity: file.entity });
+    pendingRange = null;
+    return;
+  }
   withView(view => {
     restoreRange(view, pendingRange);
-    if (file?.typeId && file?.instanceId) {
-      insertInstanceRef(view, {
-        type: file.typeId,
-        id: file.instanceId,
-        label: file.entity?.name || file.name
-      });
-      if (file.entity) {
-        openWorkspacePageFromChrome({ pageId: 'graph-editor', typeId: file.typeId, entity: file.entity });
-      }
-    } else {
-      insertFileRef(view, file);
-    }
+    insertFileRef(view, file);
   });
   pendingRange = null;
   focus();

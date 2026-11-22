@@ -197,6 +197,13 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     if (!EFFECT_SPECIES_KINDS.has(node.kind)) return;
     node.access = normalizeDesignerAccess(node.access);
     node.entryTriggerId = node.id;
+    // Construction is a procedural operation: entry scheduling and
+    // event subscriptions belong to profile entry effects.
+    if (node.kind === 'cts.construct') {
+      const mode = node.trigger?.mode;
+      node.trigger = mode && mode !== 'manual' ? { mode: 'manual' } : (node.trigger || { mode: 'manual' });
+      delete node.eventId;
+    }
   }
 
   function syncProcessNodeConstruction(node = {}) {

@@ -32,8 +32,10 @@ describe('process procedural provider adapter', () => {
       type: { base: 'string', nullable: false },
       value: ''
     });
-    expect(createProcessGraphNodeDefinition('value.format').configuration.properties.type.semantic.kind)
-      .toBe('perigram.value-base');
+    expect(processNodeConfigurationSchema('value.format').properties).toMatchObject({
+      sourceType: { semantic: { kind: 'perigram.value-base' } },
+      outputType: { semantic: { kind: 'perigram.value-base' } }
+    });
 
     const math = createProcessGraphNodeDefinition('value.math');
     expect(math.configuration.properties.operation.enum).toContain('add');
@@ -61,13 +63,16 @@ describe('process procedural provider adapter', () => {
     expect(createProcessGraphNodeDefinition('collection.join').configuration.properties).toMatchObject({
       leftKey: { type: 'string' }, rightKey: { type: 'string' }, matching: { type: 'string' }
     });
-    expect(createProcessGraphNodeDefinition('collection.shift').configuration.default.offset).toBe(1);
+    expect(createProcessGraphNodeDefinition('collection.shift').configuration.properties.offset).toBeUndefined();
+    expect(processNodeConfigurationSchema('collection.shift').properties.matching.enum).toEqual(['longest', 'shortest', 'cross']);
     expect(createProcessGraphNodeDefinition('cts.read').configuration.properties.select.enum).toContain('related');
     expect(createProcessGraphNodeDefinition('cts.transition').configuration.properties.guard).toMatchObject({ type: 'object' });
     expect(createProcessGraphNodeDefinition('record.construct').configuration.properties.fields.semantic.kind)
       .toBe('perigram.field-list');
     expect(createProcessGraphNodeDefinition('cts.construct').configuration.properties.typeId.semantic.kind)
       .toBe('perigram.entity-type');
+    expect(createProcessGraphNodeDefinition('cts.construct').configuration.properties.trigger).toBeUndefined();
+    expect(createProcessGraphNodeDefinition('cts.mutate').configuration.properties.trigger).toMatchObject({ type: 'object' });
   });
 
   it('registers only preview-safe process nodes in the shared provider registry', () => {

@@ -88,6 +88,7 @@ describe('usePageDocumentSession pickers', () => {
       resolveSave = resolve;
     }));
     const doc = session();
+    doc.openGraphOutputPickerAtEnd();
     const blockId = doc.pickGraphOutput({
       source: { kind: 'graph-output', executionInstanceId: 'e-1', outputId: 'o-1', graphId: 'g-1' },
       parameters: { nested: { value: 1 } }
@@ -130,6 +131,15 @@ describe('usePageDocumentSession pickers', () => {
     doc.pickReference({ typeId: 'task', instanceId: 'i-1', revisionId: 'r-9' });
     const inserted = doc.order.map(key => doc.blockByKey(key)).find(block => block.kind === 'reference');
     expect(inserted.ref).toEqual({ typeId: 'task', instanceId: 'i-1', revisionId: 'r-9' });
+  });
+
+  it('inserts a created graph reference after the active block', () => {
+    const doc = session();
+    doc.insertReferenceAfter('t1', { typeId: 'graph-document', instanceId: 'g-1', name: 'Graph' });
+    expect(kinds(doc.order, doc.blockByKey)).toEqual(['text', 'reference', 'text']);
+    const inserted = doc.order.map(key => doc.blockByKey(key)).find(block => block.kind === 'reference');
+    expect(inserted.ref).toEqual({ typeId: 'graph-document', instanceId: 'g-1' });
+    expect(doc.dirty).toBe(true);
   });
 
   it('refuses an identity-less reference and keeps the draft clean', () => {

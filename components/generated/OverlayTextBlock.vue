@@ -25,6 +25,7 @@
       @request-view="requestView"
       @request-reference="requestReference"
       @request-graph-output="requestGraphOutput"
+      @request-file-reference="requestFileReference"
     />
     <MarkdownBlocks v-else-if="block.text" :source="block.text" />
   </div>
@@ -97,6 +98,10 @@ function requestReference() {
 
 function requestGraphOutput() {
   props.session?.openGraphOutputPickerAfter?.(props.block.id);
+}
+
+function requestFileReference(ref) {
+  props.session?.insertReferenceAfter?.(props.block.id, ref);
 }
 
 function closeEditor() {

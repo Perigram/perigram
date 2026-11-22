@@ -248,6 +248,15 @@
                       :aria-label="$t('common.rename')"
                       @click.stop="beginGraphRename(doc)"
                     />
+                    <Button
+                      icon="pi pi-trash"
+                      class="shrink-0"
+                      size="small"
+                      text
+                      severity="danger"
+                      :aria-label="$t('common.delete')"
+                      @click.stop="deleteGraphDocument(doc)"
+                    />
                   </template>
                 </div>
               </div>
@@ -676,6 +685,7 @@ import TabPanels from 'primevue/tabpanels';
 import Tabs from 'primevue/tabs';
 import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { instancePayloadPersistence } from '~/components/generated/file-surfaces.js';
@@ -715,10 +725,13 @@ import { useProcessDesignerScreens, withoutKeys } from '~/composables/useProcess
 import { useProcessDesignerApply } from '~/composables/useProcessDesignerApply.js';
 import { useProcessProfile } from '~/composables/useProcessProfile.js';
 import { useGraphChannelPreview } from '~/composables/useGraphChannelPreview.js';
+import { useInstancesStore } from '~/stores/instances.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
+const confirm = useConfirm();
+const instances = useInstancesStore();
 const authStore = useAuthStore();
 definePageMeta({
   layout: 'app',
@@ -1610,7 +1623,7 @@ const pageProps = defineProps({
   mode: { type: String, default: 'edit' },
   pageChrome: { type: Object, default: null }
 });
-function applyGraphInstanceId(id) {
+async function applyGraphInstanceId(id) {
   if (id === 'blank') {
     blankGraphSeq.value += 1;
     activeGraphDocument.value = {};
@@ -1621,7 +1634,17 @@ function applyGraphInstanceId(id) {
     return;
   }
   const record = graphDocuments.value.find(item => String(item._id) === String(id)) || null;
-  activeGraphDocument.value = record || { _id: String(id) };
+  if (record) {
+    activeGraphDocument.value = record;
+    return;
+  }
+  activeGraphDocument.value = { _id: String(id) };
+  try {
+    const entity = await instances.fetchInstance('graph-document', String(id));
+    if (entity) activeGraphDocument.value = entity;
+  } catch {
+    // The editor reports the unavailable record through its own load state.
+  }
 }
 watch(() => pageProps.graphInstanceId, applyGraphInstanceId);
 const graphDocumentChrome = ref(null);
@@ -1657,6 +1680,31 @@ function closeGraphDocument() {
   activeGraphDocument.value = null;
   graphDocumentChrome.value = null;
   loadGraphDocuments(t);
+}
+
+function deleteGraphDocument(doc) {
+  confirm.require({
+    message: t('processDesigner.deleteGraphConfirm', { name: doc.name }),
+    header: t('common.delete'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await $fetch(`/api/instances/graph-document/${encodeURIComponent(doc._id)}`, { method: 'DELETE' });
+        if (isActiveGraphDocument(doc)) closeGraphDocument();
+        await loadGraphDocuments(t);
+        toast.add({ severity: 'success', summary: t('common.delete'), life: 2400 });
+      } catch (error) {
+        toast.add({
+          severity: 'error',
+          summary: t('common.delete'),
+          detail: error?.data?.message || error?.message || '',
+          life: 5000
+        });
+      }
+    }
+  });
 }
 
 function beginGraphRename(doc) {

@@ -58,6 +58,14 @@ describe('projectScene3d', () => {
     expect(zoomed.faces[0]).not.toBe(base.faces[0]);
   });
 
+  it('pans the projected scene without changing its topology', () => {
+    const base = projectScene3d(cube);
+    const panned = projectScene3d(cube, { panX: 40, panY: -25 });
+    expect(panned.faces).toHaveLength(base.faces.length);
+    expect(panned.faces[0]).not.toBe(base.faces[0]);
+    expect(panned.edges).toHaveLength(base.edges.length);
+  });
+
   it('is deterministic for one orbit state', () => {
     const view = { yaw: 0.4, pitch: 0.2, zoom: 1.2 };
     expect(projectScene3d(cube, view)).toEqual(projectScene3d(cube, view));

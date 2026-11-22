@@ -7,7 +7,7 @@ const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 500;
 const FIT_MARGIN = 80;
 
-export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = {}) {
+export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, panX = 0, panY = 0, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = {}) {
   // Keep source indices stable: faces and edges address the original vertex
   // array, so filtering invalid vertices here would silently rewire geometry.
   const vertices = (Array.isArray(value?.vertices) ? value.vertices : [])
@@ -40,8 +40,8 @@ export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
   const points = rotated.map(point => point && ({
-    x: width / 2 + (point.x - centerX) * scale,
-    y: height / 2 - (point.y - centerY) * scale,
+    x: width / 2 + (point.x - centerX) * scale + panX,
+    y: height / 2 - (point.y - centerY) * scale + panY,
     depth: point.depth
   }));
 

@@ -1035,6 +1035,46 @@ describe('useGraphDocumentSession', () => {
     await nextTick();
     expect(session.validation.value).not.toBe(cached);
   });
+  it('registers installed provider conversions for browser edge diagnostics', async () => {
+    const session = useGraphDocumentSession({ t: key => key });
+    session.registerNodeProvider({
+      provider: 'plugin.conv',
+      execute: () => ({}),
+      definitions: [
+        {
+          provider: 'plugin.conv', id: 'conv.mm', version: '1', label: 'Millimetres',
+          palette: { group: 'values' },
+          inputs: [], outputs: [{ id: 'value', shape: 'item', semantic: { base: 'number', unit: 'mm' } }],
+          execution: { kind: 'pure' }
+        },
+        {
+          provider: 'plugin.conv', id: 'conv.m', version: '1', label: 'Metres',
+          palette: { group: 'values' },
+          inputs: [{ id: 'value', shape: 'item', semantic: { base: 'number', unit: 'm' }, required: true }],
+          outputs: [], execution: { kind: 'pure' }
+        }
+      ],
+      conversions: [{
+        id: 'conv.mm-to-m',
+        from: { base: 'number', unit: 'mm' },
+        to: { base: 'number', unit: 'm' },
+        runtime: 'javascript',
+        deterministic: true,
+        fidelity: 'lossless'
+      }]
+    });
+    const items = session.paletteGroups.value.flatMap(group => group.items);
+    const mm = session.addNode(items.find(item => item.operation?.id === 'conv.mm'), { x: 0, y: 0 });
+    const m = session.addNode(items.find(item => item.operation?.id === 'conv.m'), { x: 240, y: 0 });
+    session.edges.value = [{
+      id: 'edge-conv', source: mm.id, sourceHandle: 'value',
+      target: m.id, targetHandle: 'value', type: 'default'
+    }];
+    await nextTick();
+    expect(session.validation.value.ok).toBe(false);
+    expect(session.validation.value.errors.join(' ')).toContain('conv.mm-to-m');
+  });
+
   it('re-derives invocation labels when the catalog renames the graph', () => {
     const source = createSession();
     const [input, output] = source.paletteGroups.value[0].items;

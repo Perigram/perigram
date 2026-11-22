@@ -36,7 +36,7 @@ describe('process node canvas authoring boundary', () => {
 
     expect(source).toContain('TypedValueControl');
     expect(source).toContain('editableInputs');
-    expect(source).toContain('base="json"');
+    expect(source).toContain(':base="input.base"');
 
     const typedControl = await readComponent('./TypedValueControl.vue');
     expect(typedControl).toContain('editStructuredValue');

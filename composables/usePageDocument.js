@@ -160,10 +160,7 @@ export function usePageDocumentSession({ docId, tabKey }) {
     referencePickerAt.value = null;
   }
 
-  function pickReference(ref = {}) {
-    const at = referencePickerAt.value;
-    referencePickerAt.value = null;
-    if (at === null || !ref) return null;
+  function insertReference(ref = {}, at = draftOrder.value.length) {
     const typeId = String(ref.typeId || '').trim();
     const instanceId = String(ref.instanceId || '').trim();
     if (!typeId || !instanceId) return null;
@@ -173,6 +170,22 @@ export function usePageDocumentSession({ docId, tabKey }) {
       kind: 'reference',
       ref: { typeId, instanceId, ...(revisionId ? { revisionId } : {}) }
     }, at);
+  }
+
+  function insertReferenceAfter(blockId, ref = {}) {
+    const index = draftOrder.value.indexOf(blockId);
+    return insertReference(ref, index < 0 ? draftOrder.value.length : index + 1);
+  }
+
+  function insertReferenceAtEnd(ref = {}) {
+    return insertReference(ref, draftOrder.value.length);
+  }
+
+  function pickReference(ref = {}) {
+    const at = referencePickerAt.value;
+    referencePickerAt.value = null;
+    if (at === null || !ref) return null;
+    return insertReference(ref, at);
   }
 
   function openGraphOutputPicker(at) {
@@ -345,6 +358,9 @@ export function usePageDocumentSession({ docId, tabKey }) {
     openReferencePickerAtEnd,
     closeReferencePicker,
     pickReference,
+    insertReference,
+    insertReferenceAfter,
+    insertReferenceAtEnd,
     openGraphOutputPicker,
     openGraphOutputPickerAfter,
     openGraphOutputPickerAtEnd,

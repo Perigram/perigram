@@ -17,21 +17,20 @@ export const PROCESS_PROCEDURAL_VERSION = '1';
 
 const CORE_FAMILIES = new Set(['sources', 'values', 'collections', 'records']);
 
-// Authoring fields the graph editor inspector renders (SPEC §28.14). Each
-// entry names a config key, its control schema, and the value a drop seeds.
-const TYPED_BASE_DEFAULTS = Object.freeze({
-  'value.select': 'string', 'value.recordField': 'json',
-  'value.convertUnit': 'number', 'value.required': 'string',
-  'value.coalesce': 'string', 'value.validate': 'string',
-  'value.format': 'number',
-  'value.math': 'number', 'value.string': 'string',
-  'value.dateTime': 'dateTime', 'value.compare': 'string',
-  'value.logic': 'string', 'collection.reduce': 'number',
-  'tree.flatten': 'json', 'tree.graft': 'json', 'tree.simplify': 'json',
-  'tree.branch': 'json', 'tree.zip': 'json', 'tree.unzip': 'json',
-  'tree.cross': 'json', 'tree.transpose': 'json', 'tree.clean': 'json',
-  'tree.stats': 'json'
+// Typed-value configuration fields the inspector renders as base
+// selectors (SPEC §28.14). Fixed-output operations carry no such field.
+const TYPED_BASE_FIELDS = Object.freeze({
+  'value.select': ['type'],
+  'value.compare': ['type'],
+  'value.coalesce': ['type'],
+  'value.required': ['sourceType', 'outputType'],
+  'value.validate': ['sourceType', 'outputType'],
+  'value.format': ['sourceType', 'outputType']
 });
+const TREE_KINDS = new Set([
+  'tree.flatten', 'tree.graft', 'tree.simplify', 'tree.branch', 'tree.zip',
+  'tree.unzip', 'tree.cross', 'tree.transpose', 'tree.clean', 'tree.stats'
+]);
 const TEXT_DEFAULTS = Object.freeze({
   'source.processInput': { path: '' },
   'source.triggerPayload': { path: 'event.payload' },
@@ -47,8 +46,6 @@ const TEXT_DEFAULTS = Object.freeze({
   'cts.read': { relationKey: '', projection: '' }
 });
 const NUMBER_DEFAULTS = Object.freeze({
-  'collection.shift': { offset: 1 },
-  'collection.partition': { size: 2 },
   'value.validate': { min: null, max: null }
 });
 const MATCHING_KINDS = new Set([
@@ -57,7 +54,7 @@ const MATCHING_KINDS = new Set([
   'collection.reverse', 'collection.shift', 'collection.partition',
   'collection.dispatch', 'collection.groupBy', 'collection.filter',
   'collection.join', 'collection.reduce', 'record.merge',
-  ...Object.keys(TYPED_BASE_DEFAULTS).filter(kind => kind.startsWith('tree.'))
+  ...TREE_KINDS
 ]);
 const TYPE_BOUND_KINDS = new Set([
   'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
@@ -95,9 +92,9 @@ export function processNodeConfigurationSchema(kind = '') {
     add('access', { type: 'string', enum: ['item', 'list', 'tree'] },
       kind === 'source.literalTree' ? 'tree' : kind === 'source.literalList' ? 'list' : 'item');
     defaults.type = { base: isStructure ? 'json' : 'string', nullable: false };
-  } else if (TYPED_BASE_DEFAULTS[kind]) {
-    const base = TYPED_BASE_DEFAULTS[kind];
-    add('type', { semantic: { kind: 'perigram.value-base', bases: [...PROCESS_AUTHORED_BASES] } }, { base, nullable: false });
+  }
+  for (const id of TYPED_BASE_FIELDS[kind] || []) {
+    add(id, { semantic: { kind: 'perigram.value-base', bases: [...PROCESS_AUTHORED_BASES] } }, { base: 'string', nullable: false });
   }
 
   for (const [id, value] of Object.entries(TEXT_DEFAULTS[kind] || {})) add(id, { type: 'string' }, value);
@@ -123,7 +120,7 @@ export function processNodeConfigurationSchema(kind = '') {
     add('guard', { type: 'object' }, {});
     add('fieldPolicy', { type: 'object' }, {});
   }
-  if (EFFECT_SPECIES_KINDS.has(kind)) {
+  if (EFFECT_SPECIES_KINDS.has(kind) && kind !== 'cts.construct') {
     add('trigger', { type: 'object' }, {});
     add('eventId', { type: 'string' }, '');
   }
