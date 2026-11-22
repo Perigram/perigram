@@ -39,6 +39,16 @@ function invocationItem(session) {
 }
 
 describe('useGraphDocumentSession', () => {
+  it('keeps file renames outside the graph-content dirty signature', () => {
+    const session = createSession();
+    const baseline = session.draftSignature();
+    session.graphDocument.value.name = 'Renamed graph';
+    expect(session.draftSignature()).toBe(baseline);
+    const boundary = session.paletteGroups.value[0].items[0];
+    session.addNode(boundary, { x: 120, y: 80 });
+    expect(session.draftSignature()).not.toBe(baseline);
+  });
+
   it('executes the Documents Markdown-to-file workflow through listing-derived graph nodes', async () => {
     const documents = createDocumentsRuntime();
     const [provider] = documents.providers;
