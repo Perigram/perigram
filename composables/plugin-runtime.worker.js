@@ -1,4 +1,4 @@
-import { collectTransferableBuffers, createAbortableCapabilityCaller, pluginExecutionAbortError } from '../shared/plugin-runtime.js';
+import { collectTransferableBuffers, createAbortableCapabilityCaller, pluginExecutionAbortError } from '#shared/plugin-runtime.js';
 let runtime = null;
 let activeInvocations = new Map();
 let capabilitySequence = 0;
