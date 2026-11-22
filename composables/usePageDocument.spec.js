@@ -2,9 +2,11 @@
 // result blocks insert at the position their picker was opened at; a
 // closed picker inserts nothing. The seed drops trailing empty text
 // blocks — the trailing line owns the document's tail.
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const pageMocks = vi.hoisted(() => ({ saveDocument: vi.fn(async () => {}) }));
 
 vi.mock('~/stores/pages.js', () => ({
   usePagesStore: () => ({
@@ -25,7 +27,7 @@ vi.mock('~/stores/pages.js', () => ({
         order: ['a1', 'e1', 'e2']
       }
     },
-    saveDocument: vi.fn(async () => {})
+    saveDocument: pageMocks.saveDocument
   })
 }));
 
@@ -47,11 +49,36 @@ describe('usePageDocumentSession pickers', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('seeds the draft from the stored document', () => {
     const doc = session();
     expect(kinds(doc.order, doc.blockByKey)).toEqual(['text', 'text']);
+  });
+
+  it('keeps edits made during a save dirty and autosaves the newer snapshot', async () => {
+    vi.useFakeTimers();
+    let resolveFirstSave;
+    pageMocks.saveDocument.mockImplementationOnce(() => new Promise(resolve => {
+      resolveFirstSave = resolve;
+    }));
+    const doc = session();
+    doc.appendTextBlock('submitted');
+    await nextTick();
+    const saving = doc.save();
+    doc.appendTextBlock('newer edit');
+    await nextTick();
+    resolveFirstSave();
+    await saving;
+
+    expect(doc.dirty).toBe(true);
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(pageMocks.saveDocument).toHaveBeenCalledTimes(2);
+    const secondSnapshot = pageMocks.saveDocument.mock.calls[1][1];
+    expect(secondSnapshot.blocks.some(block => block.text === 'newer edit')).toBe(true);
+    expect(doc.dirty).toBe(false);
+    vi.useRealTimers();
   });
 
   it('drops trailing empty text blocks on the seed', () => {
