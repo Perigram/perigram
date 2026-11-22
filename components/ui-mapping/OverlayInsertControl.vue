@@ -36,7 +36,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Popover from 'primevue/popover';
-import { BLOCK_VOCABULARY } from '../../workers/documents/surfaces/lib/block-vocabulary-data.mjs';
+import { BLOCK_VOCABULARY } from '#workers/documents/surfaces/lib/block-vocabulary-data.mjs';
 
 const props = defineProps({
   session: { type: Object, required: true },

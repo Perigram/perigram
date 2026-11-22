@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue';
 const portableAliases = {
   '#shared': path.resolve(__dirname, './shared'),
   '#utils': path.resolve(__dirname, './utils'),
+  '#workers': path.resolve(__dirname, './workers'),
   '#services': path.resolve(__dirname, './server'),
   // Deep app graphs (an editor mount reaching the screen host) cross
   // Nuxt's #app; the SSR smoke harness stubs the same specifier.

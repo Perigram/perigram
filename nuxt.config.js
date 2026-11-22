@@ -9,7 +9,8 @@ const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
 const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
-    '#utils': resolveRoot('./utils')
+    '#utils': resolveRoot('./utils'),
+    '#workers': resolveRoot('./workers')
 }
 const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`

@@ -13,6 +13,7 @@
     "#packages/plugin-sdk": "@perigram/plugin-sdk",
     "#packages/plugin-sdk/*": "@perigram/plugin-sdk/*",
     "#utils/*": "./utils/*",
+    "#workers/*": "./workers/*",
     "#test-data/*": "./test-data/*",
     "#packages/cts/src/index.js": "@perigram/cts",
     "#packages/processes/src/authoring.js": "@perigram/processes/authoring"

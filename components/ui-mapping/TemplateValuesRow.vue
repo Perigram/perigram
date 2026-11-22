@@ -34,7 +34,7 @@
 import { ref, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import { templateSectionState, reconcileTemplateSectionDrafts } from '../../shared/ui-mapping/template-section-drafts.js';
+import { templateSectionState, reconcileTemplateSectionDrafts } from '#shared/ui-mapping/template-section-drafts.js';
 
 // The fill dialog's per-token values form (SPEC §24): the composition's
 // meta channel names scalar tokens and repeat sections; both update the

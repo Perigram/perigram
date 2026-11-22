@@ -317,17 +317,17 @@ onMounted(async () => {
   editorViewCtx = viewCtx;
   TextSelection = selectionType;
   const [{ createSourceMarkersPlugin }, { createSlashMenu }, vocabulary, { codeMirrorTheme }] = await Promise.all([
-    import('../../workers/documents/surfaces/lib/source-markers-plugin.js'),
-    import('../../workers/documents/surfaces/lib/slash-menu.js'),
-    import('../../workers/documents/surfaces/lib/block-vocabulary.mjs'),
-    import('../../workers/documents/surfaces/lib/cm-theme.js')
+    import('#workers/documents/surfaces/lib/source-markers-plugin.js'),
+    import('#workers/documents/surfaces/lib/slash-menu.js'),
+    import('#workers/documents/surfaces/lib/block-vocabulary.mjs'),
+    import('#workers/documents/surfaces/lib/cm-theme.js')
   ]);
   // A surface unmounted mid-load (navigation) owns nothing anymore: the
   // engine never mounts on a dead host.
   if (disposed || !editorHost.value) return;
   await Promise.all([
-    import('../../workers/documents/assets/vendor/crepe-theme.css'),
-    import('../../workers/documents/assets/text-editor.css')
+    import('#workers/documents/assets/vendor/crepe-theme.css'),
+    import('#workers/documents/assets/text-editor.css')
   ]);
   applyBlockAt = (id, view) => vocabulary.applyBlock({
     id,
