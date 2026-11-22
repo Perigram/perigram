@@ -18,11 +18,13 @@ import { codeMirrorTheme } from './lib/cm-theme.js';
 import { createSlashMenu } from './lib/slash-menu.js';
 import { BLOCK_VOCABULARY, applyBlock } from './lib/block-vocabulary.mjs';
 
-const CSS_ASSETS = ['../assets/vendor/crepe-theme.css', '../assets/text-editor.css'];
+const CSS_ASSETS = [
+  new URL('../assets/vendor/crepe-theme.css', import.meta.url).href,
+  new URL('../assets/text-editor.css', import.meta.url).href
+];
 
 function injectStyles() {
-  for (const href of CSS_ASSETS) {
-    const url = new URL(href, import.meta.url).href;
+  for (const url of CSS_ASSETS) {
     if (document.head.querySelector(`link[data-surface-style="${url}"]`)) continue;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
