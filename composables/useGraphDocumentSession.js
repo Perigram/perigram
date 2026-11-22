@@ -854,6 +854,10 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       }))
     });
   }
+
+  function createSaveSnapshot() {
+    return { document: serializeGraph(), signature: draftSignature() };
+  }
   // The authoring signature: everything validation and node definitions
   // read, with presentation (position, selection) excluded — drags and
   // selection churn never re-run the passes. Identical derived rewrites
@@ -946,6 +950,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     serializeGraph,
     designerSignature,
     draftSignature,
+    createSaveSnapshot,
     refreshPreview,
     setGraphInputBinding,
     registerProvider,
