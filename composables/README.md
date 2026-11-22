@@ -610,7 +610,10 @@ collections) resolve their display descriptors from the same view: the
 bundle's derived display policy is the one fact vocabulary
 ([utils/README.md](../utils/README.md) → `fact-rows.js`).
 `refresh()` re-fetches the same organization's view and updates every
-consumer's refs; the class dialog calls it after a registry write. The
+consumer's refs; the class dialog calls it after a registry write, and
+`refreshFileTypeView(organizationId)` does the same from the
+contract-change seam in the entity-events store, so an install upgrade
+reaches open screens. The
 cache never serves another organization's view after an org switch, and a
 failed fetch is dropped from the cache (consumers keep their
 declaration-less fallbacks for that mount; the next consumer retries

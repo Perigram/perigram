@@ -380,10 +380,14 @@ pure helpers own every state-presentation decision:
 layer. Every composed region carries `dataState`: the reported state
 when present, else derived purely from the pool (`empty` for a list
 source with no instances, `missing` for a single source without one,
-`ready` otherwise). One precedence rule: a reported `ready` never
-overrides the pool-derived state — readiness is resolved instances, so
-a data layer that counts a non-empty type bucket cannot upgrade a
-single source whose scoped instance is absent past `missing`.
+`ready` otherwise). Two precedence rules reconcile the fetch outcome
+with the live pool: a reported `ready` never overrides the pool-derived
+state — readiness is resolved instances, so a data layer that counts a
+non-empty type bucket cannot upgrade a single source whose scoped
+instance is absent past `missing`; and a reported `empty` or `missing`
+yields to resolved instances, so rows the pool gains after the fetch (a
+created record lands with its snapshot while the screen stays mounted)
+render as ready. `loading`, `denied`, and `error` stay authoritative.
 Materializations render one shared message per
 state, so loading/empty/denied surfaces never differ per component.
 
