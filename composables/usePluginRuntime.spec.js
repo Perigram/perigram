@@ -7,11 +7,13 @@ class FakeWorker {
   constructor(providers = []) {
     this.providers = providers;
     this.messages = [];
+    this.transfers = [];
     this.terminated = false;
   }
 
-  postMessage(message) {
+  postMessage(message, transfer = []) {
     this.messages.push(message);
+    this.transfers.push(transfer);
     if (message.type === 'initialize') {
       queueMicrotask(() => this.onmessage?.({ data: { type: 'ready', providers: this.providers } }));
     }
@@ -48,6 +50,19 @@ describe('usePluginRuntime', () => {
     expect(worker.messages.filter(message => message.type === 'invoke')).toHaveLength(2);
     pluginRuntime.dispose();
     expect(worker.terminated).toBe(true);
+  });
+
+  it('transfers large invocation buffers only when the caller grants ownership', async () => {
+    const worker = new FakeWorker();
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const buffer = new ArrayBuffer(128 * 1024);
+    await pluginRuntime.execute(binding, runtime, 'transform', { geometry: new Float32Array(buffer) }, {
+      execution,
+      transferInputBuffers: true
+    });
+    const invocationIndex = worker.messages.findIndex(message => message.type === 'invoke');
+    expect(worker.transfers[invocationIndex]).toEqual([buffer]);
+    pluginRuntime.dispose();
   });
 
   it('loads provider declarations and routes provider execution through Worker RPC', async () => {
