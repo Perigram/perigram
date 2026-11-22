@@ -348,7 +348,7 @@ export const GRAPH_TOOL_SPECS = [
             type: 'object',
             properties: {
                 graph: { type: 'object' },
-                dsl: { type: 'string', description: 'Authoring DSL source (SPEC 30.9.1); parsed and lowered to the canonical document before validation' },
+                dsl: { type: 'string', maxLength: 262144, description: 'Authoring DSL source (SPEC 30.9.1); maximum 256 KiB; parser nesting is limited to 128 levels' },
                 detail: { type: 'string', enum: ['ir'] }
             },
             additionalProperties: false
