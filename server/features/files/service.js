@@ -106,6 +106,7 @@ export async function getFileRangeStream(fileId, bucketName = 'uploads', start =
 // previews (SVG documents, PDFs, images) render in image/iframe contexts
 // that refuse sniffed or octet-stream responses.
 const EXTENSION_CONTENT_TYPES = Object.freeze({
+  '.css': 'text/css',
   '.csv': 'text/csv',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.dxf': 'application/dxf',
