@@ -250,6 +250,39 @@ describe('lowerGraphToTypedIR recursive subgraph preflight', () => {
     expect(invocation.invocation.lowering).toEqual({ diagnostics: 3 });
   });
 
+  it('maps not-found and forbidden nested graph resolution to the invoking node without leaking details', async () => {
+    for (const statusCode of [403, 404]) {
+      const graph = graphDocument();
+      graph.nodes.push(invokeNode('invoke', 'private-graph', 'private-rev'));
+      const { diagnostics } = await lower({
+        graph,
+        resolveGraph: async () => {
+          const error = new Error('private graph internals');
+          error.statusCode = statusCode;
+          throw error;
+        }
+      });
+      const failure = diagnostics.find(item => item.nodeId === 'invoke');
+      expect(failure).toMatchObject({ severity: 'error', phase: 'lowering', nodeId: 'invoke' });
+      expect(failure.message).toContain('unavailable or inaccessible');
+      expect(failure.message).not.toContain('private graph internals');
+    }
+  });
+
+  it('maps unexpected nested graph resolver failures to the invoking node', async () => {
+    const graph = graphDocument();
+    graph.nodes.push(invokeNode('invoke', 'child-graph', 'child-rev-1'));
+    const { diagnostics } = await lower({
+      graph,
+      resolveGraph: async () => { throw new Error('resolver database unavailable'); }
+    });
+    expect(diagnostics.find(item => item.nodeId === 'invoke')).toMatchObject({
+      severity: 'error',
+      phase: 'lowering',
+      message: expect.stringContaining('resolver database unavailable')
+    });
+  });
+
   it('surfaces incompatible edges nested inside a pinned subgraph', async () => {
     const definition = countDefinition();
     definition.inputs = [{ id: 'text', shape: 'list', semantic: { base: 'string' }, required: true }];
