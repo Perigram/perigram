@@ -830,16 +830,14 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
 
   const contextPaletteGroups = computed(() => paletteGroups.value);
 
-  // The dirty baseline's projection: the same persisted shape serializeGraph
-  // writes, without graph normalization — comparing two drafts costs one
-  // pass, so a drag frame never re-validates the graph.
+  // The dirty baseline tracks graph content, not file metadata such as its
+  // display name. Comparing drafts costs one pass and never re-validates.
   function draftSignature() {
     return JSON.stringify({
       format: graphDocument.value.format,
       version: graphDocument.value.version,
       id: graphDocument.value.id,
       revision: graphDocument.value.revision,
-      name: graphDocument.value.name,
       interface: graphDocument.value.interface || {},
       nodes: nodes.value.map(node => ({
         id: node.id,
