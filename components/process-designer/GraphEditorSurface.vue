@@ -275,6 +275,7 @@ const {
   loadEmpty,
   serializeGraph,
   draftSignature,
+  createSaveSnapshot,
   refreshPreview,
   setGraphInputBinding,
   registerNodeProvider
@@ -531,8 +532,7 @@ async function saveGraphDocument() {
     const name = String(recordName.value || props.record?.name || 'graph').trim() || 'graph';
     graphDocument.value.name = name;
     graphDocument.value.revision = mintId('rev').replaceAll('_', '-');
-    const submitted = serializeGraph();
-    const submittedSignature = draftSignature();
+    const { document: submitted, signature: submittedSignature } = createSaveSnapshot();
     const updated = await props.persistence.save(
       JSON.stringify(submitted, null, 2),
       `${name}${GRAPH_DOCUMENT_EXTENSION}`
