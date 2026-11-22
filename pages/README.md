@@ -40,9 +40,9 @@ redirect gate for authenticated users.
   stay on the landing page. Entry actions appear once per destination: the
   header carries the sign-in link, the hero the single registration call to
   action; duplicated button pairs for the same destination are a defect.
-- Authenticated users without any organization membership land on
-  `/organization`, which owns orgless onboarding (an inline
-  organization-creation form; the account menu carries the same affordance).
+- Authenticated users without any organization membership enter the home
+  workspace through the same entry ladder. `/organization` remains the
+  optional orgless shell for organization creation and targeted invitations.
 
 `pages/auth/register.vue` collects the new user's credentials only and submits
 them to `/api/auth/register`; users join organizations by invitation or create
@@ -208,11 +208,12 @@ directory's self-profile action opens the same popup. Its avatar section
 uploads/removes the current user's avatar through the user avatar API;
 every avatar image uses a square cover crop inside its circular frame. The
 settings popup is one sectioned surface (identity, preferences,
-invitations, memberships). Organization
-memberships render as inline `Menu` entries in the settings popup's
-organizations section: every entry opens the organization's in-home pane,
-the active membership carries the success check, and the create entry opens
-organization creation.
+invitations, memberships). Organization memberships render as inline `Menu`
+entries in the settings popup's organizations section: the active membership
+carries the success check, each entry opens its organization pane, switches
+to it, or leaves it, and the create entry opens organization creation.
+Leaving the active organization selects another active membership or the
+orgless home workspace; the sole active member or owner is refused.
 
 Targeted invitations addressed to the account render through the shared
 `TargetedInvitations` surface: above the memberships section of the account

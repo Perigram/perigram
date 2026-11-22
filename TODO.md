@@ -1,5 +1,12 @@
 # TODO
 
+## Accounts and optional organizations (SPEC §32, owner direction 2026-11-22)
+
+- [ ] WAITING — Orgless accounts enter the home workspace through the same entry ladder.
+- [ ] WAITING — Account settings create, switch, and leave organizations; the active organization falls back to another active membership or none.
+- [ ] WAITING — `POST /api/auth/leave-org` removes the caller's membership and role assignment with the last-member and last-owner guards.
+- [ ] WAITING — Owner verification: standalone login, orgless home workspace, create/switch/leave, and invitation acceptance.
+
 ## Graph management correctness (SPEC §28, owner direction 2026-11-21)
 
 - [ ] WAITING — Give graph documents the dedicated `.perigram-graph` extension on save and blank creation; keep the JSON payload and mime.

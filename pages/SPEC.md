@@ -35,10 +35,10 @@ Parents: [README.md](../README.md) · [SPEC.md](../SPEC.md) ·
 
 ### Routing laws
 
-- **Entry ladder.** Authenticated members land on the generated `home`
-  screen, else the first generated hub/list screen, else `/home`; a
+- **Entry ladder.** Every authenticated account lands on the generated
+  `home` screen, else the first generated hub/list screen, else `/home`; a
   sourceless synthesized `defaultHomeScreen` stands in whenever the
-  manifest carries no home. Orgless accounts land on `/organization`;
+  manifest carries no home. Orgless accounts enter the same ladder;
   memberships all pending render the awaiting-approval state. Available
   screens are defined entirely by the active process graph.
 - **System-screen keys replace to their own routes.** A system-screen key
@@ -80,9 +80,9 @@ Parents: [README.md](../README.md) · [SPEC.md](../SPEC.md) ·
 - **Landing.** The public first paint resolves entry auth server-side;
   entry actions appear once per destination (header sign-in, hero
   registration).
-- **Signup creates credentials only.** Users join organizations by
-  invitation or create their own from the organization page after signing
-  in.
+- **Signup creates credentials only.** Accounts use the home workspace
+  without an organization. Organization creation, switching, and leaving
+  live in account settings; invitations join organizations.
 - **Shell primitives.** Routed surfaces use `StandardPage`,
   `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`; local
   chrome uses `bg-content`/`bg-subtle`.

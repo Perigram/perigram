@@ -113,6 +113,10 @@ Routes are grouped into sub-directories corresponding to features:
   targeted invitations — the current user's pending invitations and their
   accept/decline response (see the
   [invitations feature](../features/invitations/README.md)).
+- `auth/leave-org`: Authenticated self-service membership removal. The
+  active organization falls back to another active membership or none; the
+  last active member/owner is refused (see the
+  [users feature](../features/users/README.md)).
 - `directory/`: Authenticated cross-tenant discovery over users and
   organizations. `GET /directory/search` returns grouped directory cards
   (name-only matching); `GET /directory/:type/:id` returns one card with
