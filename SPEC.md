@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-19
+updated: 2026-11-22
 ```
 
 This spec is human-write only. 
