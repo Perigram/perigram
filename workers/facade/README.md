@@ -23,7 +23,8 @@ executor as static GETs beside the services (the install-resolved module
 URL `http://<origin>/surfaces/<module>.mjs`; CORS-open,
 path-traversal-refused — the URL is the only credential the browser
 gets). Each module targets a surface mount contract
-([plugin-surfaces](../../shared/plugin-surfaces.js)):
+([plugin-surfaces](../../shared/plugin-surfaces.js)); a failed native host
+mount releases the container claim so the next attachment retries it.
 
 | Surface | Kind | Contract | Serves |
 |---|---|---|---|

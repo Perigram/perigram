@@ -167,6 +167,19 @@ authorization, provider execution bindings, preview rendering, Commit, Bake,
 and Export are host responsibilities. The architecture contract is
 [ root SPEC §28](../../SPEC.md#28-unified-node-graph-system).
 
+Runtime input validation enforces the target port's transport shape and
+semantic contract. Beyond the JSON base check it compares value-carried
+semantic tags against declared `kind`, `representation`, `nominal`,
+`typeId`, `identity`, and `provider`; an `entityRef` target checks the
+value's `type` against its `typeId`. A bare domain value stays
+transport-checked because its identity tag is absent. `constraints` accepts
+the JSON-schema-compatible subset `const`, `enum`,
+`minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`,
+`multipleOf`, `minLength`, `maxLength`, `pattern`, `minItems`, `maxItems`,
+`uniqueItems`, `items`, `required`, and `properties`; remaining keys are
+provider-enforced domain rules. A violation fails the node with the
+qualifier or constraint path in the message.
+
 ## Authoring DSL
 
 One language-independent structured authoring schema underlies the textual

@@ -240,9 +240,9 @@ the `section` field set.
   parameterized retained embed resolves through the pages references
   seam. Structured item values render through the shared
   representation contract
-  ([utils](../../utils/README.md) `graphOutputViews`): text, tables,
-  and an explicit JSON fallback — the same derivation the graph
-  preview panel uses.
+  ([utils](../../utils/README.md) `graphOutputViews`) and the shared
+  `GraphOutputView` renderer: text, tables, images, documents, 2D and
+  interactive 3D scenes, with JSON as the explicit fallback.
   The crepe configuration follows the documents plugin's reference mount
   (`workers/documents/surfaces/text-editor.mjs` — every engine chrome
   off), and the block vocabulary, the slash panel, the source-markers

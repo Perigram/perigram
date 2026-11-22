@@ -128,6 +128,12 @@ sdk node-contract normalizer
 definitions — with the server-side `packagePin` execution provenance
 carried on top.
 
+`listInstalledGraphProviderConversions({ auth })` loads the caller's
+installed server-capable runtimes and returns their validated conversion
+declarations, deduplicated by stable id in provider/id order. A conversion
+is a compatibility candidate for graph validation; executing its provider
+operation still requires node resolution and the execution target gate.
+
 ### Service execution
 
 Managed services declare `execution: { runtime, targets, kind,

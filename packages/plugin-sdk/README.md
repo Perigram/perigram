@@ -72,8 +72,9 @@ source alone is `incompatible`. A generic JSON target — `base: 'json'`
 carrying at most `nullable` — accepts typed JSON values. A specific semantic
 target requires a matching declared identity or a provider-declared runtime
 validator. Optional outputs and nullable values may connect to stricter
-inputs conditionally; the graph evaluator checks presence, nullability, and
-primitive/record base values at runtime. The graph editor uses `compatible`
+inputs conditionally; the graph evaluator checks presence, nullability,
+value-carried semantic qualifiers, and the runtime-checkable constraint
+subset ([core evaluator](../core/README.md#execution-role)). The graph editor uses `compatible`
 for connection gestures, persisted-edge validation, and preview preflight.
 
 Every comparator result — the default comparator's and every registered

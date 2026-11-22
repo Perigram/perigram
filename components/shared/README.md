@@ -377,6 +377,14 @@ readable. `fill` opts a host-owned fixed-height band in (DrawingCanvas
 `fill`): the canvas drops its own frame and fills the band, so exactly one
 surface — the host's — frames the preview.
 
+### `GraphOutputView.vue`
+The one graph-output value renderer: selects the best supported
+representation from `utils/graphOutputViews.js` and mounts text,
+Markdown, tables, images, document links, the 2D scene canvas, or the
+interactive `Scene3DViewer`; JSON is the explicit fallback view. The
+graph editor preview, outputs channel, and Page graph-result embed all
+render through it.
+
 ### `Scene3DViewer.vue`
 The host's interactive 3D viewer for `perigram.scene-3d` graph values
 (`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges? }`).
