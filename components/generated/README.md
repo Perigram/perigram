@@ -269,10 +269,13 @@ the `section` field set.
   engine's image node. The file entry opens `FileInsertDialog.vue` for any
   file and inserts a `file_ref` node (`file-ref-node.js`) rendering the
   shared `FileChip`; it serializes to a `#file:` link and the read
-  composition mounts the same chip. The dialog also offers **New graph**:
-  it creates a `graph-document` through the generic editor-create
-  boundary, inserts its instance reference, and opens the graph editor in
-  a workspace pane. Every slash hand-off opens on the
+  composition mounts the same chip. The dialog also offers **New graph**
+  when the author holds the graph-document write grant: it creates a
+  `graph-document` through the generic editor-create boundary, inserts a
+  Page `reference` block to that record after the authoring block, and
+  opens the graph editor in a workspace pane. The graphs list deletes a
+  record through the generic instance boundary; the Page reference then
+  renders the explicit unavailable state. Every slash hand-off opens on the
   next task, so the selecting click cannot dismiss its popover or dialog
   as an outside click. Enter on an empty top-level paragraph keeps the
   caret in that paragraph. The page-link and AI-block entries stay dark
@@ -555,10 +558,10 @@ mode (`image`, `svg`, `pdf`, `text`, `dxf`, `graph` — extension-first for
 `.perigram-graph`, then mime-first with extension fallbacks) and returns
 `{ mode, fileUrl }` honoring the descriptor's
 bucket, or null for files without a bounded preview. Graph documents save
-under the `.perigram-graph` extension with a JSON payload; their file chip
-and card preview render the graph payload visually; activating the chip
-opens the `graph-editor` page through the workspace page-open seam with that
-record loaded. Modes that the shared
+under the `.perigram-graph` extension with a JSON payload; their card
+previews render the graph payload visually, and Page-created graph
+references open the `graph-editor` page through the workspace page-open
+seam with that record loaded. Modes that the shared
 viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
 `docx`, `table`, `workbook`, `text`, `graph` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated

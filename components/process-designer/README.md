@@ -72,7 +72,9 @@ its best supported view by default (JSON is an explicit choice), and the
 outputs channel selects one evaluated output first with the per-node
 listing as collapsed diagnostics. A `perigram.scene-3d` value mounts the
 shared interactive `Scene3DViewer` ([components/shared](../shared/README.md)):
-pointer-drag orbit, wheel zoom, and a back-to-front face sort. The graph
+pointer-drag orbit, shift/middle-drag pan, wheel zoom, double-click fit, and
+a back-to-front face sort. A `perigram.scene-2d` value mounts the shared
+interactive canvas with the same pan/zoom/fit grammar. The graph
 editor's preview panel leads with the selected output; input bindings and
 Bake follow it.
 
@@ -90,7 +92,11 @@ base, and the shared base-aware value control; `perigram.value-base`
 renders the base selector alone, `perigram.entity-type` the organization
 type picker, and `perigram.field-list` the authored field-path list.
 `TypedLiteralControl.vue` is the one control both editors use for literal
-authoring. Socket gestures,
+authoring. The process inspector renders every declared editable setting:
+operation and typed-base selectors, literal access, data matching, read
+selection, required/min/max/pattern/message validation settings, source
+paths, secret references, and the profile's construction, guard, field
+policy, and entry controls. Socket gestures,
 persisted-edge validation, and preview preflight share the SDK compatibility
 relation.
 
