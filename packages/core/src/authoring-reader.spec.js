@@ -134,10 +134,17 @@ describe('restricted reader', () => {
     expect(result.diagnostics[0].code).toBe('source-too-large');
   });
 
-  it('rejects nesting beyond the configured depth without recursing further', () => {
-    const source = '('.repeat(20) + ':deep' + ')'.repeat(20);
-    const result = readRestrictedEdn(source, { maxNestingDepth: 4 });
-    expect(result.diagnostics.some(item => item.code === 'nesting-depth')).toBe(true);
+  it('rejects source whose UTF-8 byte length exceeds the configured limit', () => {
+    const result = readRestrictedEdn('"ééé"', { maxSourceLength: 6 });
+    expect(result.forms).toEqual([]);
+    expect(result.diagnostics[0].code).toBe('source-too-large');
+  });
+
+  it('allows the configured nesting depth and rejects one level beyond it', () => {
+    const withinLimit = readRestrictedEdn('('.repeat(4) + ':deep' + ')'.repeat(4), { maxNestingDepth: 4 });
+    const overLimit = readRestrictedEdn('('.repeat(5) + ':deep' + ')'.repeat(5), { maxNestingDepth: 4 });
+    expect(withinLimit.diagnostics.some(item => item.code === 'nesting-depth')).toBe(false);
+    expect(overLimit.diagnostics.some(item => item.code === 'nesting-depth')).toBe(true);
   });
 
   it('freezes forms and diagnostics', () => {
