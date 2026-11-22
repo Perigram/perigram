@@ -113,6 +113,8 @@ describe('tools/list surface', () => {
         for (const name of ['apply_graph_patch', 'validate_graph']) {
             expect(tools.find(tool => tool.name === name).inputSchema).toMatchObject({ type: 'object' });
         }
+        expect(tools.find(tool => tool.name === 'validate_graph').inputSchema.properties.dsl)
+            .toMatchObject({ type: 'string', maxLength: 262144 });
     });
 });
 
