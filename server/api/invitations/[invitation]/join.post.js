@@ -4,7 +4,7 @@ import * as invitationService from '~/server/features/invitations/service';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const token = event.context.params.token;
+  const token = event.context.params.invitation;
   
   return await invitationService.joinByToken(token, user);
 });
