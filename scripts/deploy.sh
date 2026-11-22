@@ -52,6 +52,12 @@ build_args=(
   --build-arg "NO_PROXY=$BUILD_NO_PROXY"
 )
 
+echo "Reclaiming Docker build space..."
+docker builder prune -af >/dev/null 2>&1 || true
+docker image prune -af >/dev/null 2>&1 || true
+docker container prune -f >/dev/null 2>&1 || true
+docker system df 2>/dev/null || true
+
 echo "Pulling base images..."
 for image in node:24.15.0-slim rust:1.83 python:3.11-slim python:3.14-slim node:24-alpine denoland/deno:alpine; do
   retry docker pull "$image" || echo "WARN: pull $image failed; build may still resolve it"
