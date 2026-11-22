@@ -11,6 +11,7 @@ function mountApply(overrides = {}) {
     activateDraft: vi.fn()
   };
   const draft = { value: { _id: 'draft-1', data: {} } };
+  const setDraft = vi.fn();
   const apply = useProcessDesignerApply({
     persistence,
     t: key => key,
@@ -23,11 +24,11 @@ function mountApply(overrides = {}) {
     persistTreeDeclarations: vi.fn(async () => ({ failures: [] })),
     focusFirstValidationDiagnostic: vi.fn(),
     upsertProcessDefinition: vi.fn(),
-    setDraft: vi.fn(),
+    setDraft,
     syncNow: vi.fn(),
     ...overrides
   });
-  return { apply, persistence, draft };
+  return { apply, persistence, draft, setDraft };
 }
 
 const validResult = { ok: true, errors: [], warnings: [], diff: null };
@@ -53,6 +54,25 @@ describe('useProcessDesignerApply machine', () => {
     await saving;
     expect(apply.applyState.value).toBe('idle');
     expect(apply.applyDetail.value).toBeNull();
+  });
+
+  it('does not replace process edits made while persistence is in flight', async () => {
+    let release;
+    const submitted = { value: 'before' };
+    const { apply, persistence, setDraft } = mountApply({
+      serializeProcess: () => ({ value: submitted.value })
+    });
+    persistence.saveDraft.mockImplementation(() => new Promise(resolve => {
+      release = () => resolve({ _id: 'draft-1', data: { value: 'before' } });
+    }));
+
+    const saving = apply.saveDraft();
+    submitted.value = 'edited-during-save';
+    release();
+    await saving;
+
+    expect(persistence.saveDraft).toHaveBeenCalledWith('draft-1', { value: 'before' });
+    expect(setDraft).not.toHaveBeenCalled();
   });
 
   it('settles a save failure in error', async () => {
