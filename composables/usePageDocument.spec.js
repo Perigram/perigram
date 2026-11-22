@@ -81,6 +81,28 @@ describe('usePageDocumentSession pickers', () => {
     vi.useRealTimers();
   });
 
+  it('isolates nested block payloads in an in-flight save snapshot', async () => {
+    let resolveSave;
+    pageMocks.saveDocument.mockImplementationOnce(() => new Promise(resolve => {
+      resolveSave = resolve;
+    }));
+    const doc = session();
+    const blockId = doc.pickGraphOutput({
+      source: { kind: 'graph-output', executionInstanceId: 'e-1', outputId: 'o-1', graphId: 'g-1' },
+      parameters: { nested: { value: 1 } }
+    });
+    await nextTick();
+    const saving = doc.save();
+    doc.blockByKey(blockId).collection.parameters.nested.value = 2;
+    await nextTick();
+
+    const submitted = pageMocks.saveDocument.mock.calls[0][1];
+    expect(submitted.blocks.find(block => block.id === blockId).collection.parameters.nested.value).toBe(1);
+    resolveSave();
+    await saving;
+    expect(doc.dirty).toBe(true);
+  });
+
   it('drops trailing empty text blocks on the seed', () => {
     const doc = session('page2');
     expect(kinds(doc.order, doc.blockByKey)).toEqual(['text']);
