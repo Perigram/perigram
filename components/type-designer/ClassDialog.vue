@@ -266,11 +266,22 @@
         </TabPanels>
       </Tabs>
 
-      <div v-if="fieldError || stateError || childError || error" class="flex flex-col gap-2">
+      <div v-if="fieldError || stateError || childError || error || pendingAbandon" class="flex flex-col gap-2">
         <Message v-if="fieldError" severity="warn" :closable="false">{{ fieldError }}</Message>
         <Message v-if="stateError" severity="warn" :closable="false">{{ stateError }}</Message>
         <Message v-if="childError" severity="warn" :closable="false">{{ childError }}</Message>
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+        <div v-if="pendingAbandon" class="flex flex-col items-start gap-2">
+          <Message severity="warn" :closable="false">{{ deleteImpactMessage }}</Message>
+          <Button
+            :label="$t('classes.deleteAnyway')"
+            icon="pi pi-trash"
+            severity="danger"
+            size="small"
+            :loading="saving"
+            @click="deleteClass(true)"
+          />
+        </div>
       </div>
 
     </div>
@@ -351,6 +362,7 @@ const draft = ref(freshDraft());
 const activeTab = ref('fields');
 const base = ref(null);
 const error = ref('');
+const pendingAbandon = ref(null);
 const saving = ref(false);
 const childDraftVisible = ref(false);
 const childDraftInitial = ref(null);
@@ -433,6 +445,7 @@ function freshDraft() {
 
 function initialize() {
   error.value = '';
+  pendingAbandon.value = null;
   existingChild.value = null;
   activeTab.value = 'fields';
   if (props.initialDraft) {
@@ -696,28 +709,49 @@ function requestDelete() {
     icon: 'pi pi-exclamation-triangle',
     rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
     acceptProps: { label: t('common.delete'), severity: 'danger' },
-    accept: async () => {
-      saving.value = true;
-      error.value = '';
-      try {
-        await $fetch(`/api/admin/cts/types/${encodeURIComponent(typeId)}`, { method: 'DELETE' });
-        await view.refresh();
-        toast.add({
-          severity: 'success',
-          summary: t('common.delete'),
-          detail: draft.value.name || typeId,
-          life: 2400
-        });
-        emit('saved', null);
-        close();
-      } catch (failure) {
-        error.value = failure?.data?.message || failure?.message || t('common.error');
-      } finally {
-        saving.value = false;
-      }
-    }
+    accept: () => deleteClass(false)
   });
 }
+
+async function deleteClass(abandon) {
+  const typeId = String(draft.value.id);
+  saving.value = true;
+  error.value = '';
+  try {
+    await $fetch(`/api/admin/cts/types/${encodeURIComponent(typeId)}${abandon ? '?abandon=true' : ''}`, { method: 'DELETE' });
+    pendingAbandon.value = null;
+    await view.refresh();
+    toast.add({
+      severity: 'success',
+      summary: t('common.delete'),
+      detail: draft.value.name || typeId,
+      life: 2400
+    });
+    emit('saved', null);
+    close();
+  } catch (failure) {
+    if (!abandon && failure?.statusCode === 409 && failure?.data) {
+      pendingAbandon.value = failure.data;
+      return;
+    }
+    console.error('Failed to delete class', failure);
+    error.value = t('classes.deleteFailed');
+  } finally {
+    saving.value = false;
+  }
+}
+
+const deleteImpactMessage = computed(() => {
+  if (!pendingAbandon.value) return '';
+  const boundBy = Array.isArray(pendingAbandon.value.boundBy) ? pendingAbandon.value.boundBy : [];
+  const names = boundBy.map(item => item?.name).filter(Boolean);
+  return t('classes.deleteBlastRadius', {
+    name: draft.value.name || draft.value.id,
+    instances: Number(pendingAbandon.value.instances || 0),
+    processes: boundBy.length,
+    names: names.length ? ` (${names.join(', ')})` : ''
+  });
+});
 
 async function save() {
   if (!canSave.value) return;
