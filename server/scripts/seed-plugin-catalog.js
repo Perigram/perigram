@@ -16,7 +16,6 @@ import { connectDB } from '../db/mongo.js';
 import { normalizeListing } from '#packages/plugin-sdk/listing';
 import * as pluginRepository from '../features/plugins/repository.js';
 import { prepareListingRelease } from './lib/plugin-runtime-assets.js';
-import { buildDocumentsRuntime } from '../../workers/documents/build-runtime.mjs';
 
 const BUILTIN_LISTING_PATHS = [
   'workers/documents/listing.json',
@@ -27,11 +26,6 @@ const BUILTIN_LISTING_PATHS = [
 ];
 
 const paths = process.argv.slice(2).length ? process.argv.slice(2) : BUILTIN_LISTING_PATHS;
-
-// Build the portable browser/server artifact before collecting package assets.
-if (paths.some(path => resolve(path) === resolve('workers/documents/listing.json'))) {
-  await buildDocumentsRuntime();
-}
 
 // Prepare and validate the complete release set before the first database
 // write. In particular, a missing runtime source must not leave the catalog
