@@ -300,8 +300,8 @@ const activeCanvasItems = computed(() => props.canvasItems || defaultCanvasItems
 const dirty = computed(() => !readOnly.value
   && Boolean(graphDocument?.value)
   && draftSignature() !== savedSignature.value);
-function markSaved() {
-  savedSignature.value = draftSignature();
+function markSaved(signature = draftSignature()) {
+  savedSignature.value = signature;
 }
 const graphConsumers = computed(() => graphInvocationConsumers(
   graphDocuments.value,
@@ -531,14 +531,16 @@ async function saveGraphDocument() {
     const name = String(recordName.value || props.record?.name || 'graph').trim() || 'graph';
     graphDocument.value.name = name;
     graphDocument.value.revision = mintId('rev').replaceAll('_', '-');
+    const submitted = serializeGraph();
+    const submittedSignature = draftSignature();
     const updated = await props.persistence.save(
-      JSON.stringify(serializeGraph(), null, 2),
+      JSON.stringify(submitted, null, 2),
       `${name}${GRAPH_DOCUMENT_EXTENSION}`
     );
     instanceId = String(updated?._id || updated?.id || instanceId);
     persisted.value = Boolean(instanceId);
     if (updated?.name) recordName.value = updated.name;
-    markSaved();
+    markSaved(submittedSignature);
     await loadGraphCatalog(t);
     await refreshPreviewAndRecord();
     toast.add({ severity: 'success', summary: t('processDesigner.saved'), life: 2400 });
@@ -566,7 +568,6 @@ async function renameGraphDocument(name) {
     const updated = await props.persistence.rename(trimmed);
     recordName.value = updated?.name || trimmed;
     graphDocument.value.name = recordName.value;
-    markSaved();
   } catch (error) {
     toast.add({
       severity: 'error',
