@@ -15,7 +15,7 @@ export function readRestrictedEdn(source, {
   maxNestingDepth = AUTHORING_DSL_MAX_NESTING_DEPTH
 } = {}) {
   if (typeof source !== 'string') throw new Error('Reader source must be a string');
-  if (source.length > maxSourceLength) {
+  if (new TextEncoder().encode(source).byteLength > maxSourceLength) {
     return { forms: [], diagnostics: [{ code: 'source-too-large', message: `DSL source exceeds maximum length ${maxSourceLength}` }] };
   }
   const reader = new Reader(source, maxNestingDepth);
@@ -87,7 +87,7 @@ class Reader {
   readForm(depth = 0) {
     const start = this.snapshot();
     const char = this.peek();
-    if (depth > this.maxNestingDepth) {
+    if (depth >= this.maxNestingDepth && ['(', '[', '{'].includes(char)) {
       this.advance();
       this.report('nesting-depth', `DSL nesting exceeds maximum depth ${this.maxNestingDepth}`, this.position(start));
       return null;
