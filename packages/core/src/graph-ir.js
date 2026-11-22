@@ -101,7 +101,23 @@ async function lowerDocument(document, invocationPath, shared) {
       if (typeof shared.resolveGraph !== 'function') {
         diagnostics.push(diagnostic('error', 'lowering', `Use Graph node ${nodeId} requires a resolveGraph callback`, { nodeId }));
       } else {
-        const child = await shared.resolveGraph(node.config.graphId, node.config.revision);
+        let child;
+        let resolutionFailed = false;
+        try {
+          child = await shared.resolveGraph(node.config.graphId, node.config.revision);
+        } catch (error) {
+          resolutionFailed = true;
+          const status = Number(error?.statusCode || error?.status || error?.response?.status);
+          const expectedAccessFailure = status === 403 || status === 404;
+          diagnostics.push(diagnostic(
+            'error',
+            'lowering',
+            expectedAccessFailure
+              ? `Pinned subgraph ${invocationPin.graphId}@${invocationPin.revision} is unavailable or inaccessible`
+              : `Failed to resolve pinned subgraph ${invocationPin.graphId}@${invocationPin.revision}: ${error?.message || String(error)}`,
+            { nodeId }
+          ));
+        }
         let childDocument = null;
         try {
           childDocument = child ? assertValidGraphDocument(child) : null;
@@ -116,7 +132,7 @@ async function lowerDocument(document, invocationPath, shared) {
             outputs: childDocument.interface.outputs.map(port => interfaceSlot(port))
           });
           loweringSummary = await lowerPinnedSubgraph(childDocument, invocationPath, shared, diagnostics, nodeId);
-        } else if (child !== undefined && !child) {
+        } else if (!resolutionFailed && child !== undefined && !child) {
           diagnostics.push(diagnostic('error', 'lowering', `Pinned subgraph ${invocationPin.graphId}@${invocationPin.revision} is unavailable`, { nodeId }));
         }
       }
