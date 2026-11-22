@@ -317,7 +317,9 @@ organization
 holding the install. Every module load revalidates against the
 executor: responses carry `private, no-cache` and an `ETag`, and an
 unchanged body answers `304` — an executor update still reaches the
-next browser load. A JS module's declared dependencies resolve to the
+next browser load. Responses carry the stored content type; a missing
+or `application/octet-stream` type resolves from the module path
+extension (`text/javascript` for JS modules). A JS module's declared dependencies resolve to the
 plugin's own vendor scope: bare specifiers naming a declared dependency
 rewrite to same-origin proxied URLs; a dependency module of the form
 `plugin:<id><path>` rewrites to the required plugin's proxied scope

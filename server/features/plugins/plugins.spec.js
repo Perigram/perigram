@@ -43,7 +43,13 @@ vi.mock('../instances/service.js', () => ({
 }));
 vi.mock('../files/service.js', () => ({
   getFileBuffer: vi.fn(async () => Buffer.from('payload')),
-  contentHash: vi.fn(() => 'sha256:abc')
+  contentHash: vi.fn(() => 'sha256:abc'),
+  contentTypeForFile: vi.fn(({ filename = '', contentType = '' } = {}) => {
+    if (contentType && contentType !== 'application/octet-stream') return contentType;
+    if (/\.(?:mjs|js)$/.test(filename)) return 'text/javascript';
+    if (/\.wasm$/.test(filename)) return 'application/wasm';
+    return 'application/octet-stream';
+  })
 }));
 vi.mock('../../utils/auth-helpers.js', () => ({ hasPermission: vi.fn(() => true) }));
 vi.mock('../cts-types/repository.js', () => ({
@@ -2587,6 +2593,46 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     }
   });
 
+
+  it('derives a missing package content type from the module extension', async () => {
+    const engineInstall = {
+      ...moduleInstall,
+      version: '2',
+      endpoints: {},
+      packageAssets: { count: 1, assets: [{ path: 'engine/index.mjs', contentHash: 'sha256:abc', bytes: 42 }] },
+      declarations: { ...moduleInstall.declarations, engine: { module: '/engine/index.mjs' } }
+    };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? engineInstall : null
+    ));
+    repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: '' });
+    repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from('export default null;\n'));
+    const module = await fetchSurfaceModule({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      modulePath: '/engine/index.mjs',
+      auth: AUTH
+    });
+    expect(module.contentType).toBe('text/javascript');
+  });
+
+  it('derives the module type when the executor answers octet-stream', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('export default null;\n', {
+      status: 200,
+      headers: { 'content-type': 'application/octet-stream' }
+    })));
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      expect(module.contentType).toBe('text/javascript');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 
   it('serves a packaged binary asset untouched under its stored type', async () => {
     const engineInstall = {

@@ -498,7 +498,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
       ? Buffer.from(rewriteDeclaredImports(raw.toString('utf8'), pluginId, install.declarations?.dependencies || []), 'utf8')
       : raw;
     return {
-      contentType: contentType || 'application/octet-stream',
+      contentType: filesService.contentTypeForFile({ filename: moduleAssetPath, contentType: contentType || '' }),
       body,
       etag: `"${createHash('sha1').update(body).digest('hex')}"`
     };
@@ -560,7 +560,7 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   // executor, and an unchanged body answers 304 instead of transferring
   // the module again.
   return {
-    contentType,
+    contentType: filesService.contentTypeForFile({ filename: moduleAssetPath, contentType }),
     body,
     etag: `"${createHash('sha1').update(body).digest('hex')}"`
   };
