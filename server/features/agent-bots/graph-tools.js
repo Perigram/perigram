@@ -206,8 +206,17 @@ function applyGraphEdits(source, edits) {
             const id = requireEditId(edit, index);
             if (!edges.delete(id)) throw editFailure(index, `edge ${id} does not exist`);
         } else if (edit.op === 'setInterface') {
-            if (Object.hasOwn(edit, 'inputs')) next.interface.inputs = Array.isArray(edit.inputs) ? edit.inputs : [];
-            if (Object.hasOwn(edit, 'outputs')) next.interface.outputs = Array.isArray(edit.outputs) ? edit.outputs : [];
+            for (const direction of ['inputs', 'outputs']) {
+                if (!Object.hasOwn(edit, direction)) continue;
+                const ports = edit[direction];
+                if (!Array.isArray(ports)) {
+                    throw editFailure(index, `setInterface ${direction} must be an array`);
+                }
+                if (ports.some(port => !port || typeof port !== 'object' || Array.isArray(port))) {
+                    throw editFailure(index, `setInterface ${direction} entries must be objects`);
+                }
+                next.interface[direction] = ports;
+            }
         } else {
             throw editFailure(index, `unknown op ${edit.op || '(missing)'} — valid ops: ${PATCH_OPS.join(', ')}`);
         }
