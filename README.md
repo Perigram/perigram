@@ -65,7 +65,7 @@ E2E tests require the development stack to be running.
 
 ## Production
 
-A push to `staging` runs [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), which calls `scripts/deploy.sh`. The script builds and replaces the app, plugin executors, and managed plugin runtime worker, publishes the plugin catalog, applies plugin migrations, backfills per-instance revision tokens, materializes installed plugin assets into organization-owned storage, and verifies the deployed app assets. It includes the build123d executor.
+A push to `staging`, or a manual dispatch of [the Forgejo deployment workflow](.forgejo/workflows/deploy.yml), calls `scripts/deploy.sh`. The script builds and replaces the app, plugin executors, and managed plugin runtime worker, publishes the plugin catalog, applies plugin migrations, backfills per-instance revision tokens, materializes installed plugin assets into organization-owned storage, and verifies the deployed app assets. It includes the build123d executor.
 
 Before the first deploy, an operator must:
 
@@ -78,7 +78,7 @@ Before the first deploy, an operator must:
 
 4. Push the release commit to `staging`.
 
-Optional integrations can remain unset. Keep credentials in Forgejo secrets, never in the repository. Build proxy secrets are needed only when the runner cannot reach package registries directly.
+Optional integrations can remain unset. Keep credentials in Forgejo secrets, never in the repository. Build proxy secrets are needed only when the runner cannot reach package registries directly. The nesting image build trusts the runner's system CA bundle (`BUILD_CA_BUNDLE`, default `/etc/ssl/certs/ca-certificates.crt`) for its package fetches.
 
 ## Code map
 
