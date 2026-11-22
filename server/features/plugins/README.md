@@ -309,9 +309,10 @@ the proxy: `GET /api/plugins/:pluginId/module/**` streams the path from
 the install's endpoint origin server-side (`fetchSurfaceModule` here;
 GET only, paths resolve strictly under the origin, `..` refused).
 An install that declares the client engine serves every module path
-from the platform-stored package assets of its pinned version — the
-install carries no origin, and a path the package does not carry
-answers 404. Access mirrors the served type view: any member of an
+from the platform-stored package assets of its pinned version. A path
+missing from the organization copy falls back to the catalog release
+for the same version, then to the configured executor origin; a path no
+source carries answers 404. Access mirrors the served type view: any member of an
 organization
 holding the install. Every module load revalidates against the
 executor: responses carry `private, no-cache` and an `ETag`, and an
