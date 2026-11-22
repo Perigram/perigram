@@ -99,7 +99,7 @@ export function usePluginRuntime({
       async providers() {
         return await ready;
       },
-      async invoke(operationId, input, { execution = {}, capabilities = {}, signal } = {}) {
+      async invoke(operationId, input, { execution = {}, capabilities = {}, signal, transferInputBuffers = false } = {}) {
         if (disposed) throw new Error('Plugin runtime has been disposed');
         if (!execution.targets?.includes('browser')) {
           throw new Error(`Operation ${operationId} does not support browser execution`);
@@ -124,7 +124,7 @@ export function usePluginRuntime({
           const invocationInput = transferableInvocation(input);
           // Transfer is opt-in because postMessage detaches sender buffers.
           // Callers may opt in only when the invocation owns these buffers.
-          const transfer = options.transferInputBuffers === true
+          const transfer = transferInputBuffers === true
             ? collectTransferableBuffers(invocationInput)
             : [];
           worker.postMessage({
