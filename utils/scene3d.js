@@ -8,21 +8,31 @@ const DEFAULT_HEIGHT = 500;
 const FIT_MARGIN = 80;
 
 export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = {}) {
+  // Keep source indices stable: faces and edges address the original vertex
+  // array, so filtering invalid vertices here would silently rewire geometry.
   const vertices = (Array.isArray(value?.vertices) ? value.vertices : [])
-    .map(vertex => (Array.isArray(vertex) ? vertex : []).map(Number))
-    .filter(vertex => vertex.length >= 3 && vertex.slice(0, 3).every(Number.isFinite));
-  if (!vertices.length) return { faces: [], edges: [] };
+    .map(vertex => {
+      const coordinates = (Array.isArray(vertex) ? vertex : []).map(Number);
+      return coordinates.length >= 3 && coordinates.slice(0, 3).every(Number.isFinite)
+        ? coordinates.slice(0, 3)
+        : null;
+    });
+  const validVertices = vertices.filter(Boolean);
+  if (!validVertices.length) return { faces: [], edges: [] };
 
   const cosYaw = Math.cos(yaw), sinYaw = Math.sin(yaw);
   const cosPitch = Math.cos(pitch), sinPitch = Math.sin(pitch);
-  const rotated = vertices.map(([x, y, z]) => {
+  const rotated = vertices.map(vertex => {
+    if (!vertex) return null;
+    const [x, y, z] = vertex;
     const rx = x * cosYaw - z * sinYaw;
     const rz = x * sinYaw + z * cosYaw;
     return { x: rx, y: y * cosPitch - rz * sinPitch, depth: y * sinPitch + rz * cosPitch };
   });
 
-  const xs = rotated.map(point => point.x);
-  const ys = rotated.map(point => point.y);
+  const bounds = rotated.filter(Boolean);
+  const xs = bounds.map(point => point.x);
+  const ys = bounds.map(point => point.y);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   const spanX = Math.max(1, maxX - minX);
@@ -30,15 +40,15 @@ export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width
   const scale = Math.max(0.01, zoom) * Math.min((width - FIT_MARGIN) / spanX, (height - FIT_MARGIN) / spanY);
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
-  const points = rotated.map(point => ({
+  const points = rotated.map(point => point && ({
     x: width / 2 + (point.x - centerX) * scale,
     y: height / 2 - (point.y - centerY) * scale,
     depth: point.depth
   }));
 
   const faceIndexes = (Array.isArray(value?.faces) ? value.faces : [])
-    .map(face => (Array.isArray(face) ? face : []).filter(index => Number.isInteger(index) && index >= 0 && index < points.length))
-    .filter(face => face.length >= 3);
+    .filter(face => Array.isArray(face) && face.length >= 3
+      && face.every(index => Number.isInteger(index) && index >= 0 && index < points.length && points[index]));
   const faces = faceIndexes
     .map(face => ({
       points: face.map(index => `${points[index].x},${points[index].y}`).join(' '),
@@ -51,7 +61,8 @@ export function projectScene3d(value = {}, { yaw = 0, pitch = 0, zoom = 1, width
     ? value.edges
     : faceIndexes.flatMap(face => face.map((index, position) => [index, face[(position + 1) % face.length]]));
   const edges = edgePairs
-    .filter(edge => Array.isArray(edge) && edge.length === 2 && points[edge[0]] && points[edge[1]])
+    .filter(edge => Array.isArray(edge) && edge.length === 2
+      && edge.every(index => Number.isInteger(index) && index >= 0 && index < points.length && points[index]))
     .map(([from, to]) => ({
       x1: points[from].x,
       y1: points[from].y,
