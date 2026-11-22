@@ -7,10 +7,18 @@ const SIMPLE_KEYWORD = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const QUALIFIED_KEYWORD = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const NUMBER = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 const ESCAPES = { '"': '"', '\\': '\\', n: '\n', t: '\t', r: '\r' };
+export const AUTHORING_DSL_MAX_SOURCE_LENGTH = 256 * 1024;
+export const AUTHORING_DSL_MAX_NESTING_DEPTH = 128;
 
-export function readRestrictedEdn(source) {
+export function readRestrictedEdn(source, {
+  maxSourceLength = AUTHORING_DSL_MAX_SOURCE_LENGTH,
+  maxNestingDepth = AUTHORING_DSL_MAX_NESTING_DEPTH
+} = {}) {
   if (typeof source !== 'string') throw new Error('Reader source must be a string');
-  const reader = new Reader(source);
+  if (source.length > maxSourceLength) {
+    return { forms: [], diagnostics: [{ code: 'source-too-large', message: `DSL source exceeds maximum length ${maxSourceLength}` }] };
+  }
+  const reader = new Reader(source, maxNestingDepth);
   const forms = [];
   for (;;) {
     reader.skipIgnorable();
@@ -22,8 +30,9 @@ export function readRestrictedEdn(source) {
 }
 
 class Reader {
-  constructor(source) {
+  constructor(source, maxNestingDepth) {
     this.source = source;
+    this.maxNestingDepth = maxNestingDepth;
     this.index = 0;
     this.line = 1;
     this.column = 1;
@@ -75,10 +84,15 @@ class Reader {
     this.diagnostics.push({ code, message, pos });
   }
 
-  readForm() {
+  readForm(depth = 0) {
     const start = this.snapshot();
     const char = this.peek();
-    if (char === '(' || char === '[' || char === '{') return this.readContainer(char);
+    if (depth > this.maxNestingDepth) {
+      this.advance();
+      this.report('nesting-depth', `DSL nesting exceeds maximum depth ${this.maxNestingDepth}`, this.position(start));
+      return null;
+    }
+    if (char === '(' || char === '[' || char === '{') return this.readContainer(char, depth);
     if (char === '"') return this.readString(start);
     if (char === ')' || char === ']' || char === '}') {
       this.advance();
@@ -88,7 +102,7 @@ class Reader {
     return this.readToken(start);
   }
 
-  readContainer(opener) {
+  readContainer(opener, depth) {
     const start = this.snapshot();
     this.advance();
     const closer = { '(': ')', '[': ']', '{': '}' }[opener];
@@ -103,7 +117,7 @@ class Reader {
         this.advance();
         break;
       }
-      const item = this.readForm();
+      const item = this.readForm(depth + 1);
       if (item) items.push(item);
     }
     const pos = this.position(start);
