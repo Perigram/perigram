@@ -122,26 +122,17 @@ export function usePluginRuntime({
           });
           signal?.addEventListener('abort', abort, { once: true });
           const invocationInput = transferableInvocation(input);
-          const inputBuffers = collectTransferableBuffers(invocationInput);
-          if (inputBuffers.length) {
-            // Invocation inputs are borrowed from the host/session. Clone
-            // before transferring so worker ownership never detaches buffers
-            // retained by callers or graph caches.
-            const ownedInput = structuredClone(invocationInput);
-            worker.postMessage({
-              type: 'invoke',
-              invocationId,
-              operationId,
-              input: ownedInput
-            }, collectTransferableBuffers(ownedInput));
-          } else {
-            worker.postMessage({
-              type: 'invoke',
-              invocationId,
-              operationId,
-              input: invocationInput
-            });
-          }
+          // Transfer is opt-in because postMessage detaches sender buffers.
+          // Callers may opt in only when the invocation owns these buffers.
+          const transfer = options.transferInputBuffers === true
+            ? collectTransferableBuffers(invocationInput)
+            : [];
+          worker.postMessage({
+            type: 'invoke',
+            invocationId,
+            operationId,
+            input: invocationInput
+          }, transfer);
         });
       },
       async clearExecution(executionId) {
