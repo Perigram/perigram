@@ -10,6 +10,11 @@ if (("${#missing[@]}" > 0)); then
   printf 'Missing deployment configuration: %s\n' "${missing[*]}" >&2
   exit 2
 fi
+BUILD_CA_BUNDLE="${BUILD_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}"
+if [[ ! -f "$BUILD_CA_BUNDLE" ]]; then
+  printf 'Missing deployment CA bundle: %s\n' "$BUILD_CA_BUNDLE" >&2
+  exit 2
+fi
 
 BUILD_HTTP_PROXY="${BUILD_HTTP_PROXY:-}"
 BUILD_HTTPS_PROXY="${BUILD_HTTPS_PROXY:-}"
@@ -57,6 +62,7 @@ retry docker build --network=host "${build_args[@]}" \
   --build-arg PORT=3001 --build-arg "GIT_COMMIT_SHA=$GITHUB_SHA" \
   -t perigram:staging .
 retry docker build --network=host "${build_args[@]}" \
+  --secret "id=build_ca_bundle,src=$BUILD_CA_BUNDLE" \
   -t perigram-nesting:staging -f workers/nesting/Dockerfile .
 retry docker build --network=host "${build_args[@]}" \
   --build-arg PLUGIN=facade -t perigram-executor-facade:staging \
