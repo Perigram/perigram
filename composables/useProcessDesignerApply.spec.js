@@ -56,11 +56,29 @@ describe('useProcessDesignerApply machine', () => {
     expect(apply.applyDetail.value).toBeNull();
   });
 
+  it('keeps the mounted canvas and marks the saved baseline after a settled save', async () => {
+    const markSaved = vi.fn();
+    const { apply, persistence, setDraft } = mountApply({
+      serializeProcess: () => ({ value: 'graph' }),
+      authoringSignature: () => 'sig-1',
+      markSaved
+    });
+
+    await apply.saveDraft();
+
+    expect(persistence.saveDraft).toHaveBeenCalledWith('draft-1', { value: 'graph' });
+    expect(setDraft).not.toHaveBeenCalled();
+    expect(markSaved).toHaveBeenCalledWith('sig-1', { _id: 'draft-1' });
+  });
+
   it('does not replace process edits made while persistence is in flight', async () => {
     let release;
     const submitted = { value: 'before' };
+    const markSaved = vi.fn();
     const { apply, persistence, setDraft } = mountApply({
-      serializeProcess: () => ({ value: submitted.value })
+      serializeProcess: () => ({ value: submitted.value }),
+      authoringSignature: () => submitted.value,
+      markSaved
     });
     persistence.saveDraft.mockImplementation(() => new Promise(resolve => {
       release = () => resolve({ _id: 'draft-1', data: { value: 'before' } });
@@ -73,6 +91,7 @@ describe('useProcessDesignerApply machine', () => {
 
     expect(persistence.saveDraft).toHaveBeenCalledWith('draft-1', { value: 'before' });
     expect(setDraft).not.toHaveBeenCalled();
+    expect(markSaved).not.toHaveBeenCalled();
   });
 
   it('settles a save failure in error', async () => {
