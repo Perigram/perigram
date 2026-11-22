@@ -27,6 +27,7 @@ const organizations = await db.collection('organizations')
 
 let migrated = 0;
 let skipped = 0;
+let missing = 0;
 let failed = 0;
 
 function requiredAssetPaths(declarations) {
@@ -70,6 +71,11 @@ for (const organization of organizations) {
       }
 
       const manifest = await materializePluginAssets(organizationId, pluginId, version);
+      if (requiredPaths.size && manifest.count === 0) {
+        missing += 1;
+        console.log('missing catalog release ' + organizationId + '/' + pluginId + '@' + version);
+        continue;
+      }
       const valid = await verifyManifest(organizationId, pluginId, version, manifest, requiredPaths);
       if (!valid) {
         throw new Error('copied package manifest is incomplete or its stored bytes do not match their digests');
@@ -119,6 +125,5 @@ for (const organization of organizations) {
   }
 }
 
-console.log('plugin asset migration complete: ' + migrated + ' migrated, ' + skipped + ' already migrated, ' + failed + ' failed');
-if (failed) process.exitCode = 1;
-else process.exit(0);
+console.log('plugin asset migration complete: ' + migrated + ' migrated, ' + skipped + ' already migrated, ' + missing + ' missing catalog release, ' + failed + ' failed');
+process.exit(failed ? 1 : 0);
