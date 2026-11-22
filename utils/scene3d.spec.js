@@ -29,6 +29,26 @@ describe('projectScene3d', () => {
     expect(projection.edges).toHaveLength(0);
   });
 
+  it('preserves source indices when invalid vertices precede valid ones', () => {
+    const projection = projectScene3d({
+      vertices: [[Number.NaN, 0, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]],
+      faces: [[1, 2, 3]],
+      edges: [[1, 2], [2, 3]]
+    });
+    expect(projection.faces).toHaveLength(1);
+    expect(projection.edges).toHaveLength(2);
+  });
+
+  it('drops faces and edges that reference invalid or out-of-range vertices', () => {
+    const projection = projectScene3d({
+      vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 0], [Infinity, 0, 0]],
+      faces: [[0, 1, 2], [0, 1, 3], [0, 1, 99]],
+      edges: [[0, 1], [1, 3], [0, 99]]
+    });
+    expect(projection.faces).toHaveLength(1);
+    expect(projection.edges).toHaveLength(1);
+  });
+
   it('orbits with yaw and pitch and zooms with the zoom factor', () => {
     const base = projectScene3d(cube);
     const orbited = projectScene3d(cube, { yaw: Math.PI / 4, pitch: Math.PI / 6 });
