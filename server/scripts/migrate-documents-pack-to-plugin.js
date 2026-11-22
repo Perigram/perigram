@@ -16,10 +16,11 @@
 //     node server/scripts/migrate-documents-pack-to-plugin.js
 //   docker compose -f docker-compose.dev.yml restart app
 //
-// Idempotent: re-running refreshes the catalog pin and the install
-// wiring (stale platform executor origins are cleared — the plugin's
-// operations all run behind managed runtimes), held pins stay, and
-// rewrites only remaining old-command nodes.
+// Idempotent: re-running refreshes the catalog pin and the install wiring
+// (stale platform executor origins are cleared — the plugin's operations
+// all run behind managed runtimes). A pin with a complete package copy
+// keeps its release; a legacy or partial pin adopts the current listing
+// so the storage migration can materialize its declared entrypoints.
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
@@ -32,7 +33,24 @@ const SERVICE_REWRITES = {
 const listingPath = process.argv[2] || 'workers/documents/listing.json';
 const listing = normalizeListing(JSON.parse(readFileSync(listingPath, 'utf8')));
 
+function requiredAssetPaths(declarations = {}) {
+  return new Set([
+    ...(declarations.runtimes || []).map(runtime => runtime.entry),
+    ...(declarations.engine?.module ? [declarations.engine.module] : []),
+    ...(declarations.surfaces || []).map(surface => surface.module),
+    ...(declarations.dependencies || []).map(dependency => dependency.module).filter(path => path?.startsWith('/'))
+  ].filter(Boolean).map(path => String(path).replace(/^\//, '')));
+}
 
+function packageReleaseCovers(install) {
+  const assets = Array.isArray(install.packageAssets?.assets) ? install.packageAssets.assets : [];
+  if (!assets.length) return false;
+  const paths = new Set(assets.map(asset => String(asset.path || '')));
+  for (const path of requiredAssetPaths(install.declarations || {})) {
+    if (!paths.has(path)) return false;
+  }
+  return true;
+}
 
 const db = await connectDB();
 
@@ -45,6 +63,7 @@ console.log(`catalog: ${listing.pluginId} v${listing.version} (${listing.declara
 
 const orgs = await db.collection('organizations').find({}, { projection: { _id: 1 } }).toArray();
 let installed = 0;
+let adopted = 0;
 let alreadyInstalled = 0;
 let rewrittenDefinitions = 0;
 let rewrittenNodes = 0;
@@ -53,11 +72,35 @@ for (const org of orgs) {
   const organizationId = String(org._id);
   const existing = await db.collection('plugin_installs').findOne({ organizationId, pluginId: listing.pluginId });
   if (existing) {
-    await db.collection('plugin_installs').updateOne(
-      { organizationId, pluginId: listing.pluginId },
-      { $set: { platformManaged: true }, $unset: { endpoints: '', executorOrigin: '' } }
-    );
-    alreadyInstalled += 1;
+    if (!packageReleaseCovers(existing)) {
+      await db.collection('plugin_installs').updateOne(
+        { organizationId, pluginId: listing.pluginId },
+        {
+          $set: {
+            name: listing.name,
+            version: listing.version,
+            declarations: listing.declarations,
+            services: listing.declarations.services,
+            requires: listing.requires,
+            platformManaged: true
+          },
+          $unset: {
+            endpoints: '',
+            executorOrigin: '',
+            surfaceOrigin: '',
+            packageAssets: '',
+            assetStorage: ''
+          }
+        }
+      );
+      adopted += 1;
+    } else {
+      await db.collection('plugin_installs').updateOne(
+        { organizationId, pluginId: listing.pluginId },
+        { $set: { platformManaged: true }, $unset: { endpoints: '', executorOrigin: '' } }
+      );
+      alreadyInstalled += 1;
+    }
   } else {
     await db.collection('plugin_installs').insertOne({
       organizationId,
@@ -92,7 +135,7 @@ for (const org of orgs) {
   }
 }
 
-console.log(`installed for ${installed} organization(s), ${alreadyInstalled} already held the install`);
+console.log(`installed for ${installed} organization(s), ${adopted} adopted the current release, ${alreadyInstalled} held a complete package`);
 console.log(`definitions rewritten: ${rewrittenDefinitions} (${rewrittenNodes} service node(s)) — restart the app to rebuild declaration caches`);
 
 function rewriteDefinition(definition) {
