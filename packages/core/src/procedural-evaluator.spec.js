@@ -110,6 +110,69 @@ describe('procedural graph preview evaluator', () => {
     })).rejects.toThrow(/semantic base number/);
   });
 
+  it('rejects a value whose declared semantic kind differs from the port contract', async () => {
+    const document = graph({
+      inputs: [{
+        id: 'number',
+        contract: { shape: 'item', semantic: { base: 'json', kind: 'text.flow-document' } }
+      }]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: { kind: 'text.other' } },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/semantic kind .*text\.other.*text\.flow-document/);
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: { kind: 'text.flow-document' } },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: 1 })
+    })).resolves.toMatchObject({ outputs: { result: 1 } });
+  });
+
+  it('rejects an entity reference whose type differs from the declared typeId', async () => {
+    const document = graph({
+      inputs: [{
+        id: 'number',
+        contract: { shape: 'item', semantic: { base: 'entityRef', typeId: 'customer' } }
+      }]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: { type: 'invoice', id: 'invoice-1' } },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/semantic typeId .*invoice.*customer/);
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: { type: 'customer', id: 'customer-1' } },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: 1 })
+    })).resolves.toMatchObject({ outputs: { result: 1 } });
+  });
+
+  it('enforces the runtime-checkable semantic constraint subset', async () => {
+    const document = graph({
+      inputs: [{
+        id: 'number',
+        contract: { shape: 'item', semantic: { base: 'number', constraints: { minimum: 5, maximum: 10 } } }
+      }]
+    });
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 3 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).rejects.toThrow(/semantic constraints .*below minimum 5/);
+    await expect(evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 6 },
+      resolveNodeDefinition: () => doubleDefinition,
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    })).resolves.toMatchObject({ outputs: { result: 12 } });
+  });
+
   it('shares one execution id across every node in a graph preview', async () => {
     const document = graph({
       nodes: [
