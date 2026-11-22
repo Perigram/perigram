@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { normalizeNodeProvider } from '@perigram/plugin-sdk/nodes';
+import { collectTransferableBuffers } from '../shared/plugin-runtime.js';
 
 export function usePluginRuntime({
   createWorker = () => new Worker(new URL('./plugin-runtime.worker.js', import.meta.url), { type: 'module' }),
@@ -120,12 +121,27 @@ export function usePluginRuntime({
             resolve, reject, operationId, capabilities, allowedCapabilities, signal, abort
           });
           signal?.addEventListener('abort', abort, { once: true });
-          worker.postMessage({
-            type: 'invoke',
-            invocationId,
-            operationId,
-            input: transferableInvocation(input)
-          });
+          const invocationInput = transferableInvocation(input);
+          const inputBuffers = collectTransferableBuffers(invocationInput);
+          if (inputBuffers.length) {
+            // Invocation inputs are borrowed from the host/session. Clone
+            // before transferring so worker ownership never detaches buffers
+            // retained by callers or graph caches.
+            const ownedInput = structuredClone(invocationInput);
+            worker.postMessage({
+              type: 'invoke',
+              invocationId,
+              operationId,
+              input: ownedInput
+            }, collectTransferableBuffers(ownedInput));
+          } else {
+            worker.postMessage({
+              type: 'invoke',
+              invocationId,
+              operationId,
+              input: invocationInput
+            });
+          }
         });
       },
       async clearExecution(executionId) {
