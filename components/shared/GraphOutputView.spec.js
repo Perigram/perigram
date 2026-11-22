@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import GraphOutputView from '~/components/process-designer/GraphOutputView.vue';
+import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 
 // The output-value renderer contract (SPEC §28.14): a value renders its
 // best supported view by default; raw JSON is the explicit fallback.

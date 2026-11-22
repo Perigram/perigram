@@ -191,6 +191,22 @@ describe('graph output embed', () => {
     expect(globalThis.$fetch).not.toHaveBeenCalled();
   });
 
+  it('renders scene and image values through the shared representation renderer', async () => {
+    globalThis.$fetch.mockClear();
+    const html = await renderEmbed({
+      collection: { source: SOURCE, parameters: {}, snapshot: {
+        label: 'Geometry', itemCount: 2, truncated: false,
+        items: [
+          { kind: 'value', value: { representation: 'perigram.scene-3d', vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 0]], faces: [[0, 1, 2]] } },
+          { kind: 'value', value: { fileId: 'image-1', name: 'preview.png', mime: 'image/png' } }
+        ]
+      }, resultPolicy: 'frozen' }
+    });
+    expect(html).toContain('data-scene-3d');
+    expect(html).toContain('/api/files/download/image-1?bucket=files');
+    expect(globalThis.$fetch).not.toHaveBeenCalled();
+  });
+
   it('renders structured values through the representation contract', async () => {
     globalThis.$fetch.mockClear();
     const html = await renderEmbed({
