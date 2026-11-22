@@ -32,7 +32,7 @@ import { computed, ref, watch } from 'vue';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Textarea from 'primevue/textarea';
-import { templateSectionState, reconcileTemplateSectionDrafts } from '../../shared/ui-mapping/template-section-drafts.js';
+import { templateSectionState, reconcileTemplateSectionDrafts } from '#shared/ui-mapping/template-section-drafts.js';
 
 const props = defineProps({
   tokens: { type: Array, default: () => [] },

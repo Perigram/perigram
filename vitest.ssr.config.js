@@ -13,7 +13,8 @@ const stubs = repo('./test-tools/nuxt-app-stubs.mjs');
 const portableAliases = {
   '#shared': repo('./shared'),
   '#packages': repo('./packages'),
-  '#utils': repo('./utils')
+  '#utils': repo('./utils'),
+  '#workers': repo('./workers')
 };
 
 export default defineConfig({
