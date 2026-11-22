@@ -2492,6 +2492,18 @@ business concepts. Provider/profile-specific controls are permitted only
 through explicit declarative editor contributions or narrow profile
 extensions with a named owner and tests.
 
+**Canonical node authoring contract.** Node definitions declare operation
+configuration, input constraints and defaults, output type behavior
+(fixed, inferred, or explicitly selected), semantic references, and
+presentation/validation metadata. Perigram renders this contract through
+the shared inspector. Plugins contribute declarations and narrowly scoped
+custom controls/selectors through the SDK; they do not implement parallel
+generic inspectors. Types are inferred from fixed contracts and connected
+values. A type selector appears only where an operation is genuinely
+ambiguous or performs an explicit cast. Entity-dependent types resolve
+from the selected entity. Every declared editable setting must have a
+usable, persisted control; implementation-derived values stay inferred.
+
 A generic record-construction/create node is a procedural operation:
 its target type, construction mode, required values, defaults, and
 resulting typed output are derived from the selected type's construction
@@ -2527,7 +2539,33 @@ output mounts the host's actual interactive 3D viewer where its
 representation contract supports it; an SVG diagram or JSON listing is
 not a substitute for a requested 3D viewport. Plugin-native CAD/BIM
 values may use their plugin renderer. A renderer receives only the
-selected output reference and declared read-only capabilities.
+selected output reference and declared read-only capabilities. A single Perigram-owned interactive 3D viewer is the
+default viewer for standardized scene/geometry outputs, regardless of
+which plugin produced them. Plugin values that can be represented by the
+shared geometry/scene contract are adapted or cast into that contract and
+rendered in the common viewer; the viewer must not require a separate
+3D implementation per plugin. The common viewer owns camera interaction
+(orbit, pan, zoom, fit), scene presentation, and common inspection.
+
+A plugin may register a native renderer for its own value when the native
+representation exposes domain capabilities or fidelity that the common
+scene contract cannot preserve (for example, native OCCT/B-rep inspection
+or CAD-specific selection). This is an additional representation of the
+same selected output, not a replacement for the common viewer when a
+standardized representation is available. The host chooses the common
+viewer by default for standardized geometry and exposes native/plugin
+representations as alternate views. Plugins declare the native renderer
+and any conversion/adaptation they support; Perigram owns the common
+geometry viewer and renderer selection/lifecycle.
+
+The same rule applies to 2D: standardized 2D scene/geometry values use a
+Perigram-owned interactive canvas by default, while plugin-native views
+are optional alternatives for capabilities the common representation
+cannot express. A cast/conversion node's output is previewed as the
+resulting representation; the preview must not show the input's raw
+serialized value as a substitute. Intermediate node values remain
+available through the separate diagnostics surface, as specified above.
+
 
 Intermediate node outputs and execution traces are diagnostics. They
 belong in an explicitly named, collapsible diagnostics view within or
