@@ -10,6 +10,7 @@ import { useAuthStore } from '~/stores/auth';
 const cache = new Map();
 
 async function fetchTypeView(organizationId) {
+  if (!organizationId) return { types: [], editors: [], surfaces: [], previews: [] };
   const response = await $fetch('/api/admin/cts/types');
   return {
     types: response.types || [],
