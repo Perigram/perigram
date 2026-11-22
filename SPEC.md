@@ -2264,10 +2264,17 @@ optional pinned revision. Live references resolve the current authorized
 projection. Pinned references resolve the specified retained revision
 and fail explicitly if that revision is unavailable; they never silently
 fall forward to current data. Collection embeds identify a saved query or
-graph identity and pinned definition revision, plus explicit parameters
-and refresh/live-versus-pinned result policy. A pinned graph definition
-does not imply a frozen result set unless the data snapshot is also
-retained; distinguish pinned computation from pinned results.
+graph identity and pinned definition revision, the declared output
+port identity, explicit parameters, and refresh/live-versus-pinned result
+policy. Page authoring selects these dimensions explicitly in order:
+graph document, graph revision, declared output, then parameters. A
+successful execution record is not itself an output declaration and must
+not be used as the graph/output picker. A pinned graph definition does
+not imply a frozen result set unless the data snapshot is also
+retained; distinguish pinned computation from pinned results. Structured
+outputs use the shared representation contract and renderer selection
+defined in §28.14, with explicit unavailable/error states and a safe
+diagnostic fallback.
 
 Reference resolution obeys normal read authorization. Deleted or
 inaccessible targets render an explicit broken/unavailable state without
