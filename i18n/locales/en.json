@@ -127,6 +127,7 @@
     "newClass": "New class",
     "createTitle": "New class",
     "editTitle": "Edit class",
+    "deleteConfirm": "Delete class {name}?",
     "fields": "Fields",
     "children": "Children",
     "addChild": "Add child class",
