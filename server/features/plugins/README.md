@@ -122,11 +122,11 @@ installed graph-node definition that passes
 `resolveInstalledGraphNodeDefinition`'s own gate for the caller's
 organization — the discovery surface for graph authoring; services the
 gate refuses stay unlisted. Both derive the provider contract through the
-sdk node-contract normalizer
+sdk's `nodeDefinitionFromService` builder and node-contract normalizer
 ([plugin-sdk](../../../packages/plugin-sdk/README.md#provider-neutral-node-contracts))
-— the same normalization the browser session applies to resolved
-definitions — with the server-side `packagePin` execution provenance
-carried on top.
+— the same normalization and port projection the browser session applies to
+resolved definitions, including declared representations — with the
+server-side `packagePin` execution provenance carried on top.
 
 `listInstalledGraphProviderConversions({ auth })` loads the caller's
 installed server-capable runtimes and returns their validated conversion

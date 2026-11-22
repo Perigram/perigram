@@ -5,29 +5,22 @@
     :alt="alt"
     class="max-h-[32rem] max-w-full object-contain"
   >
-  <svg
+  <Scene2DViewer
     v-else-if="view === 'scene-2d' && scene2dReady"
-    :viewBox="scene2dViewBox"
-    class="h-80 w-full"
-    role="img"
-    :aria-label="alt"
-  >
-    <g v-for="(primitive, index) in value.primitives" :key="index" fill="none" stroke="currentColor" stroke-width="1.5">
-      <line v-if="primitive.type === 'line'" :x1="primitive.x1" :y1="primitive.y1" :x2="primitive.x2" :y2="primitive.y2" />
-      <polyline v-else-if="primitive.type === 'polyline'" :points="svgPoints(primitive.points)" />
-      <polygon v-else-if="primitive.type === 'polygon'" :points="svgPoints(primitive.points)" />
-      <circle v-else-if="primitive.type === 'circle'" :cx="primitive.cx" :cy="primitive.cy" :r="primitive.r" />
-      <rect v-else-if="primitive.type === 'rect'" :x="primitive.x" :y="primitive.y" :width="primitive.width" :height="primitive.height" />
-      <text v-else-if="primitive.type === 'text'" :x="primitive.x" :y="primitive.y" fill="currentColor" stroke="none">{{ primitive.text }}</text>
-    </g>
-  </svg>
+    :value="value"
+    :alt="alt"
+  />
   <Scene3DViewer
     v-else-if="view === 'scene-3d' && scene3dReady"
     :value="value"
     :alt="alt"
   />
-  <pre v-else-if="view === 'text' && typeof value === 'string'" class="whitespace-pre-wrap break-words text-supporting">{{ value }}</pre>
-  <div v-else-if="view === 'markdown' && typeof value === 'string'" class="whitespace-pre-wrap break-words text-supporting">{{ value }}</div>
+  <pre v-else-if="view === 'text' && isScalar" class="whitespace-pre-wrap break-words text-supporting">{{ textValue }}</pre>
+  <div
+    v-else-if="view === 'markdown' && typeof value === 'string'"
+    class="text-supporting"
+    v-html="renderedMarkdown"
+  />
   <div v-else-if="view === 'table' && tableReady" class="overflow-x-auto">
     <table class="w-full text-supporting">
       <thead><tr><th v-for="column in tableColumns" :key="column" class="p-2 text-left">{{ column }}</th></tr></thead>
@@ -55,17 +48,22 @@
 // — the graph editor's output panel and the outputs channel — renders
 // values through this component.
 import { computed } from 'vue';
+import { renderMarkdown } from '#shared/markdown.js';
 import { graphOutputViews, graphOutputTableColumns } from '~/utils/graphOutputViews.js';
+import Scene2DViewer from '~/components/shared/Scene2DViewer.vue';
 import Scene3DViewer from '~/components/shared/Scene3DViewer.vue';
 
 const props = defineProps({
   value: { type: null, default: null },
   // 'best' follows the representation contract's order.
   view: { type: String, default: 'best' },
+  // The selected output port's declared representation; the standardized
+  // scene viewers take precedence over value sniffing.
+  representation: { type: String, default: '' },
   alt: { type: String, default: '' }
 });
 
-const supportedViews = computed(() => graphOutputViews(props.value));
+const supportedViews = computed(() => graphOutputViews(props.value, { representation: props.representation }));
 const view = computed(() => (props.view === 'best'
   ? supportedViews.value[0]?.value || 'json'
   : props.view));
@@ -77,19 +75,14 @@ const imageUrl = computed(() => {
     : '';
 });
 const scene2dReady = computed(() => Array.isArray(props.value?.primitives) && props.value.primitives.length > 0);
-const scene2dViewBox = computed(() => {
-  const bounds = props.value?.bounds || { x: 0, y: 0, width: 100, height: 100 };
-  return `${Number(bounds.x || 0)} ${Number(bounds.y || 0)} ${Math.max(1, Number(bounds.width || 100))} ${Math.max(1, Number(bounds.height || 100))}`;
-});
 const scene3dReady = computed(() => Array.isArray(props.value?.vertices) && props.value.vertices.length > 0);
+const isScalar = computed(() => ['string', 'number', 'boolean'].includes(typeof props.value));
+const textValue = computed(() => (typeof props.value === 'string' ? props.value : String(props.value)));
+const renderedMarkdown = computed(() => renderMarkdown(typeof props.value === 'string' ? props.value : ''));
 const tableReady = computed(() => Array.isArray(props.value)
   && props.value.length > 0
   && props.value.every(item => item && typeof item === 'object' && !Array.isArray(item)));
 const tableColumns = computed(() => graphOutputTableColumns(props.value));
-
-function svgPoints(points = []) {
-  return points.map(([x, y]) => `${x},${y}`).join(' ');
-}
 
 function format(value) {
   return value === undefined || value === null || typeof value !== 'object' ? String(value) : JSON.stringify(value, null, 2);

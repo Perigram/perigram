@@ -379,20 +379,30 @@ surface — the host's — frames the preview.
 
 ### `GraphOutputView.vue`
 The one graph-output value renderer: selects the best supported
-representation from `utils/graphOutputViews.js` and mounts text,
-Markdown, tables, images, document links, the 2D scene canvas, or the
-interactive `Scene3DViewer`; JSON is the explicit fallback view. The
-graph editor preview, outputs channel, and Page graph-result embed all
-render through it.
+representation from `utils/graphOutputViews.js` and mounts text (including
+numeric and boolean scalars), Markdown, tables, images, document links, the
+interactive `Scene2DViewer`, or the interactive `Scene3DViewer`; JSON is the
+explicit fallback view. The selected output port's declared representation
+chooses the scene viewer even when the value omits the marker. The graph
+editor preview, outputs channel, and Page graph-result embed all render
+through it.
 
 ### `Scene3DViewer.vue`
-The host's interactive 3D viewer for `perigram.scene-3d` graph values
+The host's common interactive 3D viewer for `perigram.scene-3d` graph values
 (`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges? }`).
-Pointer drag orbits, wheel zooms (`0.4x`–`4x`), double-click restores the
-default view; faces paint back-to-front as a solid wireframe. Projection
-math is the pure `utils/scene3d.js` `projectScene3d`, which validates
-vertex/face indexes and derives edges from face loops when none are
+Pointer drag orbits, shift/middle drag pans, wheel zooms (`0.4x`–`4x`),
+double-click or the fit control restores the default view; faces paint
+back-to-front as a solid wireframe. Projection math is the pure
+`utils/scene3d.js` `projectScene3d`, which validates vertex/face indexes,
+applies pan offsets, and derives edges from face loops when none are
 declared.
+
+### `Scene2DViewer.vue`
+The host's common interactive 2D viewer for `perigram.scene-2d` graph
+values. It renders the declared primitives (`line`, `polyline`, `polygon`,
+`circle`, `rect`, `text`) in an SVG viewport, computes bounds from
+`bounds` or the primitive extents, and pans, zooms, and fits on the same
+gesture grammar as the 3D viewer.
 
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, its file-type
@@ -792,15 +802,16 @@ that opens another surface — a workspace tab, the chat drawer — closes
 the popup: the popup never floats over a
 surface it opened. The
 composable's `openable(typeId)` is the guard: a type with a
-directory profile, a compiled/synthesizable detail screen, or a served
-type record opens; a type absent from the served view has no record
-surface anywhere (panes stay silent for it too), so `open()` refuses it
-and callers (chat thread headers, message links, inline refs, card
-chips) render an inert surface instead of a link. Types without a
+directory profile, a bound editor surface, a compiled/synthesizable detail
+screen, or a served type record opens; a type absent from the served view
+has no record surface anywhere (panes stay silent for it too), so `open()`
+refuses it and callers (chat thread headers, message links, inline refs,
+card chips) render an inert surface instead of a link. Types without a
 compiled screen render the **record floor** — a synthesized
 single-source detail screen over the served type view (`recordFloorScreen`
 in [generated surfaces](../generated/README.md)). The
-expand step-up renders only where a page exists: a compiled or
+expand step-up renders only where a page exists: a bound editor page
+(graph documents open the unified graph editor), a compiled or
 list-synthesized detail screen, or the directory surface for
 `user`/`organization` (the active organization's real page
 is the org overview system screen, `/organization`); a record-floor

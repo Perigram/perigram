@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, shallowRef, unref, watch } from 'vue';
+import { computed, nextTick, ref, shallowRef, toRaw, unref, watch } from 'vue';
 import {
   CORE_GRAPH_PROVIDER,
   GRAPH_DOCUMENT_FORMAT,
@@ -258,7 +258,20 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return graph ? cloneJson(graph) : null;
   }
 
+  // Definitions are immutable per node identity: every authoring rewrite
+  // replaces the node object, so an unchanged node keeps its resolved
+  // definition across validation, edge checks, and preview lookups.
+  let definitionCache = new WeakMap();
   function definitionFor(node) {
+    if (!node) return null;
+    const key = toRaw(node);
+    if (definitionCache.has(key)) return definitionCache.get(key);
+    const definition = computeDefinitionFor(node);
+    definitionCache.set(key, definition);
+    return definition;
+  }
+
+  function computeDefinitionFor(node) {
     const op = node?.data?.operation || node?.operation;
     const config = node?.data?.config || node?.config || {};
     if (!op) return null;
@@ -309,7 +322,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     const definition = definitionFor(node);
     const group = definition?.palette?.group || '';
     const text = definitionTextOf(definition);
-    return {
+    const enriched = {
       ...node,
       type: 'graphNode',
       data: {
@@ -320,6 +333,8 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
         error: node.data.error || ''
       }
     };
+    definitionCache.set(toRaw(enriched), definition);
+    return enriched;
   }
 
   function serializeGraph() {
@@ -490,7 +505,11 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
         }))
       }
     };
-    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
+    nodes.value = nodes.value.map(item => {
+      if (item.id !== nodeId) return item;
+      definitionCache.delete(toRaw(item));
+      return enrichNode(item);
+    });
     return node.data.config;
   }
 
@@ -519,7 +538,11 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     port.required = declaration.required !== false;
     if (Object.hasOwn(declaration, 'default')) port.default = cloneJson(declaration.default);
     else delete port.default;
-    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
+    nodes.value = nodes.value.map(item => {
+      if (item.id !== nodeId) return item;
+      definitionCache.delete(toRaw(item));
+      return enrichNode(item);
+    });
   }
 
   function updateBoundaryLabel(nodeId, label) {
@@ -533,7 +556,11 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     const port = collection.find(item => item.id === interfaceId);
     if (port) port.label = String(label || '').trim();
     node.data.label = String(label || '').trim();
-    nodes.value = nodes.value.map(item => item.id === nodeId ? enrichNode(item) : item);
+    nodes.value = nodes.value.map(item => {
+      if (item.id !== nodeId) return item;
+      definitionCache.delete(toRaw(item));
+      return enrichNode(item);
+    });
   }
 
   function loadDocument(source) {
@@ -560,6 +587,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     selection.reset();
     validation.value = null;
     previewResult.value = null;
+    rederiveGraphState();
     nextTick(canvas.fitInitialCanvas);
     return graph;
   }
@@ -568,20 +596,26 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return loadDocument(createEmptyGraphDocument({ id: id || stableId('graph'), name: name || '' }));
   }
 
-  function semanticEdgeDiagnostics(graph = serializeGraph()) {
-    const definitions = new Map(nodes.value.map(node => [node.id, definitionFor(node)]));
+  function graphDefinitions() {
+    return Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]));
+  }
+
+  function semanticEdgeDiagnostics(graph = serializeGraph(), definitions = graphDefinitions()) {
     const problems = [];
     const warnings = [];
     for (const edge of graph.edges) {
-      const sourcePort = definitions.get(edge.source.node)?.outputs?.find(port => port.id === edge.source.port);
-      const targetPort = definitions.get(edge.target.node)?.inputs?.find(port => port.id === edge.target.port);
+      const sourcePort = definitions[edge.source.node]?.outputs?.find(port => port.id === edge.source.port);
+      const targetPort = definitions[edge.target.node]?.inputs?.find(port => port.id === edge.target.port);
       if (!sourcePort || !targetPort) continue;
       const result = portCompatibility.compare(sourcePort, targetPort);
       if (!result.compatible) {
+        const conversions = result.status === 'conversion-required' && result.conversions?.length
+          ? ` Available conversions: ${result.conversions.map(item => item.id).join(', ')}.`
+          : '';
         problems.push({
           code: `edge-${result.status}`,
           path: `edges.${edge.id}`,
-          message: `Cannot connect ${sourcePort.label || sourcePort.id} to ${targetPort.label || targetPort.id}: ${result.reason}`
+          message: `Cannot connect ${sourcePort.label || sourcePort.id} to ${targetPort.label || targetPort.id}: ${result.reason}.${conversions}`
         });
       } else if (result.status === 'conditional') {
         warnings.push({
@@ -594,13 +628,13 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return { problems, warnings };
   }
 
-  function semanticEdgeProblems(graph = serializeGraph()) {
-    return semanticEdgeDiagnostics(graph).problems;
+  function semanticEdgeProblems(graph = serializeGraph(), definitions = graphDefinitions()) {
+    return semanticEdgeDiagnostics(graph, definitions).problems;
   }
 
-  function validateCurrentGraph() {
+  function validateCurrentGraph(definitions = graphDefinitions()) {
     const graph = serializeGraph();
-    const edges = semanticEdgeDiagnostics(graph);
+    const edges = semanticEdgeDiagnostics(graph, definitions);
     const problems = [...validateGraphDocument(graph), ...edges.problems];
     return {
       ok: problems.length === 0,
@@ -752,6 +786,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       }
     }
     for (const definition of provider.definitions) registerProvider(definition, provider.execute);
+    portCompatibility.registerConversions(provider.conversions);
     for (const [rendererId, renderer] of Object.entries(provider.previewRenderers)) {
       providerPreviewRenderers.set(`${provider.provider}:${rendererId}`, renderer);
     }
@@ -874,13 +909,19 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
   const catalogSignature = computed(() => (unref(graphDocuments) || [])
     .map(item => `${item?._id || ''}:${item?.name || ''}:${item?.fields?.graphId || ''}`)
     .join('|'));
-  watch(catalogSignature, () => {
+  function rederiveGraphState() {
+    const definitions = graphDefinitions();
+    nodeDefinitions.value = definitions;
+    validation.value = validateCurrentGraph(definitions);
+  }
+  function rebuildDefinitions() {
+    definitionCache = new WeakMap();
     nodes.value = nodes.value.map(node => enrichNode(node));
-  }, { flush: 'sync' });
-  watch([authoringSignature, catalogSignature], () => {
-    validation.value = validateCurrentGraph();
-    nodeDefinitions.value = Object.fromEntries(nodes.value.map(node => [node.id, definitionFor(node)]));
-  }, { flush: 'sync', immediate: true });
+    rederiveGraphState();
+  }
+  watch(catalogSignature, rebuildDefinitions, { flush: 'sync' });
+  watch(providerGeneration, rebuildDefinitions, { flush: 'sync' });
+  watch(authoringSignature, rederiveGraphState, { flush: 'sync', immediate: true });
 
   return {
     nodes,
@@ -938,6 +979,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     loadEmpty,
     serializeGraph,
     designerSignature,
+    authoringSignature,
     draftSignature,
     createSaveSnapshot,
     refreshPreview,

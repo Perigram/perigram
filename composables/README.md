@@ -61,9 +61,18 @@ authoring signature: node identity/operation/config, edges, and the
 declared interface. Position and selection are outside the signature, so
 drags and selection churn re-run neither validation nor definition
 resolution; identical derived rewrites keep the signature unchanged.
-`draftSignature()` projects the persisted draft shape (interface, node
-operation/config/position, edges) without graph normalization — the
-editor's dirty marker compares it against the saved baseline in one pass.
+One derivation pass resolves each node definition and shares the map with
+structural validation, semantic edge checks, and the preview renderer
+lookup; unchanged node objects keep their cached definition until a config,
+interface, catalog, or provider change replaces them. `draftSignature()`
+projects the persisted draft shape (interface, node
+operation/config/position, edges) without graph normalization. The editor
+compares it with the saved baseline only at drag stop; drags and selection
+churn leave the dirty marker to the position flag.
+
+`registerNodeProvider` registers the provider's declared conversions in
+the same compatibility registry the edge checks use, so browser diagnostics
+name the same conversion candidates as the server resolver.
 
 `useGraphDocumentCatalog({ withPayloads })` is the one catalog fetch both
 consumers share: the graphs list on the process page (names and ids) and

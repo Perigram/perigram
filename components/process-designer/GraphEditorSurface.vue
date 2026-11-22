@@ -39,8 +39,8 @@
       :begin-socket-connection="beginSocketConnection"
       :end-socket-connection="endSocketConnection"
       :on-connect="onConnect"
-      :handle-node-drag-stop="nodeDragStop"
-      :handle-canvas-nodes-change="canvasNodesChange"
+      :handle-node-drag-stop="handleNodeDragStop"
+      :handle-canvas-nodes-change="handleCanvasNodesChange"
       :read-only="readOnly"
     >
       <template #lane><slot name="lane" /></template>
@@ -274,6 +274,7 @@ const {
   loadDocument,
   loadEmpty,
   serializeGraph,
+  authoringSignature,
   draftSignature,
   createSaveSnapshot,
   refreshPreview,
@@ -295,14 +296,39 @@ const defaultCanvasItems = computed(() => [
 ]);
 const activeCanvasItems = computed(() => props.canvasItems || defaultCanvasItems.value);
 
-// The dirty check compares the persisted draft shape: one pass over the
-// canvas with no graph normalization, so no drag frame re-validates the
-// graph.
+// Dirty detection stays off the drag path: authoring changes compare the
+// position-free authoring signature, drags only flip the position flag,
+// and the exact persisted-shape comparison runs once at drag stop.
+const positionDirty = ref(false);
+const unsavedNameDirty = ref(false);
+const savedAuthoringSignature = ref(typeof authoringSignature !== 'undefined'
+  ? authoringSignature.value
+  : savedSignature.value);
 const dirty = computed(() => !readOnly.value
   && Boolean(graphDocument?.value)
-  && draftSignature() !== savedSignature.value);
+  && (positionDirty.value
+    || unsavedNameDirty.value
+    || (typeof authoringSignature !== 'undefined'
+      ? authoringSignature.value !== savedAuthoringSignature.value
+      : draftSignature() !== savedSignature.value)));
+function compareDraft() {
+  positionDirty.value = !readOnly.value
+    && Boolean(graphDocument?.value)
+    && draftSignature() !== savedSignature.value;
+}
+function handleCanvasNodesChange(changes = []) {
+  props.canvasNodesChange?.(changes);
+  if (changes.some(change => change?.type === 'position')) positionDirty.value = true;
+}
+function handleNodeDragStop(...args) {
+  props.nodeDragStop?.(...args);
+  compareDraft();
+}
 function markSaved(signature = draftSignature()) {
   savedSignature.value = signature;
+  savedAuthoringSignature.value = typeof authoringSignature !== 'undefined' ? authoringSignature.value : signature;
+  positionDirty.value = false;
+  unsavedNameDirty.value = false;
 }
 const graphConsumers = computed(() => graphInvocationConsumers(
   graphDocuments.value,
@@ -562,6 +588,7 @@ async function renameGraphDocument(name) {
   if (!instanceId) {
     recordName.value = trimmed;
     graphDocument.value.name = trimmed;
+    unsavedNameDirty.value = true;
     return;
   }
   try {

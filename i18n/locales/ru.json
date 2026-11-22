@@ -3560,7 +3560,28 @@
     "templateValuesNeedPreview": "Запустите предпросмотр после подключения шаблона, чтобы определить его поля.",
     "templateSectionJsonHint": "Введите JSON-массив повторяющихся строк, например [{'{'}\"name\":\"Ада\"{'}'}].",
     "templateSectionJsonInvalid": "Значение секции должно быть корректным JSON-массивом.",
-    "graphInterfaceConsumers": "Используется: {graphs}. Закреплённые вызовы сохраняют интерфейс, пока вызывающий граф не закрепит новую ревизию."
+    "graphInterfaceConsumers": "Используется: {graphs}. Закреплённые вызовы сохраняют интерфейс, пока вызывающий граф не закрепит новую ревизию.",
+    "valueTemplate": "Шаблон",
+    "readSelection": "Выборка",
+    "minimum": "Минимум",
+    "maximum": "Максимум",
+    "pattern": "Шаблон проверки",
+    "validationMessage": "Сообщение проверки",
+    "secretReference": "Ссылка на секрет",
+    "readModes": {
+      "current": "Текущая запись",
+      "all": "Все записи",
+      "extract": "Проекция",
+      "parent": "Родитель",
+      "children": "Дочерние",
+      "related": "Связанные записи"
+    },
+    "dataAccess": {
+      "item": "Одно значение",
+      "list": "Список",
+      "tree": "Дерево"
+    },
+    "deleteGraphConfirm": "Удалить граф «{name}»?"
   },
   "generatedScreen": {
     "home": "Главная",

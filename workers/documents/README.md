@@ -7,9 +7,11 @@ authoring, execution policy, file authorization, and Bake/Export destinations.
 - Listing: `listing.json` (v35). Its `documents-shared` runtime entry is the
   built `runtime/shared-bundle.mjs`, produced from `runtime/shared.mjs` by
   `npm run documents:runtime:build`; its `documents-server` runtime entry is
-  the source module `runtime/server.mjs`. Provider definitions are derived
-  from the listing's service signatures, palette metadata, and execution
-  declarations. There is no second hand-authored graph operation catalog.
+  the source module `runtime/server.mjs`. Provider definitions derive from
+  the listing's service signatures, palette metadata, and execution
+  declarations through the SDK's `nodeDefinitionFromService` builder, so the
+  port projection matches the platform's server resolver. There is no second
+  hand-authored graph operation catalog.
 - Browser graph runtime: the plugin Worker loads the pinned runtime assets.
   Pure document IR, Markdown parsing, Markdown/XLSX template fill, and
   file/table reads execute through this provider. File reads request the

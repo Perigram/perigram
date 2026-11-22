@@ -1,6 +1,6 @@
 <template>
   <div>
-    <section v-if="editableInputs.length || operationOptions.length || isLiteral || isCast || isTypedValueUtility || isConvertUnit" class="flex flex-col gap-3">
+    <section v-if="editableInputs.length || operationOptions.length || isLiteral || isCast || typedBaseFields.length || isConvertUnit || declaredScalarControls.length" class="flex flex-col gap-3">
       <div v-if="editableInputs.length" class="flex flex-col gap-2">
         <label >{{ $t('processDesigner.inputDefaults') }}</label>
         <div v-for="input in editableInputs" :key="input.id" class="flex flex-col gap-1">
@@ -40,6 +40,15 @@
           @update:type-id="setLiteralTypeId"
           @update:model-value="value => { record.value = value; emit('sync'); }"
         />
+        <Select
+          v-if="hasConfig('access')"
+          :model-value="record.access || 'item'"
+          :options="accessOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="value => { record.access = value; emit('sync'); }"
+        />
       </div>
       <div v-if="isCast" class="flex flex-col gap-1">
         <label>{{ $t('processDesigner.recordOutputType') }}</label>
@@ -52,22 +61,92 @@
           @update:model-value="value => { record.outputType = { ...(record.outputType || {}), base: value }; emit('sync'); }"
         />
       </div>
-      <div v-if="isTypedValueUtility" class="flex flex-col gap-2">
-        <label>{{ $t('processDesigner.valueType') }}</label>
+      <div v-for="field in typedBaseFields" :key="field.id" class="flex flex-col gap-1">
+        <label>{{ field.label }}</label>
         <Select
-          :model-value="record.type?.base || 'json'"
+          :model-value="record[field.id]?.base || 'string'"
           :options="baseTypeOptions"
           option-label="label"
           option-value="value"
           size="small"
-          @update:model-value="value => { record.type = { ...(record.type || {}), base: value }; emit('sync'); }"
+          @update:model-value="value => setTypedBase(field.id, value)"
         />
+      </div>
+      <div v-if="op === 'value.format'" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.valueTemplate') }}</label>
         <InputText
-          v-if="op === 'value.format'"
           :model-value="record.template ?? ''"
           size="small"
           @update:model-value="value => { record.template = String(value ?? ''); emit('sync'); }"
         />
+      </div>
+      <div v-if="hasConfig('matching')" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.dataMatching') }}</label>
+        <Select
+          :model-value="record.matching || 'longest'"
+          :options="matchingOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="value => { record.matching = value; emit('sync'); }"
+        />
+      </div>
+      <div v-if="hasConfig('select')" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.readSelection') }}</label>
+        <Select
+          :model-value="record.select || 'current'"
+          :options="selectOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          @update:model-value="value => { record.select = value; emit('sync'); }"
+        />
+      </div>
+      <div v-if="hasConfig('required')" class="flex items-center justify-between gap-2">
+        <label>{{ $t('processDesigner.required') }}</label>
+        <ToggleSwitch :model-value="record.required !== false" @update:model-value="value => { record.required = value; emit('sync'); }" />
+      </div>
+      <div v-if="hasConfig('min') || hasConfig('max')" class="flex items-center gap-2">
+        <InputNumber
+          v-if="hasConfig('min')"
+          :model-value="record.min ?? null"
+          :placeholder="$t('processDesigner.minimum')"
+          :aria-label="$t('processDesigner.minimum')"
+          :use-grouping="false"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => { record.min = value; emit('sync'); }"
+        />
+        <InputNumber
+          v-if="hasConfig('max')"
+          :model-value="record.max ?? null"
+          :placeholder="$t('processDesigner.maximum')"
+          :aria-label="$t('processDesigner.maximum')"
+          :use-grouping="false"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => { record.max = value; emit('sync'); }"
+        />
+      </div>
+      <div v-if="hasConfig('pattern')" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.pattern') }}</label>
+        <InputText :model-value="record.pattern ?? ''" size="small" @update:model-value="value => { record.pattern = String(value ?? ''); emit('sync'); }" />
+      </div>
+      <div v-if="hasConfig('message') && op === 'value.validate'" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.validationMessage') }}</label>
+        <InputText :model-value="record.message ?? ''" size="small" @update:model-value="value => { record.message = String(value ?? ''); emit('sync'); }" />
+      </div>
+      <div v-if="hasConfig('path') && op === 'source.processInput'" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.path') }}</label>
+        <InputText :model-value="record.path ?? ''" size="small" @update:model-value="value => { record.path = String(value ?? ''); emit('sync'); }" />
+      </div>
+      <div v-if="hasConfig('path') && op === 'source.triggerPayload'" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.path') }}</label>
+        <InputText :model-value="record.path ?? ''" size="small" @update:model-value="value => { record.path = String(value ?? ''); emit('sync'); }" />
+      </div>
+      <div v-if="hasConfig('secretRef')" class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.secretReference') }}</label>
+        <InputText :model-value="record.secretRef ?? ''" size="small" @update:model-value="value => { record.secretRef = String(value ?? ''); emit('sync'); }" />
       </div>
       <div v-if="isConvertUnit" class="flex items-center gap-2">
         <Select
@@ -312,7 +391,7 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
-    <div v-if="isEffect && !hasIncomingEventWire" class="flex flex-col gap-2">
+    <div v-if="isEffect && op !== 'cts.construct' && !hasIncomingEventWire" class="flex flex-col gap-2">
       <div class="flex flex-col gap-1">
         <label>{{ $t('processDesigner.scheduleStart') }}</label>
         <DatePicker
@@ -421,7 +500,15 @@
 // this selected-record surface and return through the host's sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '#packages/cts';
-import { CAST_BASES, CONVERT_UNITS, EFFECT_SPECIES_KINDS, MAPPED_MUTATION_SPECIES_KINDS, PROCESS_AUTHORED_BASES } from '#packages/processes';
+import {
+  CAST_BASES,
+  CONVERT_UNITS,
+  EFFECT_SPECIES_KINDS,
+  MAPPED_MUTATION_SPECIES_KINDS,
+  PROCESS_AUTHORED_BASES,
+  PROCESS_MATCHING_MODES,
+  processNodeConfigurationSchema
+} from '#packages/processes';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
@@ -431,6 +518,7 @@ import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
+import ToggleSwitch from 'primevue/toggleswitch';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import TypedLiteralControl from '~/components/process-designer/TypedLiteralControl.vue';
 import { useI18n } from 'vue-i18n';
@@ -483,9 +571,26 @@ const typeId = computed(() => typeIdOf(props.record || {}));
 
 const isLiteral = computed(() => String(op.value).startsWith('source.literal'));
 const isCast = computed(() => op.value === 'value.cast');
-const isTypedValueUtility = computed(() => ['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(op.value));
 const isConvertUnit = computed(() => op.value === 'value.convertUnit');
+const configSchema = computed(() => processNodeConfigurationSchema(op.value));
+const typedBaseFields = computed(() => Object.entries(configSchema.value.properties || {})
+  .filter(([, schema]) => schema.semantic?.kind === 'perigram.value-base')
+  .map(([id, schema]) => ({ id, label: schema.title || t('processDesigner.valueType') })));
+function hasConfig(id) {
+  return Object.hasOwn(configSchema.value.properties || {}, id);
+}
+const declaredScalarControls = computed(() => ['matching', 'select', 'required', 'min', 'max', 'pattern', 'message', 'path', 'secretRef']
+  .some(id => hasConfig(id)));
 const baseTypeOptions = computed(() => PROCESS_AUTHORED_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
+const matchingOptions = computed(() => PROCESS_MATCHING_MODES.map(value => ({ label: t(`processDesigner.matching.${value}`), value })));
+const selectOptions = computed(() => ['current', 'all', 'extract', 'parent', 'children', 'related']
+  .map(value => ({ label: t(`processDesigner.readModes.${value}`), value })));
+const accessOptions = computed(() => ['item', 'list', 'tree']
+  .map(value => ({ label: t(`processDesigner.dataAccess.${value}`), value })));
+function setTypedBase(id, base) {
+  props.record[id] = { ...(props.record[id] || {}), base };
+  emit('sync');
+}
 const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
 const convertUnitOptions = CONVERT_UNITS.map(value => ({ label: value, value }));
 const operationValue = computed(() => (

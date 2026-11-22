@@ -35,11 +35,20 @@
 
 ## Graph editor polish (SPEC §28, owner direction 2026-11-21)
 
-- [ ] WAITING — Gate graph-document validation, node-definition derivation, and dirty detection on an authoring signature so drags and selection churn re-serialize nothing per frame.
+- [x] Gate graph-document validation, node-definition derivation, and dirty detection on an authoring signature so drags and selection churn re-serialize nothing per frame.
 - [ ] WAITING — Name placed Use Graph cards by the invoked graph and place reusable-graph entries in the graph-boundary palette section.
 - [ ] WAITING — Apply boundary interface declarations live from the inspector and warn when the edited graph is pinned by other graph documents.
 - [ ] WAITING — Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.14); the static SVG projection is not a 3D viewport.
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
+
+### Agent Notes (2026-11-22, agent/issue-spec-20261122)
+
+- Node definitions resolve once per node identity and the one map feeds validation, semantic edge checks, and preview renderer lookup; a config edit re-resolves only the edited node, position/selection changes resolve none. `useGraphDocumentSession.large-graph.spec.js` pins the counts on a 120-node fixture.
+- Dirty detection compares the position-free authoring signature; drag events flip a position flag and the exact persisted-shape comparison runs at drag stop, so draft serialization runs once per gesture.
+- Provider `conversions` register in the browser compatibility registry; conversion-required diagnostics name the candidates.
+- Canonical authoring: process schemas declare typed bases where the ports consume them, shift/partition author config is removed, `cts.construct` carries manual lifecycle configuration alone, and the process inspector renders every declared setting (matching, read selection, access, required/min/max/pattern/message, source paths, secret reference, typed bases, template).
+- Preview: scalar values render as text, the selected output port's declared representation selects the common viewer, cast/conversion outputs keep an upstream plugin renderer, and the shared `Scene2DViewer` plus the 3D viewer's pan/fit join the common viewer grammar.
+- Open: the occt native preview channel and cast node ride the separate geometry slice; entity-dependent consumer types in the generic graph inspector default to the manual type picker.
 
 ### Agent Notes (2026-11-21, agent/graph-editor-polish-20261121-1904)
 
@@ -531,6 +540,13 @@ coverage).
   blank-construct channel, revisioned editor transport); the missing
   piece is the pages/embed UX affordance — concurrent-session
   territory.
+
+### Agent Notes (2026-11-22, agent/issue-spec-20261122 — issue #25)
+
+- The Page file dialog's New graph inserts a Page `reference` block after the authoring block, so page references and backlinks see the graph; the editor opens in the workspace pane.
+- The action is gated by the graph-document write grant; the graphs list deletes records through the generic instance boundary, and the record popup steps up editor-bound file types into their workspace page.
+- Opening a graph by id hydrates the record through the instances store when the catalog has no entry.
+- `usePageDocument.spec.js` covers reference insertion at the active block; E2E coverage of the custom Page New graph flow remains open.
 
 ### Agent Notes (2026-11-19, agent/graph-embed-contract — issue #23)
 
@@ -1393,6 +1409,14 @@ is fixed. Also open: the deployment seed decision for the catalog
 scratch orgs ("Geometry Dogfood Org", "… Org 2") left in the dev DB
 (org-delete drain-gated on their bootstrap process definitions).
 
+### Agent Notes (2026-11-22, agent/issue-spec-20261122 — CTS/process ownership)
+
+- CTS quantity descriptors translate through the one unit-spelling table on both process and legacy dialects; the conversion factor table carries the same minute/hour spelling.
+- The server graph-node resolver and the Documents runtime derive provider definitions through the SDK's `nodeDefinitionFromService`, so declared representations survive the server projection; the shared SDK builder owns the port projection.
+- Browser provider conversions register in the graph session's compatibility registry.
+- `PROCESS_DATA_ACCESS` has one definition (data-tree) consumed by the type normalizer.
+- Open from issue #26: command I/O projection lives in the compiled-action, node-socket, and designer adapters; the declaration-check walkers remain separate pending the guard/field-policy fold.
+
 ### Agent Notes (2026-11-20, agent/cad-occt-20261120-1450)
 
 Landed the `cad.occt` slice (branch commits, staged per task): the SDK
@@ -1542,7 +1566,11 @@ remainder). GitHub issue state is the owner's action.
   input values are owned by the evaluator cache, and this seam cannot
   prove relinquishment — input-side transfer needs last-use marking in
   the evaluator (forward path). Evidence:
-  shared/plugin-runtime.spec transfer/detach/exclusion cases.
+  shared/plugin-runtime.spec transfer/detach/exclusion cases plus
+  composables/plugin-runtime.worker.spec.js, which runs the real Worker
+  module through a worker_threads shim and proves result-buffer detach
+  and received-input retention. Open: a real geometry provider that emits
+  typed-array values through the JSON-only graph value contract.
 - **#30 type-less node-library plugins — implemented.** `parseListing`
   and the schema accept empty/absent `declarations.types` when the
   listing declares at least one runtime (the runtime module contract

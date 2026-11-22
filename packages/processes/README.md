@@ -54,14 +54,19 @@ The canonical procedural node-provider contract is owned by [@perigram/plugin-sd
 | Field family | Declared for | Control |
 |---|---|---|
 | `operation`, `direction` | polymorphic operations, sort | enum select seeded with the kind's default |
-| `type`, `value`, `access` | literals and typed-value utilities | `perigram.typed-value` / `perigram.value-base` contributions over `PROCESS_AUTHORED_BASES` |
+| `value`, `access` | literals | `perigram.typed-value` base/value control plus the item/list/tree access select |
+| `type` | select, compare, coalesce | `perigram.value-base` selector |
+| `sourceType`, `outputType` | required, validate, format | `perigram.value-base` selectors |
 | `path`, `leftKey`/`rightKey`, `message`/`result`, `commandId`, `eventId`, `secretRef`, `relationKey`, `projection` | sources, joins, terminals, effects, reads | text field with the kind's authored default |
-| `offset`, `size`, `min`/`max` | shift, partition, validate | number field |
+| `min`/`max`, `pattern`, `message`, `required` | validate, required | number, text, and boolean fields |
 | `matching` | collection and tree operations | enum from `PROCESS_MATCHING_MODES` |
 | `typeId` | CTS operations | `perigram.entity-type` picker over the organization's types |
-| `select`, `fromUnit`/`toUnit`, `outputType`, `template`, `required`, `pattern` | reads, convertUnit, cast, format, validate | enum, text, or boolean field |
+| `select`, `fromUnit`/`toUnit`, `outputType`, `template` | reads, convertUnit, cast, format | enum, text, or base select |
 | `fields` | record.construct | `perigram.field-list` path editor |
-| `construction`, `guard`, `fieldPolicy`, `trigger` | construct, transition, effects | JSON editor |
+| `construction`, `guard`, `fieldPolicy` | construct, transition | profile controls; the generic inspector falls back to the typed JSON control |
+| `trigger`, `eventId` | entry effects | schedule and event controls on the process profile |
+
+Every declared editable setting has a usable, persisted control; schemas declare live settings only, and implementation-derived values stay inferred.
 
 ## Authoring seam
 
@@ -86,7 +91,9 @@ Each gesture has its removal twin:
 An effect's trigger mode derives from the graph on every sync
 (`effectTriggerFor`): a wired event socket wins; an unwired entry with an
 authored `trigger.schedule` starts at its time, one with an authored
-`eventId` starts on that event, and the rest stay manual.
+`eventId` starts on that event, and the rest stay manual. `cts.construct`
+is a procedural operation: its normalization keeps the manual lifecycle
+mode and drops event/schedule entry configuration.
 
 Children wires land child-first — `wireDeclaration(childId, parentId,
 'children')` wires the child's output into the parent's declare input — and
@@ -313,8 +320,9 @@ the inspector:
 | `collection.join` | Keys `leftKey`/`rightKey`. |
 | `value.recordField` | `path` plus authored output type. |
 | `value.cast` | Authored output base over the re-base vocabulary (json, record, list, string, number, boolean); the input is the universal json acceptor, so every source wires in and the node asserts the value already matches the target base. |
-| `value.required` / `value.validate` / `value.coalesce` | Authored operand base (`type`). |
-| `value.format` | Authored operand base (`type`) plus `template`; an empty template formats numerically. |
+| `value.required` / `value.validate` | Authored `sourceType` and `outputType` bases plus required/min/max/pattern/message constraints. |
+| `value.coalesce` | Authored operand base (`type`). |
+| `value.format` | Authored `sourceType`/`outputType` bases plus `template`; an empty template formats numerically. |
 | `value.convertUnit` | `fromUnit`/`toUnit` over the convert unit set (the shared factor table in the operation registry). |
 | `record.construct` | `fields`. |
 | `value.format` | Template with named `{key}` slots substituted from a wired record (missing keys keep their placeholder, `{value}` from the value input); template-free formatting is numeric. |

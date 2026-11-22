@@ -1,4 +1,5 @@
 import listing from '../listing.json' with { type: 'json' };
+import { nodeDefinitionFromService } from '@perigram/plugin-sdk/nodes';
 import * as XLSX from '../assets/vendor/xlsx.mjs';
 import { parseMarkdown } from '../markdown-ir.mjs';
 import { fillMarkdown, templateTokenKeys } from '../template-ir.mjs';
@@ -75,58 +76,7 @@ function documentsNodeDefinitions(source, runtimeId) {
       && service.execution.targets?.includes('browser')
       && service.palette?.visible !== false
       && service.palette?.group)
-    .map(service => ({
-      provider: 'plugin.documents',
-      id: service.id,
-      version: String(service.nodeVersion || '1'),
-      label: service.label || service.id,
-      ...(service.description ? { description: service.description } : {}),
-      palette: {
-        group: service.palette.group,
-        ...(service.palette.label ? { label: service.palette.label } : {}),
-        keywords: service.palette.keywords || []
-      },
-      inputs: Object.entries(service.signature?.input?.fields || {}).map(([id, field]) => ({
-        id,
-        label: field.label || id,
-        ...nodePortContract(field),
-        required: field.nullable !== true,
-        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
-        ...(field.description ? { description: field.description } : {})
-      })),
-      outputs: [{
-        id: 'value',
-        label: service.signature?.output?.label || 'Value',
-        ...nodePortContract(service.signature?.output || {}),
-        required: true
-      }],
-      ...(service.configuration ? { configuration: service.configuration } : {}),
-      execution: {
-        runtime: runtimeId,
-        kind: service.execution.kind,
-        targets: service.execution.targets,
-        capabilities: service.execution.capabilities || [],
-        deterministic: service.execution.deterministic === true,
-        idempotent: service.execution.idempotent === true
-      }
-    }));
-}
-
-function nodePortContract(schema = {}) {
-  const shape = ['list', 'tree', 'map', 'tuple', 'stream'].includes(schema.base)
-    ? schema.base
-    : 'item';
-  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
-  const nestedSemantic = semanticSource.semantic && typeof semanticSource.semantic === 'object'
-    ? semanticSource.semantic
-    : {};
-  const semantic = { base: semanticSource.base || 'json' };
-  for (const key of ['kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit']) {
-    if (Object.hasOwn(nestedSemantic, key)) semantic[key] = nestedSemantic[key];
-    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
-  }
-  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
-  return { shape, semantic };
+    .map(service => nodeDefinitionFromService(service, { provider: 'plugin.documents', runtimeId }));
 }
 
 async function executeFileRead(operationId, input = {}, capabilities = {}) {

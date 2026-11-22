@@ -10,6 +10,7 @@ import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
 import Re_L from '~/assets/presets/re_l';
 import ProcessPage from '~/pages/organization/process.vue';
 
@@ -40,6 +41,7 @@ describe('process designer page SSR smoke', () => {
     app.use(createPinia());
     app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
     app.use(ToastService);
+    app.use(ConfirmationService);
     app.directive('tooltip', { getSSRProps: () => ({}) });
 
     const html = await renderToString(app);

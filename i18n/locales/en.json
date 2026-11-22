@@ -3560,7 +3560,28 @@
     "templateValuesNeedPreview": "Run preview after connecting a template to discover its fields.",
     "templateSectionJsonHint": "Enter a JSON array for repeated rows, for example [{'{'}\"name\":\"Ada\"{'}'}].",
     "templateSectionJsonInvalid": "Section value must be a valid JSON array.",
-    "graphInterfaceConsumers": "Used by {graphs}. Pinned invocations keep their interface until each caller re-pins."
+    "graphInterfaceConsumers": "Used by {graphs}. Pinned invocations keep their interface until each caller re-pins.",
+    "valueTemplate": "Template",
+    "readSelection": "Read selection",
+    "minimum": "Minimum",
+    "maximum": "Maximum",
+    "pattern": "Pattern",
+    "validationMessage": "Validation message",
+    "secretReference": "Secret reference",
+    "readModes": {
+      "current": "Current record",
+      "all": "All records",
+      "extract": "Projection",
+      "parent": "Parent",
+      "children": "Children",
+      "related": "Related records"
+    },
+    "dataAccess": {
+      "item": "Single value",
+      "list": "List",
+      "tree": "Tree"
+    },
+    "deleteGraphConfirm": "Delete graph “{name}”?"
   },
   "generatedScreen": {
     "home": "Home",

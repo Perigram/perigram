@@ -16,6 +16,7 @@
       @request-view="requestView"
       @request-reference="requestReference"
       @request-graph-output="requestGraphOutput"
+      @request-file-reference="requestFileReference"
     />
     <!-- The idle line is the placeholder alone, rendered as plain document
          text exactly where the engine's own placeholder sits: the engine
@@ -90,6 +91,10 @@ function requestReference() {
 
 function requestGraphOutput() {
   props.session.openGraphOutputPickerAtEnd?.();
+}
+
+function requestFileReference(ref) {
+  props.session.insertReferenceAtEnd?.(ref);
 }
 
 function focusIfRequested() {

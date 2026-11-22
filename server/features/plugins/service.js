@@ -18,7 +18,7 @@ import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask, getTaskRunById, cancelTaskRun } from '../../core/tasks/service.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
-import { NODE_EXECUTION_KINDS, normalizeNodeDefinition, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
+import { NODE_EXECUTION_KINDS, nodeDefinitionFromService, normalizeNodeDefinition, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 import { executeSyncManagedOperation, loadSyncRuntimeProviders } from './sync-runtime.js';
 
@@ -948,24 +948,6 @@ export { executorPayload } from './executor-payload.js';
 // Resolve and verify the immutable package snapshot for a claimed managed
 // runtime task. The API route owns worker authentication and claim lookup;
 // repository access and package integrity remain behind this feature service.
-const GRAPH_NODE_SEMANTIC_KEYS = [
-  'kind', 'nominal', 'provider', 'schema', 'entityType', 'identity', 'constraints', 'unit'
-];
-
-function graphNodePortContract(schema = {}) {
-  const shape = ['list', 'tree', 'map', 'tuple', 'stream'].includes(schema.base)
-    ? schema.base
-    : 'item';
-  const semanticSource = shape === 'item' ? schema : (schema.itemType || { base: 'json' });
-  const semantic = { base: semanticSource.base || 'json' };
-  for (const key of GRAPH_NODE_SEMANTIC_KEYS) {
-    if (Object.hasOwn(semanticSource.semantic || {}, key)) semantic[key] = semanticSource.semantic[key];
-    if (Object.hasOwn(semanticSource, key)) semantic[key] = semanticSource[key];
-  }
-  if (schema.nullable === true || semanticSource.nullable === true) semantic.nullable = true;
-  return { shape, semantic };
-}
-
 // Resolve provider metadata only from the caller's installed package snapshot.
 // The returned packagePin is carried into execution provenance by the graph host.
 export async function resolveInstalledGraphNodeDefinition({
@@ -1003,41 +985,10 @@ export async function resolveInstalledGraphNodeDefinition({
   // normalization the browser session applies to resolved definitions;
   // `packagePin` is host execution provenance carried on top of it.
   const definition = Object.freeze({
-    ...normalizeNodeDefinition({
+    ...normalizeNodeDefinition(nodeDefinitionFromService(service, {
       provider: String(provider),
-      id: String(id),
-      version: definitionVersion,
-      label: service.label || service.id,
-      ...(service.description ? { description: service.description } : {}),
-      palette: {
-        group: service.palette.group,
-        ...(service.palette.label ? { label: service.palette.label } : {}),
-        keywords: service.palette.keywords || []
-      },
-      inputs: Object.entries(service.signature?.input?.fields || {}).map(([portId, field]) => ({
-        id: portId,
-        label: field.label || portId,
-        ...graphNodePortContract(field),
-        required: field.nullable !== true,
-        ...(Object.hasOwn(field, 'default') ? { default: field.default } : {}),
-        ...(field.description ? { description: field.description } : {})
-      })),
-      outputs: [{
-        id: 'value',
-        label: service.signature?.output?.label || 'Value',
-        ...graphNodePortContract(service.signature?.output || {}),
-        required: true
-      }],
-      ...(service.configuration ? { configuration: service.configuration } : {}),
-      execution: {
-        runtime: runtimeId,
-        kind: service.execution.kind,
-        targets: service.execution.targets,
-        capabilities: service.execution.capabilities || [],
-        deterministic: service.execution.deterministic === true,
-        idempotent: service.execution.idempotent === true
-      }
-    }),
+      runtimeId
+    })),
     packagePin: {
       pluginId,
       version: String(install.version),

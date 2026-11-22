@@ -57,6 +57,7 @@ import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue'
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { scopedDetailScreen, resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
+import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
@@ -146,6 +147,7 @@ function expandable() {
   if (!current) return false;
   if (current.typeId === 'organization' && isActiveOrganization(current.instanceId)) return true;
   const paneDestination = isDirectoryType.value
+    || Boolean(resolveFileSurface(undefined, current.typeId)?.workspacePage)
     || Boolean(resolveDetailScreen({
       screens: authStore.screenManifest || [],
       typeId: current.typeId

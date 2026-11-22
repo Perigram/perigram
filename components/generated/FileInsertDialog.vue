@@ -36,7 +36,7 @@
           @click="applyUrl"
         />
       </div>
-      <div class="border-t border-surface pt-3">
+      <div v-if="canCreateGraph" class="border-t border-surface pt-3">
         <Button
           :label="t('processDesigner.newGraph')"
           icon="pi pi-share-alt"
@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import FileUpload from 'primevue/fileupload';
@@ -60,6 +60,7 @@ import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { mintId } from '~/utils/processDesignerIdentity.js';
+import { editorWriteGranted } from '~/components/generated/file-surfaces.js';
 
 // The file entry's source chooser (SPEC §26): a stored upload or an
 // address, both landing at the caret as the shared file chip.
@@ -73,6 +74,7 @@ const url = ref('');
 const uploading = ref(false);
 const creating = ref(false);
 const errorMessage = ref('');
+const canCreateGraph = computed(() => editorWriteGranted('graph-document'));
 
 watch(() => props.visible, visible => {
   if (!visible) return;
@@ -133,7 +135,7 @@ async function createGraph() {
     });
     emit('insert', {
       href: `/api/files/download/${encodeURIComponent(created.payload.fileId)}?bucket=files`,
-      name: `${created.name || name}.json`,
+      name: created.name || name,
       mimeType: 'application/json',
       size: created.payload?.size || 0,
       typeId: 'graph-document',

@@ -396,7 +396,7 @@ describe('apply_graph_patch', () => {
             edits: [{ op: 'setInterface', inputs: [] }]
         }, AUTH);
         expect(result.applied).toBe(true);
-        expect(result.document.interface.inputs).toEqual([]);
+        expect(result.document.inputs).toEqual([]);
         expect(mockedGraphService.replacePayload).toHaveBeenCalledTimes(1);
     });
 

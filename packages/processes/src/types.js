@@ -5,6 +5,7 @@
  * TODO G10 removes it after the one-time process-definition migration.
  */
 import { CONVERT_UNIT_FACTORS } from './operations.js';
+import { PROCESS_DATA_ACCESS } from './data-tree.js';
 
 export const PROCESS_PROTOCOL_VERSION = 4;
 
@@ -46,7 +47,6 @@ export const PROCESS_BASE_TYPES = Object.freeze([
   'opaque'
 ]);
 
-export const PROCESS_DATA_ACCESS = Object.freeze(['item', 'list', 'tree']);
 export const PROCESS_SOCKET_ROLES = Object.freeze(['data', 'control', 'success', 'failure']);
 
 export function mapDomainInputType(kind = 'json', metadata = {}) {

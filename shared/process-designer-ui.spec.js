@@ -23,8 +23,13 @@ describe('process designer interaction boundaries', () => {
     expect(card).not.toContain('updateValueType');
     expect(inspector).toContain('TypedValueControl');
     expect(inspector).toContain('operationOptions');
-    expect(inspector).toContain('base="json"');
+    expect(inspector).toContain(':base="input.base"');
     expect(inspector).toContain('setLiteralBase');
+    expect(inspector).toContain("hasConfig('matching')");
+    expect(inspector).toContain("hasConfig('select')");
+    expect(inspector).toContain("hasConfig('pattern')");
+    expect(inspector).toContain("hasConfig('secretRef')");
+    expect(inspector).toContain("op !== 'cts.construct'");
   });
 
   it('delegates producer-output ownership to the package record-sync pipeline', () => {
