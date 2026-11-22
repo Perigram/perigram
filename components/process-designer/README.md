@@ -530,7 +530,9 @@ for its whole life (see
 graph as a draft even when it fails activation validation; the dirty
 marker is attention, never a persistence gate. Re-activation records the
 superseded graph in the definition's history. New Draft, Save, and Apply
-run independent of node selection or inspector tab.
+run independent of node selection or inspector tab. Save and autosave
+write the stored document; the mounted canvas, its selection, and its
+viewport stay intact.
 
 The right pane owns the graphs list (the Graphs tab, the file/lifecycle
 home — SPEC §28.14). Process definitions render as a `Listbox` in the

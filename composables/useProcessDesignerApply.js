@@ -43,6 +43,8 @@ export function useProcessDesignerApply({
   upsertProcessDefinition,
   setDraft,
   syncNow,
+  authoringSignature = null,
+  markSaved = null,
   nodes = { value: [] }
 }) {
   const applyState = ref('idle');
@@ -62,12 +64,13 @@ export function useProcessDesignerApply({
     // One document for its whole life (process-definitions README):
     // saves persist in place, draft or active — no fork.
     const submitted = serializeProcess();
-    const submittedSignature = JSON.stringify(submitted);
+    const submittedSignature = authoringSignature ? authoringSignature() : JSON.stringify(submitted);
     const updated = await persistence.saveDraft(draft.value._id, submitted);
     upsertProcessDefinition(updated);
-    // The response describes the submitted snapshot. Do not hydrate it over
-    // edits authored while the request was in flight.
-    if (JSON.stringify(serializeProcess()) === submittedSignature) setDraft(updated);
+    // The response describes the submitted snapshot. Keep the mounted canvas
+    // and its selection; mark the baseline only when no edit landed in flight.
+    const currentSignature = authoringSignature ? authoringSignature() : JSON.stringify(serializeProcess());
+    if (currentSignature === submittedSignature) markSaved?.(submittedSignature, updated);
     return updated;
   }
 

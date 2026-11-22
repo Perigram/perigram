@@ -995,6 +995,11 @@ const {
   upsertProcessDefinition,
   setDraft: value => setDraft(value),
   syncNow: () => syncNodeData(),
+  authoringSignature: () => designerSignature(),
+  markSaved: (signature, saved) => {
+    savedDraftSignature.value = signature;
+    reconciledDataSignature = JSON.stringify(authoredDraftData(saved) ?? null);
+  },
   nodes
 });
 
@@ -1074,9 +1079,7 @@ function scheduleProcessAutosave() {
       return;
     }
     try {
-      syncNodeData();
-      const submittedSignature = designerSignature();
-      if (await saveDraft()) savedDraftSignature.value = submittedSignature;
+      await saveDraft();
     } catch {
       // The manual save reports its error; autosave stays quiet.
     }
@@ -1902,9 +1905,7 @@ function reconcileOutOfBandDraft() {
   persistence.loadById(String(draft.value._id))
     .then(fresh => {
       if (!fresh?._id || String(fresh._id) !== String(draft.value?._id)) return;
-      const freshData = fresh?.data?.format === 'perigram.graph'
-        ? authoredProcessDataFromGraphDocument(fresh.data)
-        : fresh?.data;
+      const freshData = authoredDraftData(fresh);
       if (JSON.stringify(freshData ?? null) === reconciledDataSignature) return;
       upsertProcessDefinition(fresh);
       setDraft(fresh);
@@ -1912,13 +1913,17 @@ function reconcileOutOfBandDraft() {
     .catch(() => {});
 }
 
-function setDraft(value) {
-  const data = value?.data?.format === 'perigram.graph'
+function authoredDraftData(value) {
+  return value?.data?.format === 'perigram.graph'
     ? {
         ...(authoredProcessDataFromGraphDocument(value.data) || {}),
         ...Object.fromEntries(['migrations', 'history', 'activated'].filter(key => value.data[key] !== undefined).map(key => [key, value.data[key]]))
       }
     : value?.data;
+}
+
+function setDraft(value) {
+  const data = authoredDraftData(value);
   const view = value?.data?.format === 'perigram.graph' ? { ...value, data } : value;
   loadDocument(view, {
     seedNodes: seeded => deriveLaneFacts({

@@ -34,6 +34,10 @@
 - Autosave persists process drafts after a 1.2s debounce and re-baselines the dirty signature after each successful save.
 - Owner revised the original direction: Apply stays explicit because compilation is long.
 
+### Agent Notes (2026-11-22, agent/autosave-preserve-selection-20261122)
+
+- Autosave and Save persist the draft in place; selection, viewport, and open inspector edits survive the save. The dirty baseline and the out-of-band reconcile signature re-baseline from the save response.
+
 ### Agent Notes (2026-11-21, agent/graph-badge-open-20261121)
 
 - The card payload chip routes editor-bound types through the workspace page-open seam, so a graph file opens the `graph-editor` page with its record loaded.

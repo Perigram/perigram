@@ -565,6 +565,10 @@ no-op. Every gate payload is cleared when its state is left. `saving` and
 `applying` recover through their response or `error`; an `error` recovers on
 the next Save or Apply.
 
+A save leaves the mounted graph session alone: the host's
+`authoringSignature` is captured across the request, and its `markSaved`
+callback re-baselines the dirty state when the signature is unchanged.
+
 ---
 
 ## useChatFileUpload
