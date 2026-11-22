@@ -139,8 +139,8 @@ dynamic `import()` under `server/` resolves to a real file (a bad relative
 specifier passes vite-node until its code path runs but fails the whole Nitro
 bundle, which serves 503 on every route). Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
-`#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
-resolve the same graph.
+`#packages/...`, `#utils/...`, `#workers/...`) so direct Node loaders and
+Nuxt/Nitro SSR builds resolve the same graph.
 Entity feature directories are derived from domain entity metadata — the
 feature key is the entity type id plus `s`; the single irregular alias
 (`entity-revisions` → `instance-revisions`) rides
