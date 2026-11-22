@@ -9,11 +9,8 @@ ARG http_proxy
 ARG https_proxy
 ARG no_proxy
 
-# Prefer HTTPS Debian mirrors; plain HTTP can time out on restricted build networks.
-RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
-      sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
-    fi && \
-    apt-get update && apt-get install -y --no-install-recommends curl python3 python3-pip \
+# The slim base carries no CA roots; apt stays on its default mirror.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 ARG PORT=3000
