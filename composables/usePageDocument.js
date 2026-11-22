@@ -266,31 +266,44 @@ export function usePageDocumentSession({ docId, tabKey }) {
     markDirty();
   }
 
-  async function save() {
-    if (!dirty.value || saving.value || !id.value) return false;
-    saving.value = true;
-    try {
-      await pagesStore.saveDocument(id.value, {
-        blocks: draftBlocks.value,
-        order: draftOrder.value
-      });
-      dirty.value = false;
-      setWorkspacePageDirty(tabKey, false);
-      return true;
-    } finally {
-      saving.value = false;
-    }
+  function draftSignature() {
+    return JSON.stringify({ blocks: draftBlocks.value, order: draftOrder.value });
   }
 
   let autosaveTimer = null;
-  watch(dirty, value => {
-    if (!value) return;
+  function scheduleAutosave() {
+    if (!dirty.value) return;
     if (autosaveTimer) clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => {
       autosaveTimer = null;
       save().catch(() => {});
     }, 1500);
-  });
+  }
+
+  async function save() {
+    if (!dirty.value || saving.value || !id.value) return false;
+    saving.value = true;
+    const submittedSignature = draftSignature();
+    const snapshot = {
+      blocks: draftBlocks.value.map(block => ({ ...block })),
+      order: [...draftOrder.value]
+    };
+    try {
+      await pagesStore.saveDocument(id.value, snapshot);
+      if (draftSignature() === submittedSignature) {
+        dirty.value = false;
+        setWorkspacePageDirty(tabKey, false);
+      }
+      return true;
+    } finally {
+      saving.value = false;
+      if (dirty.value) scheduleAutosave();
+    }
+  }
+
+  watch([draftBlocks, draftOrder], () => {
+    if (dirty.value) scheduleAutosave();
+  }, { deep: true });
   onScopeDispose(() => {
     if (autosaveTimer) clearTimeout(autosaveTimer);
   });
