@@ -568,14 +568,13 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return loadDocument(createEmptyGraphDocument({ id: id || stableId('graph'), name: name || '' }));
   }
 
-  function semanticEdgeProblems(graph = serializeGraph()) {
-    const byId = new Map(nodes.value.map(node => [node.id, node]));
+  function semanticEdgeDiagnostics(graph = serializeGraph()) {
+    const definitions = new Map(nodes.value.map(node => [node.id, definitionFor(node)]));
     const problems = [];
+    const warnings = [];
     for (const edge of graph.edges) {
-      const source = byId.get(edge.source.node);
-      const target = byId.get(edge.target.node);
-      const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
-      const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
+      const sourcePort = definitions.get(edge.source.node)?.outputs?.find(port => port.id === edge.source.port);
+      const targetPort = definitions.get(edge.target.node)?.inputs?.find(port => port.id === edge.target.port);
       if (!sourcePort || !targetPort) continue;
       const result = portCompatibility.compare(sourcePort, targetPort);
       if (!result.compatible) {
@@ -584,22 +583,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
           path: `edges.${edge.id}`,
           message: `Cannot connect ${sourcePort.label || sourcePort.id} to ${targetPort.label || targetPort.id}: ${result.reason}`
         });
-      }
-    }
-    return problems;
-  }
-
-  function semanticEdgeWarnings(graph = serializeGraph()) {
-    const byId = new Map(nodes.value.map(node => [node.id, node]));
-    const warnings = [];
-    for (const edge of graph.edges) {
-      const source = byId.get(edge.source.node);
-      const target = byId.get(edge.target.node);
-      const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === edge.source.port);
-      const targetPort = definitionFor(target)?.inputs?.find(port => port.id === edge.target.port);
-      if (!sourcePort || !targetPort) continue;
-      const result = portCompatibility.compare(sourcePort, targetPort);
-      if (result.compatible && result.status === 'conditional') {
+      } else if (result.status === 'conditional') {
         warnings.push({
           code: 'edge-conditional',
           path: `edges.${edge.id}`,
@@ -607,16 +591,21 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
         });
       }
     }
-    return warnings;
+    return { problems, warnings };
+  }
+
+  function semanticEdgeProblems(graph = serializeGraph()) {
+    return semanticEdgeDiagnostics(graph).problems;
   }
 
   function validateCurrentGraph() {
     const graph = serializeGraph();
-    const problems = [...validateGraphDocument(graph), ...semanticEdgeProblems(graph)];
+    const edges = semanticEdgeDiagnostics(graph);
+    const problems = [...validateGraphDocument(graph), ...edges.problems];
     return {
       ok: problems.length === 0,
       errors: problems.map(problem => problem.message),
-      warnings: semanticEdgeWarnings(graph).map(warning => warning.message)
+      warnings: edges.warnings.map(warning => warning.message)
     };
   }
 
