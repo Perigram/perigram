@@ -1051,19 +1051,28 @@ const processChrome = reactive({
 });
 
 let autosaveTimer = null;
-watch(isDirty, dirty => {
-  if (!dirty || !draft.value?._id || applyBusy.value || creatingDraft.value) return;
-  if (!['idle', 'error'].includes(applyState.value)) return;
+function scheduleProcessAutosave() {
+  if (!isDirty.value || !draft.value?._id || creatingDraft.value) return;
   if (autosaveTimer) clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(async () => {
     autosaveTimer = null;
+    if (applyBusy.value || !['idle', 'error'].includes(applyState.value)) {
+      scheduleProcessAutosave();
+      return;
+    }
     try {
-      if (await saveDraft()) savedDraftSignature.value = designerSignature();
+      syncNodeData();
+      const submittedSignature = designerSignature();
+      if (await saveDraft()) savedDraftSignature.value = submittedSignature;
     } catch {
       // The manual save reports its error; autosave stays quiet.
     }
+    if (isDirty.value) scheduleProcessAutosave();
   }, 1200);
-});
+}
+// Watch the authoring signature, not the dirty boolean: edits made while
+// already dirty must restart the debounce window.
+watch(() => designerSignature(), scheduleProcessAutosave);
 // Lanes — the authorization surface, canonical in
 // components/process-designer README "Lanes". ONLY effects participate
 // (they alone carry access): one lane per role in fixed order plus an
