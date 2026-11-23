@@ -24,9 +24,9 @@ const nodes = [
   { id: 'n2', data: { kindLabel: 'Query', outputSpecs: [{ id: 'rows', label: 'Rows', type: { base: 'json' } }] } }
 ];
 
-const render = async () => {
+const render = async (props = {}) => {
   const app = createSSRApp({
-    render: () => h(GraphOutputsChannel, { payload, nodes })
+    render: () => h(GraphOutputsChannel, { payload, nodes, ...props })
   });
   app.use(createPinia());
   app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
@@ -45,9 +45,31 @@ describe('outputs channel', () => {
     expect(html).toContain('>Text</span>');
   });
 
-  it('keeps node errors first-plane and the listing collapsed', async () => {
+  it('keeps node errors first-plane without a per-node listing', async () => {
     const html = await render();
     expect(html).toContain('Query: capability refused');
-    expect(html).toContain('<details');
+    expect(html).not.toContain('<details');
+    expect(html).not.toContain('processDesigner.graphNodeOutputs');
+  });
+
+  it('mounts the host scene viewer from the port representation', async () => {
+    const html = await render({
+      payload: {
+        nodes: {
+          n3: { outputs: { shape: { branchCount: 1, itemCount: 1, branches: [{
+            path: [],
+            items: [{ representation: 'perigram.scene-3d', vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]], faces: [[0, 1, 2]] }]
+          }] } } }
+        }
+      },
+      nodes: [{
+        id: 'n3',
+        data: {
+          kindLabel: 'Mesh',
+          outputSpecs: [{ id: 'shape', label: 'Shape', type: { base: 'json' }, representation: 'perigram.scene-3d' }]
+        }
+      }]
+    });
+    expect(html).toContain('data-scene-3d');
   });
 });

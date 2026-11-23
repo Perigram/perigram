@@ -1,18 +1,20 @@
 <template>
-  <div v-if="entries.length" class="flex min-h-0 flex-col gap-2">
-    <Message v-for="entry in errorEntries" :key="entry.id" severity="error">
+  <div class="flex h-full min-h-0 flex-col gap-2">
+    <Message v-if="error" severity="error" class="shrink-0">{{ error }}</Message>
+    <Message v-for="entry in errorEntries" :key="entry.id" severity="error" class="shrink-0">
       {{ entry.label }}: {{ entry.error }}
     </Message>
-    <div v-if="flatOutputs.length" class="flex flex-col gap-2">
+    <div v-if="showControls" class="flex min-w-0 flex-wrap items-center gap-1">
       <InstanceSelect
+        v-if="flatOutputs.length > 1"
         v-model="selectedKey"
         :options="flatOutputs"
         option-label="label"
         option-value="key"
-        class="w-full"
+        class="min-w-40 flex-1"
         :aria-label="$t('processDesigner.graphOutput')"
       />
-      <div class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
+      <div v-if="availableViews.length > 1" class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
         <Button
           v-for="view in availableViews"
           :key="view.value"
@@ -23,36 +25,37 @@
           @click="chooseView(view.value)"
         />
       </div>
-      <div class="min-h-0 rounded-ui bg-subtle p-3">
-        <GraphOutputView :value="selectedValue" :view="activeView" :alt="selectedOutput?.label || ''" />
-      </div>
     </div>
-    <details class="flex flex-col gap-2">
-      <summary class="text-supporting text-muted">{{ $t('processDesigner.graphNodeOutputs') }}</summary>
-      <section v-for="entry in entries" :key="entry.id" class="flex flex-col gap-1">
-        <span v-if="entry.section" class="truncate text-muted text-supporting">{{ entry.section }}</span>
-        <div class="flex min-w-0 items-center gap-1.5">
-          <i v-if="entry.error" class="pi pi-exclamation-triangle shrink-0 text-status-danger" aria-hidden="true" />
-          <strong class="min-w-0 flex-1 truncate text-label">{{ entry.label }}</strong>
-        </div>
-        <section v-for="output in entry.outputs" :key="output.id" class="rounded-ui bg-subtle p-2 text-supporting">
-          <div class="mb-2 flex items-center justify-between gap-2">
-            <span class="flex min-w-0 items-baseline gap-2">
-              <strong class="truncate">{{ output.label }}</strong>
-              <span v-if="output.type" class="shrink-0 text-muted">{{ output.type }}</span>
-            </span>
-            <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
-          </div>
-          <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 flex flex-col gap-1 last:mb-0">
-            <code v-if="branch.path.length" class="text-muted">{{ formatPreviewPath(branch.path) }}</code>
-            <GraphOutputView :value="branch.items" :alt="output.label" />
-          </div>
-          <div v-if="output.tree.truncated" class="mt-1 text-muted">{{ $t('processDesigner.previewTruncated') }}</div>
-        </section>
-      </section>
-    </details>
+    <div class="relative min-h-0 flex-1 overflow-hidden rounded-ui bg-subtle">
+      <div v-if="!entries.length || (!selectedOutput && !activeChannel)" class="grid h-full place-items-center">
+        <StateBlock v-if="payload || error" :message="$t('processDesigner.noPreviewOutputs')" />
+      </div>
+      <template v-else>
+        <PreviewChannelMount
+          v-if="activeChannel"
+          :channel="activeChannel"
+          :payload="payload"
+        />
+        <GraphOutputView
+          v-else
+          :value="selectedValue"
+          :view="activeView"
+          :representation="selectedOutput?.representation || ''"
+          :alt="selectedOutput?.label || ''"
+          fill
+        />
+      </template>
+      <Button
+        icon="pi pi-refresh"
+        size="small"
+        text
+        :loading="running"
+        :aria-label="$t('processDesigner.refreshPreview')"
+        class="absolute right-2 top-2 z-10"
+        @click="$emit('refresh')"
+      />
+    </div>
   </div>
-  <StateBlock v-else-if="payload" :message="$t('processDesigner.noPreviewOutputs')" />
 </template>
 
 <script setup>
@@ -61,18 +64,19 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
+import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import GraphOutputView from '~/components/shared/GraphOutputView.vue';
-import { formatPreviewPath, graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
+import { graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
 
-// The built-in outputs channel (SPEC §28, §28.14): one evaluated output
-// selected and rendered through the shared output view (best
-// representation first, JSON an explicit choice); the per-node listing
-// is the collapsed diagnostics under it. Errors stay first-plane.
 const props = defineProps({
   payload: { type: Object, default: null },
-  nodes: { type: Array, default: () => [] }
+  nodes: { type: Array, default: () => [] },
+  channels: { type: Array, default: () => [] },
+  running: { type: Boolean, default: false },
+  error: { type: String, default: '' }
 });
+defineEmits(['refresh']);
 
 const entries = computed(() => (props.payload ? graphOutputEntries(props.payload, props.nodes) : []));
 const errorEntries = computed(() => entries.value.filter(entry => entry.error));
@@ -103,7 +107,16 @@ const selectedEntry = computed(() => {
 });
 const selectedOutput = computed(() => selectedEntry.value?.output || null);
 const selectedValue = computed(() => (selectedOutput.value ? outputValue(selectedOutput.value.tree) : null));
-const availableViews = computed(() => graphOutputViews(selectedValue.value));
+const activeChannel = computed(() => props.channels.find(channel => `channel:${channel.id}` === activeView.value) || null);
+const availableViews = computed(() => {
+  const views = graphOutputViews(selectedValue.value, {
+    representation: selectedOutput.value?.representation || ''
+  });
+  for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
+  return views;
+});
+const showControls = computed(() => flatOutputs.value.length > 0
+  && (flatOutputs.value.length > 1 || availableViews.value.length > 1));
 
 function chooseView(view) {
   viewChosen.value = true;
