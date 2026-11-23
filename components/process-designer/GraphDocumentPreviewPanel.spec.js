@@ -52,4 +52,13 @@ describe('graph document preview panel', () => {
     expect(html).not.toContain('data-graph-output-bake');
     expect(html).not.toContain('processDesigner.graphNodeOutputs');
   });
+
+  it('renders the empty state for a graph without outputs', async () => {
+    const html = await render({
+      graph: { interface: { outputs: [] }, nodes: [], edges: [] },
+      result: { outputs: {}, nodeOutputs: {} }
+    });
+    expect(html).toContain('processDesigner.noPreviewOutputs');
+    expect(html).not.toContain('data-scene-3d');
+  });
 });

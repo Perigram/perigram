@@ -135,7 +135,8 @@ into the canvas center are refused so it stays whole. The pane boxes
 and their 6px gutters follow the home workspace's dock language
 ([generated](../generated/README.md)). Initial panel sizes measure the
 rendered content within panel-specific floors and caps; after that the
-user owns the layout, and it persists per editor.
+user owns the layout, and it persists per editor. The preview panel grows
+to a 320px floor when it opens; a larger saved size is preserved.
 
 Every operational designer uses this contract: cassette design and the
 sheet-design editor use `layout="lanes"`; the process designer uses

@@ -33,10 +33,10 @@
       <div v-if="running && !result" class="grid h-full place-items-center">
         <StateBlock state="loading" :message="$t('common.loading')" />
       </div>
-      <div v-else-if="!result && !error" class="grid h-full place-items-center">
+      <div v-else-if="!error && (!result || !outputOptions.length)" class="grid h-full place-items-center">
         <StateBlock :message="$t('processDesigner.noPreviewOutputs')" />
       </div>
-      <template v-else-if="result">
+      <template v-else-if="result && outputOptions.length">
         <PreviewChannelMount
           v-if="activeView.startsWith('channel:') && activeChannel"
           :channel="activeChannel"
@@ -150,7 +150,8 @@ const availableViews = computed(() => {
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
-const showControls = computed(() => outputOptions.value.length > 1 || availableViews.value.length > 1);
+const showControls = computed(() => outputOptions.value.length > 0
+  && (outputOptions.value.length > 1 || availableViews.value.length > 1));
 watch(outputOptions, options => {
   if (!options.some(option => option._id === selectedOutputId.value)) {
     selectedOutputId.value = options[0]?._id || '';
