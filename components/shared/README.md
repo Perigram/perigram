@@ -392,10 +392,13 @@ through it.
 ### `Scene3DViewer.vue`
 The host's common interactive 3D viewer for `perigram.scene-3d` graph values
 (`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges?, normals? }`
-in millimetres, right-handed Z-up). It renders a real WebGL scene through
-three.js: depth-correct occlusion, basic lighting/material display, orbit,
-pan, zoom, fit, and face selection with a highlight overlay. The camera is
-Z-up and `OrbitControls` supplies the pointer, touch, and wheel gestures;
+in millimetres, right-handed Z-up). It renders the scene through three.js:
+WebGL is the primary renderer; the SVG software renderer carries the same
+scene, camera, materials, and orbit controls when the host provides no WebGL
+context. The scene offers depth-correct occlusion, basic lighting/material
+display, orbit, pan, zoom, fit, and face selection with a highlight overlay.
+The camera is Z-up and `OrbitControls` supplies the pointer, touch, and wheel
+gestures;
 the fit control or double-click frames the scene bounds. `fill` sizes the
 viewer to its parent with a 12rem floor; the default is a 20rem band.
 `utils/scene3d.js` `scene3dGeometry` validates the value, triangulates
