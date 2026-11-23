@@ -387,6 +387,11 @@ let pendingLayout = null;
 let pendingActiveKey = '';
 let pendingTabKeys = [];
 let pendingCallTab = null;
+// A page or record open requested before dockview's api exists (the list
+// route mounts the workspace and consumes its pending open in the same
+// tick) waits for the ready signal beside the call tab.
+let pendingPageOpen = null;
+let pendingEntityOpen = null;
 let layoutHydrated = false;
 // Per-pane navigation history: every in-place tab replacement pushes the
 // replaced content key, and the pane header's Back control walks the
@@ -1364,6 +1369,16 @@ function applyPendingWorkspaceLayout() {
   layoutHydrated = true;
   schedulePersistWorkspaceState();
   flushPendingCallTab();
+  flushPendingWorkspaceOpen();
+}
+
+function flushPendingWorkspaceOpen() {
+  const entity = pendingEntityOpen;
+  const page = pendingPageOpen;
+  pendingEntityOpen = null;
+  pendingPageOpen = null;
+  if (entity) openRequestedWorkspaceEntity({ detail: entity });
+  if (page) openRequestedWorkspacePage({ detail: page });
 }
 
 function onDockReady() {
@@ -1481,8 +1496,13 @@ watch(() => callsStore.pendingTabRoom, room => queueOrOpenCallTab(room), { immed
 // with a compiled detail screen keep the routed mobile contract).
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
-  const { typeId, instanceId } = event?.detail || {};
+  const request = event?.detail || {};
+  const { typeId, instanceId } = request;
   if (!typeId || !instanceId) return;
+  if (!isMobileViewport.value && !dockReady.value) {
+    pendingEntityOpen = request;
+    return;
+  }
   if (isMobileViewport.value) {
     if (routeInstanceToScreen(typeId, instanceId)) return;
     // The active organization's real page is the org overview system
@@ -1609,6 +1629,10 @@ function openRequestedWorkspacePage(event) {
   event?.preventDefault?.();
   const { pageId, entity, typeId, params } = event?.detail || {};
   if (!pageId) return;
+  if (!dockReady.value) {
+    pendingPageOpen = { pageId, entity, typeId, params };
+    return;
+  }
   openWorkspacePage({ pageId, entity, typeId, params });
 }
 

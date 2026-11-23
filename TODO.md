@@ -259,6 +259,14 @@
   so the saved canvas leaf kept the canvas at 59px whatever the page
   height. The designer layout state version now moves past those
   snapshots, so every browser rebuilds the default composition once.
+- Owner reported created cassettes not saved on prod. The list's New
+  action defers the create to the blank editor page and navigates home;
+  the home workspace consumed the pending page open in the same tick,
+  before dockview's api exists, and the open was dropped — no editor, no
+  record. Page and record opens now queue until the dock ready signal and
+  flush beside the call tab queue. Verified: New opens the blank designer,
+  its first save creates the record with the edited parameters, and a
+  reload serves them back.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
