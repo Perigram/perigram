@@ -2,7 +2,7 @@
   "pluginId": "cad-occt",
   "name": "CAD (OCCT)",
   "description": "Exact B-rep solid modeling over brepjs/occt-wasm: primitives, transforms, booleans, fillet, STEP exchange, and tessellation to mesh",
-  "version": "2",
+  "version": "3",
   "requires": [
     "geometry-base",
     "documents"

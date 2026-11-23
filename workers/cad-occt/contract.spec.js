@@ -9,7 +9,8 @@
 // the representative primitive → boolean → tessellate chain through the
 // real kernel, the handle contract, and refusal guidance.
 import { describe, expect, it } from 'vitest';
-import { join, dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
 import { compareNodePorts, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
@@ -32,6 +33,12 @@ describe('cad-occt listing contract', () => {
       entry: '/runtime/cad-occt.mjs',
       targets: ['browser', 'server']
     }]);
+  });
+
+  it('parses every declared surface module', () => {
+    for (const surface of listing.declarations.surfaces) {
+      execFileSync(process.execPath, ['--check', resolve(packageRoot, surface.module.slice(1))], { stdio: 'pipe' });
+    }
   });
 
   it('is a type-less node library: no CTS types, every operation a managed pure service of the shared runtime', () => {

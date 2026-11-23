@@ -6,7 +6,7 @@ let kernelPromise = null;
 
 async function ensureKernel() {
   kernelPromise ||= fetch(WASM_URL, { credentials: 'same-origin' })
-    .then(response => {
+    .then(async response => {
       if (!response.ok) throw new Error(`The occt-wasm kernel asset is unavailable (${response.status})`);
       return new Uint8Array(await response.arrayBuffer());
     })
