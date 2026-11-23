@@ -396,7 +396,7 @@ export function buildListing(operations = OPERATIONS) {
     pluginId: 'cad-occt',
     name: 'CAD (OCCT)',
     description: 'Exact B-rep solid modeling over brepjs/occt-wasm: primitives, transforms, booleans, fillet, STEP exchange, and tessellation to mesh',
-    version: '3',
+    version: '4',
     requires: ['geometry-base', 'documents'],
     declarations: {
       types: [],
