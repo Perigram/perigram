@@ -17,7 +17,8 @@ Parent: [root README](../README.md).
   opened surface references, sidebar state) scoped to user and organization;
   reads a version 3 pane tree once and flattens its tabs.
 - `designer-workspace-state.js`: Versioned per-editor dock layout scoped to
-  the editor id, user, and organization.
+  the editor id, user, and organization; a version bump drops every stored
+  layout so the editor rebuilds its default composition.
 - `graphOutputViews.js`: The graph-output representation contract — the
   ordered views a graph output value supports (text, markdown, table,
   image, document, scene-2d, scene-3d, plugin, JSON fallback) and the
