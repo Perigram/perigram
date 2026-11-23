@@ -76,10 +76,10 @@ a three.js scene with Z-up camera, orbit, pan, zoom, fit, lighting,
 depth-correct occlusion, and face selection, rendered through WebGL or its
 SVG software fallback. A `perigram.scene-2d`
 value mounts the shared interactive canvas with the same pan/zoom/fit
-grammar. The graph-document preview region carries the viewer, a compact
-output selector, representation tabs, and a refresh control. Per-node
-outputs live in the selected node inspector; graph-input bindings and
-the Graph Output Bake action live in those nodes' inspector.
+grammar. The preview region carries the viewer, a compact output selector,
+representation tabs, and a refresh control. Per-node outputs live in the
+selected node inspector; graph-input bindings and the Graph Output Bake
+action live in those nodes' inspector.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -604,37 +604,30 @@ normalizer and validator.
 
 ### Preview (channel tabs)
 
-The preview workspace region hosts the channel-tab strip
-(`GraphPreviewPanel.vue`); the region's visibility rides the editor
-mount's `preview-visibility` event
-(the workspace frame's `panels` ref API): the evaluation runs when the
-region opens and re-runs on authoring changes while it stays open (one
-debounced seam). The
-built-in outputs channel comes
-first: `GraphOutputsChannel.vue` selects one evaluated output (labeled
-`node · socket` over `graphOutputEntries`,
+The preview workspace region hosts the outputs channel
+(`GraphPreviewPanel.vue` mounts `GraphOutputsChannel.vue`); the region's
+visibility rides the editor mount's `preview-visibility` event (the
+workspace frame's `panels` ref API). The channel selects one evaluated
+output (labeled `node · socket` over `graphOutputEntries`,
 [utils](../../utils/README.md)) and renders it through the shared
-`GraphOutputView.vue` ([components/shared](../shared/README.md);
-best representation first, JSON an explicit choice); node errors stay
-first-plane, and the per-node listing is the
-collapsed diagnostics under the selected output. The process channel
-preview evaluates through the process-definition preview endpoint: CTS reads
-resolve through the authorized data environment and services dispatch through
-their installed managed runtime. Installed
-plugins declare further channels (SPEC §28): each renders its plugin
-surface read-only (`PreviewChannelMount.vue`, the
-same contract-1 mount the generic preview slots ride) over the
-whole-graph preview evaluation — the evaluation runs when the region opens
-and re-runs on authoring changes while it stays open (one debounced
-seam), with no target node, so every data node evaluates, no effect
-species executes, and a service evaluates through its installed managed
-runtime (a capability refusal answers the node error);
-the serialized
-result (`{ nodes: { [id]: { outputs, error? } } }`) is every channel's
-payload, and each node's `error` folds into the canvas fault states
-beside the validation diagnostics. A plugin channel that cannot mount
-(unconfigured executor, refused contract) renders its unavailable state
-beside the other tabs.
+`GraphOutputView.vue` ([components/shared](../shared/README.md); best
+representation first, JSON an explicit choice). Installed plugin channels
+join the representation tab strip and mount their plugin surface read-only
+(`PreviewChannelMount.vue`, the same contract-1 mount the generic preview
+slots ride). Node errors stay first-plane; per-node outputs live in the
+selected node inspector. A plugin channel that cannot mount (unconfigured
+executor, refused contract) renders its unavailable state.
+
+The process channel preview evaluates through the process-definition
+preview endpoint: the evaluation runs when the region opens and re-runs on
+authoring changes while it stays open (one debounced seam). CTS reads
+resolve through the authorized data environment and services dispatch
+through their installed managed runtime, with no target node, so every
+data node evaluates, no effect species executes, and a capability refusal
+answers the node error. The serialized result
+(`{ nodes: { [id]: { outputs, error? } } }`) is every channel's payload,
+and each node's `error` folds into the canvas fault states beside the
+validation diagnostics.
 
 Preview visibility rides the record per node: the eye on a card's
 header (rendered when the node has data outputs) authors

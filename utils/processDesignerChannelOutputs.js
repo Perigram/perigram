@@ -40,6 +40,10 @@ export function graphOutputEntries(payload = {}, nodes = []) {
           id: socketId,
           label: port?.label || socketId,
           type: port?.type ? formatProcessType(port.type) : '',
+          representation: port?.representation
+            || port?.type?.representation
+            || port?.contract?.semantic?.representation
+            || '',
           tree
         };
       })
