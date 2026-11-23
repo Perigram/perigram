@@ -684,8 +684,9 @@ graph-boundary palette section; a placed invocation card names the invoked
 graph. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel displays the
 selected graph output plus per-node outputs, and the Graph Input inspector
-authors the JSON input bindings. The canvas activity indicator opens the
-preview region directly. Preview
+authors the JSON input bindings. The preview evaluation runs when the
+region opens and re-runs on authoring changes while it stays open. The
+canvas activity indicator opens the preview region directly. Preview
 is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation
