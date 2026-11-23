@@ -1,6 +1,7 @@
 <template>
   <div v-if="node" class="flex min-w-0 flex-col gap-3">
     <strong class="text-label">{{ node.data.label }}</strong>
+    <Message v-if="node.data.error" severity="error">{{ node.data.error }}</Message>
     <template v-if="isBoundary">
       <InputText v-model="label" size="small" @blur="applyLabel" @keydown.enter.prevent="applyLabel" />
       <div class="flex flex-col gap-2">

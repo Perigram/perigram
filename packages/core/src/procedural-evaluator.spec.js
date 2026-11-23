@@ -51,7 +51,39 @@ describe('procedural graph preview evaluator', () => {
     expect(result.nodeOutputs.double).toEqual({ result: 42 });
   });
 
-  it('rejects a missing optional graph input when it feeds a required node input', async () => {
+  it('keeps independent outputs when another node fails', async () => {
+    const document = graph({
+      nodes: [
+        { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
+        { id: 'double', operation: { provider: 'plugin.math', id: 'double', version: '1' }, config: {} },
+        { id: 'broken', operation: { provider: 'plugin.documents', id: 'export-markdown-file', version: '1' }, config: {} },
+        { id: 'out', operation: { provider: 'perigram.core', id: GRAPH_OUTPUT_OPERATION, version: '1' }, config: { interfaceId: 'result' } }
+      ],
+      edges: [
+        { id: 'e1', source: { node: 'in', port: 'value' }, target: { node: 'double', port: 'value' } },
+        { id: 'e2', source: { node: 'double', port: 'result' }, target: { node: 'out', port: 'value' } }
+      ]
+    });
+    const brokenDefinition = {
+      provider: 'plugin.documents',
+      id: 'export-markdown-file',
+      version: '1',
+      inputs: [{ id: 'document', required: true }],
+      outputs: [{ id: 'value', required: true }],
+      execution: { kind: 'pure' }
+    };
+    const result = await evaluateProceduralGraph({
+      graph: document,
+      inputBindings: { number: 21 },
+      resolveNodeDefinition: operation => (operation.id === 'double' ? doubleDefinition : brokenDefinition),
+      executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
+    });
+    expect(result.outputs).toEqual({ result: 42 });
+    expect(result.nodeErrors.broken).toMatch(/missing required input document/);
+    expect(result.nodeErrors.double).toBeUndefined();
+  });
+
+  it('reports a missing optional graph input on the consumer node', async () => {
     const document = graph({
       inputs: [{
         id: 'number',
@@ -59,30 +91,33 @@ describe('procedural graph preview evaluator', () => {
         contract: { shape: 'item', semantic: { base: 'number' } }
       }]
     });
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: document,
       inputBindings: {},
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/required input value received no value/);
+    });
+    expect(result.nodeErrors.double).toMatch(/required input value received no value/);
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({ nodeId: 'double', phase: 'validate-inputs' }));
   });
 
-  it('rejects null from a nullable graph boundary when the connected input is non-nullable', async () => {
+  it('reports a null boundary value on the consumer node', async () => {
     const document = graph({
       inputs: [{
         id: 'number',
         contract: { shape: 'item', semantic: { base: 'number', nullable: true } }
       }]
     });
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: null },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/input value does not accept null/);
+    });
+    expect(result.nodeErrors.double).toMatch(/input value does not accept null/);
   });
 
-  it('rejects null at a non-nullable graph input boundary', async () => {
+  it('reports null at a non-nullable graph input boundary', async () => {
     const document = graph({
       inputs: [{
         id: 'number',
@@ -93,36 +128,39 @@ describe('procedural graph preview evaluator', () => {
       ...doubleDefinition,
       inputs: [{ id: 'value', required: true, semantic: { base: 'number', nullable: true } }]
     };
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: null },
       resolveNodeDefinition: () => nullableDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/input number does not accept null/);
+    });
+    expect(result.nodeErrors.in).toMatch(/input number does not accept null/);
   });
 
   it('validates primitive graph input values against the declared semantic base', async () => {
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       inputBindings: { number: '21' },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/semantic base number/);
+    });
+    expect(result.nodeErrors.in).toMatch(/semantic base number/);
   });
 
-  it('rejects a value whose declared semantic kind differs from the port contract', async () => {
+  it('reports a value whose declared semantic kind differs from the port contract', async () => {
     const document = graph({
       inputs: [{
         id: 'number',
         contract: { shape: 'item', semantic: { base: 'json', kind: 'text.flow-document' } }
       }]
     });
-    await expect(evaluateProceduralGraph({
+    const rejected = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: { kind: 'text.other' } },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/semantic kind .*text\.other.*text\.flow-document/);
+    });
+    expect(rejected.nodeErrors.in).toMatch(/semantic kind .*text\.other.*text\.flow-document/);
     await expect(evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: { kind: 'text.flow-document' } },
@@ -131,19 +169,20 @@ describe('procedural graph preview evaluator', () => {
     })).resolves.toMatchObject({ outputs: { result: 1 } });
   });
 
-  it('rejects an entity reference whose type differs from the declared typeId', async () => {
+  it('reports an entity reference whose type differs from the declared typeId', async () => {
     const document = graph({
       inputs: [{
         id: 'number',
         contract: { shape: 'item', semantic: { base: 'entityRef', typeId: 'customer' } }
       }]
     });
-    await expect(evaluateProceduralGraph({
+    const rejected = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: { type: 'invoice', id: 'invoice-1' } },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/semantic typeId .*invoice.*customer/);
+    });
+    expect(rejected.nodeErrors.in).toMatch(/semantic typeId .*invoice.*customer/);
     await expect(evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: { type: 'customer', id: 'customer-1' } },
@@ -159,12 +198,13 @@ describe('procedural graph preview evaluator', () => {
         contract: { shape: 'item', semantic: { base: 'number', constraints: { minimum: 5, maximum: 10 } } }
       }]
     });
-    await expect(evaluateProceduralGraph({
+    const rejected = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: 3 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: (_definition, { inputs }) => ({ result: inputs.value * 2 })
-    })).rejects.toThrow(/semantic constraints .*below minimum 5/);
+    });
+    expect(rejected.nodeErrors.in).toMatch(/semantic constraints .*below minimum 5/);
     await expect(evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: 6 },
@@ -286,7 +326,7 @@ describe('procedural graph preview evaluator', () => {
 
   it('attaches read-set evidence to provider failures', async () => {
     const readDefinition = { ...doubleDefinition, execution: { kind: 'read' } };
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       inputBindings: { number: 1 },
       resolveNodeDefinition: () => readDefinition,
@@ -294,10 +334,9 @@ describe('procedural graph preview evaluator', () => {
         context.readSet.recordInstance({ typeId: 'part', instanceId: 'part-1' });
         throw new Error('read failed');
       }
-    })).rejects.toMatchObject({
-      message: 'read failed',
-      readSet: { instances: [{ typeId: 'part', instanceId: 'part-1' }] }
     });
+    expect(result.nodeErrors.double).toBe('read failed');
+    expect(result.readSet.instances).toMatchObject([{ typeId: 'part', instanceId: 'part-1' }]);
   });
 
 
@@ -319,7 +358,8 @@ describe('procedural graph preview evaluator', () => {
 
   it('requires server target declarations and passes the selected target to the adapter', async () => {
     const executeNode = vi.fn((_definition, { inputs, target }) => { expect(target).toBe('server'); return { result: inputs.value * 2 }; });
-    await expect(evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, executionTarget: 'server', resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'pure', targets: ['browser'] } }), executeNode })).rejects.toThrow(/does not support server execution/);
+    const refused = await evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, executionTarget: 'server', resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'pure', targets: ['browser'] } }), executeNode });
+    expect(refused.nodeErrors.double).toMatch(/does not support server execution/);
     expect(executeNode).not.toHaveBeenCalled();
     const result = await evaluateProceduralGraph({ graph: graph(), inputBindings: { number: 2 }, executionTarget: 'server', resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'pure', targets: ['server'] } }), executeNode });
     expect(result.outputs).toEqual({ result: 4 });
@@ -336,24 +376,22 @@ describe('procedural graph preview evaluator', () => {
   });
 
   it('attaches node and phase diagnostics to provider failures', async () => {
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       inputBindings: { number: 2 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => { throw new Error('provider exploded'); }
-    })).rejects.toMatchObject({
-      message: 'provider exploded',
-      nodeId: 'double',
-      diagnostics: [expect.objectContaining({
-        code: 'node-execution-failed',
-        severity: 'error',
-        phase: 'execute',
-        graphId: 'graph.main',
-        graphRevision: 'rev-1',
-        nodeId: 'double',
-        completedNodeIds: ['in']
-      })]
     });
+    expect(result.nodeErrors.double).toBe('provider exploded');
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'node-execution-failed',
+      severity: 'error',
+      phase: 'execute',
+      graphId: 'graph.main',
+      graphRevision: 'rev-1',
+      nodeId: 'double',
+      completedNodeIds: ['in']
+    }));
   });
 
   it('attaches input diagnostics to the node whose input cannot be resolved', async () => {
@@ -362,19 +400,18 @@ describe('procedural graph preview evaluator', () => {
         { id: 'e2', source: { node: 'double', port: 'result' }, target: { node: 'out', port: 'value' } }
       ]
     });
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: 2 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => ({ result: 4 })
-    })).rejects.toMatchObject({
-      nodeId: 'double',
-      diagnostics: [expect.objectContaining({
-        code: 'node-input-invalid',
-        phase: 'validate-inputs',
-        nodeId: 'double'
-      })]
     });
+    expect(result.nodeErrors.double).toMatch(/missing required input value/);
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'node-input-invalid',
+      phase: 'validate-inputs',
+      nodeId: 'double'
+    }));
   });
 
   it('retains child diagnostics and adds the parent Use Graph node context', async () => {
@@ -391,18 +428,18 @@ describe('procedural graph preview evaluator', () => {
         { id: 'use-out', source: { node: 'use', port: 'result' }, target: { node: 'out', port: 'value' } }
       ]
     });
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: parent,
       inputBindings: { number: 2 },
       resolveGraph: () => child,
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => { throw new Error('child failed'); }
-    })).rejects.toMatchObject({
-      diagnostics: [
-        expect.objectContaining({ nodeId: 'use', phase: 'execute-subgraph' }),
-        expect.objectContaining({ nodeId: 'double', phase: 'execute' })
-      ]
     });
+    expect(result.nodeErrors.use).toMatch(/child failed/);
+    expect(result.diagnostics.slice(0, 2)).toEqual([
+      expect.objectContaining({ nodeId: 'use', phase: 'execute-subgraph' }),
+      expect.objectContaining({ nodeId: 'double', phase: 'execute' })
+    ]);
   });
 
   it('fans multiple wires into list, tuple, tree, and map inputs deterministically', async () => {
@@ -438,7 +475,7 @@ describe('procedural graph preview evaluator', () => {
     }
   });
 
-  it('rejects multi-wire fan-in to item-shaped inputs', async () => {
+  it('reports multi-wire fan-in to item-shaped inputs', async () => {
     const document = graph({
       nodes: [
         { id: 'in', operation: { provider: 'perigram.core', id: GRAPH_INPUT_OPERATION, version: '1' }, config: { interfaceId: 'number' } },
@@ -451,12 +488,13 @@ describe('procedural graph preview evaluator', () => {
         { id: 'e3', source: { node: 'double', port: 'result' }, target: { node: 'out', port: 'value' } }
       ]
     });
-    await expect(evaluateProceduralGraph({
+    const result = await evaluateProceduralGraph({
       graph: document,
       inputBindings: { number: 3 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => ({ result: 6 })
-    })).rejects.toThrow(/item input value has multiple incoming wires/);
+    });
+    expect(result.nodeErrors.double).toMatch(/item input value has multiple incoming wires/);
   });
 
   it('does not invoke a provider for graph boundary nodes', async () => {
@@ -474,21 +512,23 @@ describe('procedural graph preview evaluator', () => {
     );
   });
 
-  it('refuses missing required graph inputs', async () => {
-    await expect(evaluateProceduralGraph({
+  it('reports missing required graph inputs on the boundary node', async () => {
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => ({ result: 0 })
-    })).rejects.toThrow(/Required graph input number/);
+    });
+    expect(result.nodeErrors.in).toMatch(/Required graph input number/);
   });
 
-  it('refuses effectful nodes during preview', async () => {
-    await expect(evaluateProceduralGraph({
+  it('reports effectful nodes during preview', async () => {
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       inputBindings: { number: 1 },
       resolveNodeDefinition: () => ({ ...doubleDefinition, execution: { kind: 'effect' } }),
       executeNode: vi.fn()
-    })).rejects.toThrow(/Preview cannot execute effect node/);
+    });
+    expect(result.nodeErrors.double).toMatch(/Preview cannot execute effect node/);
   });
 
   it('refuses a dependency cycle', async () => {
@@ -551,12 +591,13 @@ describe('procedural graph preview evaluator', () => {
     })).rejects.toThrow(/Recursive subgraph invocation/);
   });
 
-  it('rejects an executor result with undeclared output ports', async () => {
-    await expect(evaluateProceduralGraph({
+  it('reports an executor result with undeclared output ports', async () => {
+    const result = await evaluateProceduralGraph({
       graph: graph(),
       inputBindings: { number: 1 },
       resolveNodeDefinition: () => doubleDefinition,
       executeNode: () => ({ result: 2, extra: 3 })
-    })).rejects.toThrow(/undeclared output extra/);
+    });
+    expect(result.nodeErrors.double).toMatch(/undeclared output extra/);
   });
 });

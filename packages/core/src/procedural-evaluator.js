@@ -84,10 +84,10 @@ async function evaluateGraph(options) {
   const graph = assertValidGraphDocument(options.source);
   const graphKey = `${graph.id}@${graph.revision}`;
   if (options.stack.includes(graphKey)) {
-    throw new Error(`Recursive subgraph invocation detected: ${[...options.stack, graphKey].join(' → ')}`);
+    throw graphStructureError(`Recursive subgraph invocation detected: ${[...options.stack, graphKey].join(' → ')}`);
   }
   if (options.stack.length >= options.maxGraphDepth) {
-    throw new Error(`Subgraph nesting exceeds maximum depth ${options.maxGraphDepth}`);
+    throw graphStructureError(`Subgraph nesting exceeds maximum depth ${options.maxGraphDepth}`);
   }
 
   const nodes = new Map(graph.nodes.map(node => [node.id, node]));
@@ -101,6 +101,8 @@ async function evaluateGraph(options) {
   const order = topologicalOrder(graph.nodes, graph.edges);
   const values = new Map();
   const nodeOutputs = {};
+  const nodeErrors = {};
+  const diagnostics = [];
   const outputs = {};
   const inputIds = new Set(graph.interface.inputs.map(port => port.id));
   const outputIds = new Set(graph.interface.outputs.map(port => port.id));
@@ -198,6 +200,18 @@ async function evaluateGraph(options) {
       });
       phase = 'map-subgraph-outputs';
       const result = childResult.outputs;
+      if (childResult.diagnostics.length) {
+        const failure = addNodeDiagnostic(new Error(childResult.diagnostics.map(item => item.message).join('; ')), {
+          graph,
+          node,
+          phase: 'execute-subgraph',
+          nodeOutputs,
+          outputs,
+          invocationPath: options.stack
+        });
+        nodeErrors[node.id] = failure.message;
+        diagnostics.push(...failure.diagnostics, ...childResult.diagnostics);
+      }
       nodeOutputs[node.id] = result;
       for (const port of childGraph.interface.outputs) {
         if (Object.hasOwn(result, port.id)) values.set(`${node.id}:${port.id}`, result[port.id]);
@@ -272,7 +286,8 @@ async function evaluateGraph(options) {
     }
     nodeOutputs[node.id] = result;
     } catch (error) {
-      throw addNodeDiagnostic(error, {
+      if (isAbortFailure(error) || isStructureFailure(error)) throw error;
+      const failure = addNodeDiagnostic(error, {
         graph,
         node,
         phase,
@@ -280,6 +295,8 @@ async function evaluateGraph(options) {
         outputs,
         invocationPath: options.stack
       });
+      nodeErrors[node.id] = failure.message;
+      diagnostics.push(...(failure.diagnostics || []));
     }
   }
 
@@ -295,9 +312,24 @@ async function evaluateGraph(options) {
     graphRevision: graph.revision,
     outputs,
     nodeOutputs,
-    diagnostics: [],
+    nodeErrors,
+    diagnostics,
     readSet: options.readSetRecorder.toJSON()
   };
+}
+
+function graphStructureError(message) {
+  const error = new Error(message);
+  error.code = 'GRAPH_STRUCTURE';
+  return error;
+}
+
+function isStructureFailure(error) {
+  return error?.code === 'GRAPH_STRUCTURE';
+}
+
+function isAbortFailure(error) {
+  return error?.name === 'AbortError' || error?.code === 'GRAPH_EXECUTION_ABORTED';
 }
 
 

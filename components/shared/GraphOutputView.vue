@@ -33,6 +33,11 @@
       </tbody>
     </table>
   </div>
+  <FilePayloadViewer
+    v-else-if="view === 'document' && filePreview"
+    :source="filePreview"
+    :class="fill ? 'h-full' : 'h-80'"
+  />
   <a
     v-else-if="view === 'document' && value?.fileId"
     class="text-supporting underline"
@@ -52,6 +57,8 @@
 import { computed } from 'vue';
 import { renderMarkdown } from '#shared/markdown.js';
 import { graphOutputViews, graphOutputTableColumns } from '~/utils/graphOutputViews.js';
+import { resolveAttachmentPeek, resolveInlinePayloadPreview } from '~/components/generated/file-preview-contract.js';
+import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import Scene2DViewer from '~/components/shared/Scene2DViewer.vue';
 import Scene3DViewer from '~/components/shared/Scene3DViewer.vue';
 
@@ -72,8 +79,13 @@ const view = computed(() => (props.view === 'best'
   ? supportedViews.value[0]?.value || 'json'
   : props.view));
 
+const filePreview = computed(() => {
+  if (props.value?.fileId) return resolveAttachmentPeek(props.value);
+  return resolveInlinePayloadPreview(props.value);
+});
 const imageUrl = computed(() => {
   const value = props.value;
+  if (filePreview.value?.mode === 'image') return filePreview.value.fileUrl;
   return value?.fileId && String(value.mime || '').startsWith('image/')
     ? `/api/files/download/${encodeURIComponent(value.fileId)}?bucket=${encodeURIComponent(value.bucket || 'files')}`
     : '';

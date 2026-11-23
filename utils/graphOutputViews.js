@@ -11,8 +11,11 @@ export function graphOutputViews(value, { hasPluginRenderer = false, representat
   if (Array.isArray(value) && value.length && value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
     views.unshift({ value: 'table', label: 'Table' });
   }
-  if (value && typeof value === 'object' && value.fileId) {
-    if (String(value.mime || '').startsWith('image/')) views.unshift({ value: 'image', label: 'Image' });
+  const fileValue = value && typeof value === 'object'
+    && (value.fileId || typeof value.payload?.base64 === 'string');
+  if (fileValue) {
+    const mime = String(value.mime || value.payload?.mime || '');
+    if (mime.startsWith('image/')) views.unshift({ value: 'image', label: 'Image' });
     else views.unshift({ value: 'document', label: 'Document' });
   }
   if (declared === 'perigram.scene-2d' && Array.isArray(value?.primitives)) views.unshift({ value: 'scene-2d', label: '2D scene' });

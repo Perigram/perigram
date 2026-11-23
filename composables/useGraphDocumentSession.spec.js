@@ -341,10 +341,13 @@ describe('useGraphDocumentSession', () => {
     });
     const session = createProcessSession();
     session.loadDocument(graph);
-    await session.refreshPreview();
-    expect(session.previewError.value).toBeTruthy();
+    const result = await session.refreshPreview();
+    expect(result).toBeTruthy();
+    expect(session.previewError.value).toBe('');
     expect(session.executionRecord.value.status).toBe('failed');
-    expect(session.previewError.value).not.toContain('No runtime is registered');
+    const branch = session.nodes.value.find(node => node.id === 'branch-node');
+    expect(branch.data.error).toContain('Preview cannot execute control node');
+    expect(branch.data.error).not.toContain('No runtime is registered');
   });
 
   it('preserves canonical edge kind and metadata through editor load/save', () => {
@@ -662,7 +665,7 @@ describe('useGraphDocumentSession', () => {
     expect(finalized).toEqual([session.executionRecord.value.id]);
   });
 
-  it('finalizes plugin runtimes after a failed graph preview too', async () => {
+  it('keeps a failed node on the canvas and finalizes plugin runtimes', async () => {
     const finalized = [];
     const session = useGraphDocumentSession({
       t: key => key,
@@ -691,11 +694,13 @@ describe('useGraphDocumentSession', () => {
     session.onConnect({ source: inputNode.id, sourceHandle: 'value', target: node.id, targetHandle: 'value' });
     session.onConnect({ source: node.id, sourceHandle: 'result', target: outputNode.id, targetHandle: 'value' });
     session.setGraphInputBinding({ portId: session.graphDocument.value.interface.inputs[0].id, value: 4 });
-    await session.refreshPreview();
+    const result = await session.refreshPreview();
     expect(finalized).toEqual([session.executionRecord.value.id]);
+    expect(result).toBeTruthy();
     expect(session.executionRecord.value.status).toBe('failed');
-    expect(session.previewError.value).toContain('preview failed');
-    expect(node).toBeTruthy();
+    expect(session.previewError.value).toBe('');
+    expect(session.nodes.value.find(item => item.id === node.id)?.data.error).toContain('preview failed');
+    expect(session.executionRecord.value.diagnostics[0]).toMatchObject({ nodeId: node.id, phase: 'execute' });
   });
 
   it('places saved graph revisions directly from the Use Graph palette', () => {

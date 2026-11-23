@@ -698,12 +698,24 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return JSON.stringify(serializeGraph());
   }
 
+  // Preview failures belong to their node: the card's fault state and the
+  // node inspector read `data.error`; the preview region carries valid
+  // outputs alone.
+  function applyNodeErrors(nodeErrors = {}) {
+    nodes.value = nodes.value.map(node => {
+      const error = String(nodeErrors?.[node.id] || '');
+      if (String(node.data?.error || '') === error) return node;
+      return enrichNode({ ...node, data: { ...node.data, error } });
+    });
+  }
+
   async function refreshPreview() {
     const generation = ++previewGeneration;
     const inputSnapshot = cloneJson(inputBindings.value);
     previewRunning.value = true;
     previewError.value = '';
     executionRecord.value = null;
+    applyNodeErrors({});
     const startedAt = new Date().toISOString();
     let graph = null;
     const executionId = stableId('execution');
@@ -746,17 +758,19 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       });
       if (generation !== previewGeneration) return null;
       const completedAt = new Date().toISOString();
+      const diagnostics = Array.isArray(result.diagnostics) ? result.diagnostics : [];
+      applyNodeErrors(result.nodeErrors);
       executionRecord.value = createGraphExecutionRecord({
         id: executionId,
         graph: { id: graph.id, revision: graph.revision },
         profile: 'procedural-preview',
-        status: 'succeeded',
+        status: diagnostics.length ? 'failed' : 'succeeded',
         startedAt,
         completedAt,
         inputs: inputSnapshot,
         outputs: result.outputs,
         nodeOutputs: result.nodeOutputs,
-        diagnostics: [],
+        diagnostics,
         provenance: {
           nodes: graph.nodes.map(node => ({
             nodeId: node.id,

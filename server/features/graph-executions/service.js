@@ -331,6 +331,13 @@ export async function evaluateSavedGraph({
       mode: 'preview',
       executionTarget: 'server'
     });
+    if (result.diagnostics.length) {
+      const failure = new Error(result.diagnostics.map(item => item.message).join('; '));
+      failure.diagnostics = result.diagnostics;
+      failure.nodeId = result.diagnostics[0]?.nodeId ?? null;
+      failure.readSet = result.readSet;
+      throw failure;
+    }
     for (const evidence of capabilityEvidence) {
       const name = String(evidence.name || '');
       if (!name) continue;

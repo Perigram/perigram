@@ -43,12 +43,16 @@ export function resolveFilePreview(entity = {}, type = null) {
 // extension fallbacks for octet-stream uploads.
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|avif)$/i;
 const TEXT_EXT = /\.(md|txt|csv|json|ya?ml|log)$/i;
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 function sniffedPeekMode(mime = '', name = '') {
   if (String(name).toLowerCase().endsWith(GRAPH_DOCUMENT_EXTENSION)) return 'graph';
   if (mime === 'image/svg+xml' || /\.svg$/i.test(name)) return 'svg';
   if (mime.startsWith('image/') || IMAGE_EXT.test(name)) return 'image';
   if (mime.includes('pdf') || /\.pdf$/i.test(name)) return 'pdf';
+  if (mime === XLSX_MIME) return 'workbook';
+  if (mime === DOCX_MIME) return 'docx';
   if (mime.startsWith('text/') || /^application\/(json|xml|yaml|x-yaml)(;|$)/i.test(mime)) return 'text';
   if (/\.dxf$/i.test(name)) return 'dxf';
   if (mime === 'application/octet-stream' && TEXT_EXT.test(name)) return 'text';
@@ -83,5 +87,25 @@ export function resolveAttachmentPeek(attachment = {}) {
   return {
     mode,
     fileUrl: `/api/files/download/${encodeURIComponent(String(attachment.fileId))}?bucket=${bucket}`
+  };
+}
+
+/**
+ * Preview decision for an in-memory file payload (`{ payload: { base64,
+ * mime, name } }`, the plugin graph-output envelope): a data URL plus the
+ * mime-sniffed preview mode, so graph outputs render through the same
+ * viewer as stored files. Returns null when the bytes cannot be previewed.
+ */
+export function resolveInlinePayloadPreview(value = {}) {
+  const payload = value?.payload;
+  if (!payload || typeof payload.base64 !== 'string' || !payload.base64) return null;
+  const mime = String(payload.mime || '');
+  const name = String(payload.name || '');
+  const mode = sniffedPeekMode(mime, name);
+  if (!mode || !RENDERABLE_PREVIEW_MODES.includes(mode)) return null;
+  return {
+    mode,
+    fileUrl: `data:${mime || 'application/octet-stream'};base64,${payload.base64}`,
+    attachment: payload
   };
 }

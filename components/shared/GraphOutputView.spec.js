@@ -33,6 +33,25 @@ describe('graph output value renderer', () => {
     expect(html).toContain('f1');
   });
 
+  it('renders inline file payloads through their declared preview mode', async () => {
+    const html = await render({
+      value: { payload: { base64: 'YWJj', mime: 'application/pdf', name: 'report.pdf' } },
+      alt: 'Report'
+    });
+    expect(html).toContain('data-file-payload-viewer');
+    expect(html).toContain('data-viewer-mode="pdf"');
+    expect(html).not.toContain('&quot;base64&quot;');
+  });
+
+  it('renders inline image payloads as images', async () => {
+    const html = await render({
+      value: { payload: { base64: 'YWJj', mime: 'image/png', name: 'preview.png' } },
+      alt: 'Preview'
+    });
+    expect(html).toContain('<img');
+    expect(html).toContain('data:image/png;base64,YWJj');
+  });
+
   it('mounts the interactive viewer for 3D scene values', async () => {
     const html = await render({
       value: {

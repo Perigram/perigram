@@ -96,6 +96,15 @@ describe('graph document inspector boundary declarations', () => {
     expect(html).toContain('graph-input-input-port');
   });
 
+  it('renders the selected node evaluation error', async () => {
+    const html = await render({
+      node: { ...outputNode, data: { ...outputNode.data, error: 'Node output-1 is missing required input document' } },
+      boundaryDeclaration: { contract: { shape: 'item', semantic: { base: 'json' } }, required: true },
+      graphOutputs: [{ id: 'output-port', label: 'Shape', contract: { shape: 'item', semantic: { base: 'json' } }, required: true }]
+    });
+    expect(html).toContain('Node output-1 is missing required input document');
+  });
+
   it('renders Bake in the Graph Output node inspector', async () => {
     const html = await render({
       node: outputNode,
