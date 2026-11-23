@@ -53,6 +53,20 @@
         />
       </div>
       <Message v-if="declarationError" severity="error">{{ declarationError }}</Message>
+      <GraphInputBindingControl
+        v-if="selectedInputPort"
+        :port="selectedInputPort"
+        :bindings="inputBindings"
+        @apply="emit('update-input-binding', $event)"
+      />
+      <GraphOutputBakeControl
+        v-else-if="selectedOutputPort"
+        :output="selectedOutputPort"
+        :execution="execution"
+        :can-bake-to-saved-graph="canBakeToSavedGraph"
+        :baking="baking"
+        @bake="emit('bake', $event)"
+      />
       <Message v-if="consumerGraphs.length" severity="warn">
         {{ $t('processDesigner.graphInterfaceConsumers', { graphs: consumerGraphs.map(item => item.name).join(', ') }) }}
       </Message>
@@ -211,6 +225,8 @@ import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import TypedLiteralControl from '~/components/process-designer/TypedLiteralControl.vue';
 import TemplateValuesControl from '~/components/process-designer/TemplateValuesControl.vue';
+import GraphInputBindingControl from '~/components/process-designer/inspector/GraphInputBindingControl.vue';
+import GraphOutputBakeControl from '~/components/process-designer/inspector/GraphOutputBakeControl.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_INVOKE_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
@@ -231,9 +247,15 @@ const props = defineProps({
   graphRevisions: { type: Array, default: () => [] },
   graphRevisionsLoading: { type: Boolean, default: false },
   graphRevisionsError: { type: String, default: '' },
+  graphInputs: { type: Array, default: () => [] },
+  graphOutputs: { type: Array, default: () => [] },
+  inputBindings: { type: Object, default: () => ({}) },
+  execution: { type: Object, default: null },
+  canBakeToSavedGraph: { type: Boolean, default: false },
+  baking: { type: Boolean, default: false },
   nodeOutput: { type: [Object, Array, String, Number, Boolean], default: null }
 });
-const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document']);
+const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document', 'update-input-binding', 'bake']);
 const configDraft = ref({});
 const configError = ref('');
 const declarationShape = ref('item');
@@ -272,6 +294,19 @@ const isBoundary = computed(() => [
   GRAPH_INPUT_OPERATION,
   GRAPH_OUTPUT_OPERATION
 ].includes(props.node?.data?.operation?.id));
+const boundaryPortId = computed(() => String(props.node?.data?.config?.interfaceId || ''));
+const boundaryPorts = computed(() => props.node?.data?.operation?.id === GRAPH_INPUT_OPERATION
+  ? props.graphInputs
+  : props.graphOutputs);
+const selectedBoundaryPort = computed(() => boundaryPortId.value
+  ? boundaryPorts.value.find(port => String(port.id) === boundaryPortId.value) || null
+  : null);
+const selectedInputPort = computed(() => props.node?.data?.operation?.id === GRAPH_INPUT_OPERATION
+  ? selectedBoundaryPort.value
+  : null);
+const selectedOutputPort = computed(() => props.node?.data?.operation?.id === GRAPH_OUTPUT_OPERATION
+  ? selectedBoundaryPort.value
+  : null);
 
 watch(
   [() => props.node?.id, () => props.node?.data?.config, () => props.boundaryDeclaration, () => props.graphDocuments],

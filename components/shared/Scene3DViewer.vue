@@ -1,7 +1,8 @@
 <template>
   <div
     ref="host"
-    class="relative h-80 w-full touch-none select-none overflow-hidden"
+    class="relative w-full touch-none select-none overflow-hidden"
+    :class="fill ? 'h-full min-h-48' : 'h-80'"
     data-scene-3d
     role="img"
     :aria-label="alt"
@@ -32,7 +33,8 @@ import { scene3dGeometry } from '~/utils/scene3d.js';
 
 const props = defineProps({
   value: { type: Object, default: () => ({}) },
-  alt: { type: String, default: '' }
+  alt: { type: String, default: '' },
+  fill: { type: Boolean, default: false }
 });
 
 const host = ref(null);

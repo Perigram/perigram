@@ -383,7 +383,8 @@ representation from `utils/graphOutputViews.js` and mounts text (including
 numeric and boolean scalars), Markdown, tables, images, document links, the
 interactive `Scene2DViewer`, or the interactive `Scene3DViewer`; JSON is the
 explicit fallback view. The selected output port's declared representation
-chooses the scene viewer even when the value omits the marker. The graph
+chooses the scene viewer even when the value omits the marker. The `fill`
+prop makes the scene viewers consume their parent's height. The graph
 editor preview, outputs channel, and Page graph-result embed all render
 through it.
 
@@ -394,17 +395,19 @@ in millimetres, right-handed Z-up). It renders a real WebGL scene through
 three.js: depth-correct occlusion, basic lighting/material display, orbit,
 pan, zoom, fit, and face selection with a highlight overlay. The camera is
 Z-up and `OrbitControls` supplies the pointer, touch, and wheel gestures;
-the fit control or double-click frames the scene bounds. `utils/scene3d.js`
-`scene3dGeometry` validates the value, triangulates polygon faces, derives
-unique edges from face loops when none are declared, and keeps source vertex
-indexes stable.
+the fit control or double-click frames the scene bounds. `fill` sizes the
+viewer to its parent with a 12rem floor; the default is a 20rem band.
+`utils/scene3d.js` `scene3dGeometry` validates the value, triangulates
+polygon faces, derives unique edges from face loops when none are declared,
+and keeps source vertex indexes stable.
 
 ### `Scene2DViewer.vue`
 The host's common interactive 2D viewer for `perigram.scene-2d` graph
 values. It renders the declared primitives (`line`, `polyline`, `polygon`,
 `circle`, `rect`, `text`) in an SVG viewport, computes bounds from
 `bounds` or the primitive extents, and pans, zooms, and fits on the same
-gesture grammar as the 3D viewer.
+gesture grammar as the 3D viewer. `fill` sizes the viewer to its parent
+with a 12rem floor; the default is a 20rem band.
 
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, its file-type

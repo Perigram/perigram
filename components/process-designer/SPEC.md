@@ -181,7 +181,10 @@ The workspace has six distinct concerns:
 The preview workspace is not an inspector tab or right-side inspector
 section. It is a separate bottom panel or dedicated workspace pane. The
 Use Graph node's source graph/revision picker is node configuration and
-remains in that node's inspector.
+remains in that node's inspector. Graph-input bindings are configuration
+of the selected Graph Input node; the Bake action is configuration of the
+selected Graph Output node. Both live in the inspector, leaving the
+preview workspace to the selected output and its representations.
 
 ### One editor
 

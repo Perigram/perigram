@@ -2656,13 +2656,15 @@ The desktop workspace has stable, non-overlapping responsibilities:
 - **Canvas:** graph composition, selection, connection, navigation, and
   graph-level status. It remains the dominant working area.
 - **Inspector:** the graphs list and configuration/details for the
-  selected node or edge. The primary output preview lives in the
-  preview workspace.
+  selected node or edge. A Graph Input node authors its bound input
+  value; a Graph Output node authors the Bake action for its output.
+  The primary output preview lives in the preview workspace.
 - **Preview workspace:** evaluated graph outputs and representations,
   with enough width and height for real content viewers, including
   interactive 3D. It is a separate resizable workspace region (for
   example a bottom panel or dedicated workspace pane), never a narrow
-  inspector sidebar. It may be collapsed when not in use.
+  inspector sidebar. Its viewer consumes the region's height. It may be
+  collapsed when not in use.
 - **Graph navigation:** the graphs list is the single navigation
   surface for graphs; file navigation deep-links into it. The selected
   source graph/revision picker inside a Use Graph node's inspector is

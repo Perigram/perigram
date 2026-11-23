@@ -75,8 +75,9 @@ shared interactive `Scene3DViewer` ([components/shared](../shared/README.md)):
 a real WebGL scene through three.js with Z-up camera, orbit, pan, zoom, fit,
 lighting, depth-correct occlusion, and face selection. A `perigram.scene-2d`
 value mounts the shared interactive canvas with the same pan/zoom/fit
-grammar. The graph editor's preview panel leads with the selected output;
-input bindings and Bake follow it.
+grammar. The preview panel renders the selected output through the value
+renderer; graph-input bindings and the Graph Output Bake action live in
+those nodes' inspector.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -653,7 +654,7 @@ verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
 gesture handlers). The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
 inspector panel content; the `preview` slot carries a host's preview
-workspace content. The graph-document mount places its preview/input panel in the
+workspace content. The graph-document mount places its preview panel in the
 workspace preview region; the canvas header's panel menu opens that region.
 Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
@@ -681,9 +682,10 @@ the graph-specific inspector edits JSON configuration and boundary labels.
 Graph Input, Graph Output, and the reusable-graph invocations share the
 graph-boundary palette section; a placed invocation card names the invoked
 graph. Preview invokes the core procedural evaluator
-with registered process data-node adapters; the preview panel accepts
-JSON graph-input bindings and displays graph outputs plus per-node outputs.
-The canvas activity indicator opens the preview region directly. Preview
+with registered process data-node adapters; the preview panel displays the
+selected graph output plus per-node outputs, and the Graph Input inspector
+authors the JSON input bindings. The canvas activity indicator opens the
+preview region directly. Preview
 is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation
@@ -731,6 +733,14 @@ every mutation is an event back to the page's update/sync entry points.
   with none authored the declaration carries the identifier compile
   error until a field is picked).
 - `DeclarationEdgeInspector.vue` — typed edge integrity.
+- `GraphInputBindingControl.vue` — the selected Graph Input node's bound
+  value: native controls for primitive bases, a file picker for
+  `documents.file-id`, and a JSON editor for structured and collection
+  values, validated against the port's declared base, shape, required
+  status, and nullability before the binding commits.
+- `GraphOutputBakeControl.vue` — the selected Graph Output node's Bake
+  action: destination page, relative path, conflict policy, and the
+  saved-graph gate over the preview execution record.
 
 Pure and read nodes expose the Output data inspector: each output with
 its declared socket type beside branch paths, sampled values, and
@@ -761,9 +771,10 @@ the palette dock (`PaletteDock.vue`), the context palette list
 (`SelfLoopEdge.vue`), preview channels (`PreviewChannelMount.vue`),
 and dialogs (`TypeMigrationStepsDialog.vue`,
 `ApplyMigrationDialog.vue`) — plus
-`inspector/` (3 SFCs:
+`inspector/` (5 SFCs:
 `DeclarationEdgeInspector`, `DeclarationInspector`,
-`ProcessNodeInspector`). The class/field/state declaration cards render
+`ProcessNodeInspector`, `GraphInputBindingControl`,
+`GraphOutputBakeControl`). The class/field/state declaration cards render
 through the shared `components/type-designer` SFCs (`TypeNode.vue`,
 `FieldNode.vue`, `StateNode.vue`), which compose the same
 `DesignerNodeCard`/`DesignerSocketHandle` primitives. Selection, draft
@@ -826,8 +837,10 @@ model. `GraphEditorSurface`'s inspector authors graph nodes and public
 interfaces; the workspace preview region carries its preview panel with
 output
 selection, generic representations, and optional provider-owned read-only
-renderers. The graph session accepts validated provider contributions from
-the host (the `nodeProviders` prop) and keeps operation identity, executor
+renderers. The Graph Input node inspector authors bound input values and
+the Graph Output node inspector authors the Bake action. The graph session
+accepts validated provider contributions from the host (the
+`nodeProviders` prop) and keeps operation identity, executor
 ownership, and preview renderer identity provider-qualified. Stored graph
 documents are ordinary CTS `graph-document` instances; every payload save is
 an immutable content revision, and Use Graph pins a chosen revision rather
