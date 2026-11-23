@@ -163,6 +163,7 @@ const pluginDisplayNames = computed(() => {
   return names;
 });
 const loading = ref(true);
+const providersReady = ref(false);
 const loadError = ref('');
 const saving = ref(false);
 const persisted = ref(Boolean(props.record?._id || props.record?.id));
@@ -441,6 +442,8 @@ async function loadGraphProviders() {
     providerErrors.value = failures;
   } catch (error) {
     graphDocumentsError.value = [graphDocumentsError.value, error?.data?.message || error?.message || String(error)].filter(Boolean).join(' · ');
+  } finally {
+    providersReady.value = true;
   }
 }
 
@@ -649,11 +652,16 @@ const chromeApi = Object.assign(
 props.pageChrome?.bind?.(chromeApi);
 const activeChrome = computed(() => props.chromeOverride || chromeApi);
 
+// Provider discovery gates node definitions: a preview requested while the
+// plugin runtimes were still loading re-resolves once every provider is
+// registered.
+watch(providersReady, ready => {
+  if (!ready || props.session || !canvasFrame.value?.panels?.preview) return;
+  refreshPreviewAndRecord();
+});
+
 onMounted(async () => {
   if (props.session) return;
   await Promise.all([loadGraphDocument(), loadGraphCatalog(t), loadGraphProviders()]);
-  // A preview requested while the provider workers were still loading
-  // resolves again once every registered operation is available.
-  if (previewResult.value || previewError.value) await refreshPreviewAndRecord();
 });
 </script>
