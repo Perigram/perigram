@@ -6,7 +6,7 @@ export function graphOutputViews(value, { hasPluginRenderer = false, representat
   const declared = representation || value?.representation || '';
   const views = [{ value: 'json', label: 'JSON' }];
   if (hasPluginRenderer) views.unshift({ value: 'plugin', label: 'Specialized' });
-  if (typeof value === 'string') views.unshift({ value: 'text', label: 'Text' }, { value: 'markdown', label: 'Markdown' });
+  if (typeof value === 'string') views.unshift({ value: 'markdown', label: 'Markdown' }, { value: 'text', label: 'Text' });
   else if (typeof value === 'number' || typeof value === 'boolean') views.unshift({ value: 'text', label: 'Text' });
   if (Array.isArray(value) && value.length && value.every(item => item && typeof item === 'object' && !Array.isArray(item))) {
     views.unshift({ value: 'table', label: 'Table' });

@@ -387,7 +387,10 @@ export function buildListing(operations = OPERATIONS) {
       deterministic: true,
       idempotent: true
     },
-    palette: { group: operation.group, label: GROUP_LABELS[operation.group] }
+    palette: { group: operation.group, label: GROUP_LABELS[operation.group] },
+    ...(operation.output.descriptor?.kind === 'geometry.occt.shape'
+      ? { preview: { renderer: 'occt-shape' } }
+      : {})
   }));
   return {
     pluginId: 'cad-occt',
@@ -397,6 +400,21 @@ export function buildListing(operations = OPERATIONS) {
     requires: ['geometry-base', 'documents'],
     declarations: {
       types: [],
+      surfaces: [
+        {
+          id: 'occt-shape-preview',
+          module: '/surfaces/occt-shape-preview.mjs',
+          surfaceContract: 1,
+          kind: 'preview'
+        }
+      ],
+      previewChannels: [
+        {
+          id: 'occt',
+          surface: 'occt-shape-preview',
+          label: '3D'
+        }
+      ],
       runtimes: [
         {
           id: 'cad-occt',

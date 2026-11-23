@@ -99,6 +99,65 @@ describe('graph document preview panel', () => {
     expect(html).toContain('data-scene-3d');
   });
 
+  it('offers evaluated node outputs beside the declared graph outputs', async () => {
+    const html = await render({
+      graph: {
+        interface: {
+          outputs: [{ id: 'number', label: 'Number', contract: { shape: 'item', semantic: { base: 'number' } } }]
+        },
+        nodes: [
+          { id: 'mesh', operation: { provider: 'plugin.cad-occt', id: 'tessellate-shape', version: '1' }, config: {}, position: { x: 0, y: 0 } }
+        ],
+        edges: []
+      },
+      result: {
+        outputs: { number: 0 },
+        nodeOutputs: {
+          mesh: { value: { representation: 'perigram.scene-3d', vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]], faces: [[0, 1, 2]] } }
+        }
+      },
+      nodeDefinitions: {
+        mesh: {
+          provider: 'plugin.cad-occt',
+          label: 'Tessellate',
+          outputs: [{ id: 'value', label: 'Value', semantic: { base: 'json', representation: 'perigram.scene-3d' } }]
+        }
+      }
+    });
+    expect(html).toContain('data-scene-3d');
+    expect(html).toContain('Tessellate · Value');
+  });
+
+  it('prefers a node output with a mounted plugin renderer over the declared output', async () => {
+    const OcctPreview = props => h('div', { 'data-occt-preview': '' }, props.value?.handle || '');
+    const html = await render({
+      graph: {
+        interface: {
+          outputs: [{ id: 'number', label: 'Number', contract: { shape: 'item', semantic: { base: 'number' } } }]
+        },
+        nodes: [
+          { id: 'box', operation: { provider: 'plugin.cad-occt', id: 'make-box', version: '1' }, config: {}, position: { x: 0, y: 0 } }
+        ],
+        edges: []
+      },
+      result: {
+        outputs: { number: 0 },
+        nodeOutputs: { box: { value: { handle: 'occt-1', brep: 'BREP' } } }
+      },
+      nodeDefinitions: {
+        box: {
+          provider: 'plugin.cad-occt',
+          label: 'Box',
+          outputs: [{ id: 'value', label: 'Value', semantic: { base: 'json', kind: 'geometry.occt.shape' } }],
+          preview: { renderer: 'occt-shape' }
+        }
+      },
+      previewRenderers: { 'plugin.cad-occt:occt-shape': OcctPreview }
+    });
+    expect(html).toContain('data-occt-preview');
+    expect(html).toContain('occt-1');
+  });
+
   it('renders the empty state for a graph without outputs', async () => {
     const html = await render({
       graph: { interface: { outputs: [] }, nodes: [], edges: [] },

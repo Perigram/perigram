@@ -40,9 +40,9 @@ const render = async (props = {}) => {
 describe('outputs channel', () => {
   it('selects an output and renders its best view first', async () => {
     const html = await render();
-    expect(html).toContain('<pre class="whitespace-pre-wrap break-words text-supporting"># Report</pre>');
+    expect(html).not.toContain('<pre');
     expect(html).toContain('Compose · Value');
-    expect(html).toContain('>Text</span>');
+    expect(html).toContain('>Markdown</span>');
   });
 
   it('keeps node errors out of the preview', async () => {

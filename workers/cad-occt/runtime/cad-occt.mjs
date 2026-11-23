@@ -246,7 +246,10 @@ export function nodeDefinitions(source = listing, runtimeId = RUNTIME_ID, provid
       && service.execution.targets?.includes('browser')
       && service.palette?.visible !== false
       && service.palette?.group)
-    .map(service => nodeDefinitionFromService(service, { provider, runtimeId }));
+    .map(service => ({
+      ...nodeDefinitionFromService(service, { provider, runtimeId }),
+      ...(service.preview ? { preview: service.preview } : {})
+    }));
 }
 
 export function createRuntime() {
@@ -271,6 +274,7 @@ export function createRuntime() {
     providers: [{
       provider: CAD_PROVIDER,
       definitions: nodeDefinitions(),
+      previewRenderers: { 'occt-shape': 'occt-shape-preview' },
       conversions: CONVERSIONS
     }]
   };

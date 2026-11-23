@@ -9,6 +9,21 @@
   ],
   "declarations": {
     "types": [],
+    "surfaces": [
+      {
+        "id": "occt-shape-preview",
+        "module": "/surfaces/occt-shape-preview.mjs",
+        "surfaceContract": 1,
+        "kind": "preview"
+      }
+    ],
+    "previewChannels": [
+      {
+        "id": "occt",
+        "surface": "occt-shape-preview",
+        "label": "3D"
+      }
+    ],
     "runtimes": [
       {
         "id": "cad-occt",
@@ -96,6 +111,9 @@
         "palette": {
           "group": "primitives",
           "label": "Solids"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -164,6 +182,9 @@
         "palette": {
           "group": "primitives",
           "label": "Solids"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -211,6 +232,9 @@
         "palette": {
           "group": "primitives",
           "label": "Solids"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -279,6 +303,9 @@
         "palette": {
           "group": "primitives",
           "label": "Solids"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -319,6 +346,9 @@
         "palette": {
           "group": "transforms",
           "label": "Transforms"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -382,6 +412,9 @@
         "palette": {
           "group": "transforms",
           "label": "Transforms"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -421,6 +454,9 @@
         "palette": {
           "group": "booleans",
           "label": "Booleans"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -460,6 +496,9 @@
         "palette": {
           "group": "booleans",
           "label": "Booleans"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -499,6 +538,9 @@
         "palette": {
           "group": "booleans",
           "label": "Booleans"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -539,6 +581,9 @@
         "palette": {
           "group": "modifiers",
           "label": "Modifiers"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {
@@ -574,6 +619,9 @@
         "palette": {
           "group": "exchange",
           "label": "Exchange"
+        },
+        "preview": {
+          "renderer": "occt-shape"
         }
       },
       {

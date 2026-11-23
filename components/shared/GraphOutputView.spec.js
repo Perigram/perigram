@@ -14,10 +14,11 @@ const render = async (props) => {
 };
 
 describe('graph output value renderer', () => {
-  it('renders text values as text, not JSON', async () => {
+  it('renders string values through the Markdown view with text as an explicit view', async () => {
     const html = await render({ value: '# Hello' });
-    expect(html).toContain('# Hello');
     expect(html).not.toContain('&quot;');
+    expect(html).not.toContain('<pre');
+    expect(await render({ value: '# Hello', view: 'text' })).toContain('# Hello');
   });
 
   it('renders record lists as tables', async () => {

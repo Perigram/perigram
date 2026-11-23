@@ -46,20 +46,20 @@
         <PreviewChannelMount
           v-else-if="activeView === 'plugin' && rendererForOutput && typeof rendererForOutput === 'object'"
           :channel="rendererForOutput"
-          :payload="{ value: selectedValue, output: selectedOutput }"
+          :payload="{ value: selectedValue, output: selectedPort }"
         />
         <component
           :is="rendererForOutput"
           v-else-if="activeView === 'plugin' && typeof rendererForOutput === 'function'"
           :value="selectedValue"
-          :output="selectedOutput"
+          :output="selectedPort"
         />
         <GraphOutputView
           v-else
           :value="selectedValue"
           :view="activeView"
-          :representation="selectedOutput?.contract?.semantic?.representation || ''"
-          :alt="selectedOutput?.label || 'Graph output'"
+          :representation="selectedOption?.representation || ''"
+          :alt="selectedOption?.label || 'Graph output'"
           fill
         />
       </template>
@@ -83,7 +83,7 @@ import Message from 'primevue/message';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
-import { GRAPH_OUTPUT_OPERATION } from '@perigram/core';
+import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
 import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
 import GraphOutputView from '~/components/shared/GraphOutputView.vue';
@@ -113,19 +113,56 @@ function chooseView(view) {
   viewChosen.value = true;
   activeView.value = view;
 }
-const outputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
-  _id: String(port.id),
+const declaredOutputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
+  _id: `graph:${port.id}`,
+  interfaceId: String(port.id),
   label: String(port.label || port.id),
   representation: port.contract?.semantic?.representation
     || props.result?.outputs?.[port.id]?.representation
-    || ''
+    || '',
+  value: props.result?.outputs?.[port.id]
 })));
-const selectedValue = computed(() => props.result?.outputs?.[selectedOutputId.value]);
-const selectedOutput = computed(() => props.graph.interface?.outputs?.find(port => port.id === selectedOutputId.value) || null);
+// Every evaluated node output is selectable beside the declared graph
+// outputs, so a canvas node renders its own value whether or not a Graph
+// Output boundary exposes it.
+const nodeOutputOptions = computed(() => {
+  const nodes = new Map((props.graph.nodes || []).map(node => [node.id, node]));
+  const options = [];
+  for (const [nodeId, outputs] of Object.entries(props.result?.nodeOutputs || {})) {
+    const node = nodes.get(nodeId);
+    if (!node || [GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION].includes(node.operation?.id)) continue;
+    const definition = props.nodeDefinitions?.[nodeId];
+    for (const [portId, value] of Object.entries(outputs || {})) {
+      const port = definition?.outputs?.find(item => item.id === portId);
+      options.push({
+        _id: `node:${nodeId}:${portId}`,
+        nodeId,
+        portId,
+        label: `${definition?.label || node.operation?.id || nodeId} · ${port?.label || portId}`,
+        representation: port?.semantic?.representation || value?.representation || '',
+        value
+      });
+    }
+  }
+  return options;
+});
+const outputOptions = computed(() => [...declaredOutputOptions.value, ...nodeOutputOptions.value]);
+const selectedOption = computed(() => outputOptions.value.find(option => option._id === selectedOutputId.value) || null);
+const selectedValue = computed(() => selectedOption.value?.value);
+const selectedOutput = computed(() => selectedOption.value?.interfaceId
+  ? props.graph.interface?.outputs?.find(port => port.id === selectedOption.value.interfaceId) || null
+  : null);
+const selectedPort = computed(() => selectedOutput.value
+  || (selectedOption.value?.nodeId
+    ? props.nodeDefinitions?.[selectedOption.value.nodeId]?.outputs?.find(port => port.id === selectedOption.value.portId) || null
+    : null));
 const outputNode = computed(() => props.graph.nodes?.find(node => (
-  node.operation?.id === GRAPH_OUTPUT_OPERATION && node.config?.interfaceId === selectedOutputId.value
+  node.operation?.id === GRAPH_OUTPUT_OPERATION && node.config?.interfaceId === selectedOutput.value?.id
 )));
 const sourceNode = computed(() => {
+  if (selectedOption.value?.nodeId) {
+    return props.graph.nodes?.find(node => node.id === selectedOption.value.nodeId) || null;
+  }
   const edge = props.graph.edges?.find(item => item.target?.node === outputNode.value?.id && item.target?.port === 'value');
   return props.graph.nodes?.find(node => node.id === edge?.source?.node) || null;
 });
@@ -149,26 +186,43 @@ const channelPayload = computed(() => ({
   ...props.result,
   graph: props.graph,
   execution: props.execution,
-  selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
+  selectedOutput: selectedOption.value
+    ? { id: selectedOption.value.interfaceId || selectedOption.value._id, label: selectedOption.value.label, value: selectedValue.value }
+    : null
 }));
 const availableViews = computed(() => {
   const views = graphOutputViews(selectedValue.value, {
     hasPluginRenderer: Boolean(rendererForOutput.value),
-    representation: selectedOutput.value?.contract?.semantic?.representation || ''
+    representation: selectedOption.value?.representation || ''
   });
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
 const showControls = computed(() => outputOptions.value.length > 0
   && (outputOptions.value.length > 1 || availableViews.value.length > 1));
-watch(outputOptions, options => {
-  const current = options.find(option => option._id === selectedOutputId.value);
-  const scene = options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation));
-  if (!current || (!outputChosen.value && scene)) {
-    selectedOutputId.value = scene?._id || options[0]?._id || '';
+watch([outputOptions, () => props.previewRenderers], ([options]) => {
+  if (outputChosen.value && options.some(option => option._id === selectedOutputId.value)) return;
+  const preferred = preferredOutput(options);
+  if (preferred && preferred._id !== selectedOutputId.value) {
+    selectedOutputId.value = preferred._id;
     viewChosen.value = false;
   }
 }, { immediate: true });
+// Default output: a scene value, then a node output whose plugin
+// renderer is mounted, then the declared graph output, then the first
+// node output.
+function preferredOutput(options) {
+  return options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation))
+    || options.find(option => Boolean(nodeRenderer(option)))
+    || options.find(option => option.interfaceId)
+    || options[0]
+    || null;
+}
+function nodeRenderer(option) {
+  const definition = props.nodeDefinitions?.[option.nodeId];
+  const rendererId = definition?.preview?.renderer;
+  return rendererId ? props.previewRenderers?.[`${definition.provider}:${rendererId}`] : null;
+}
 watch(selectedOutputId, () => { viewChosen.value = false; });
 watch(availableViews, views => {
   const value = selectedValue.value;

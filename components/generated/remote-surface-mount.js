@@ -21,6 +21,7 @@ import Tree from 'primevue/tree';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
+import Scene3DViewer from '~/components/shared/Scene3DViewer.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
@@ -61,7 +62,7 @@ let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
     Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, IftaLabel, Message, Popover, ProgressSpinner, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar, Tree,
-    DesignerSurface, DesignerWorkspace, DrawingCanvas, TraceChain, InstanceInlineRef, InstanceSelect, StandardDialog
+    DesignerSurface, DesignerWorkspace, DrawingCanvas, Scene3DViewer, TraceChain, InstanceInlineRef, InstanceSelect, StandardDialog
   });
   return surfacePack;
 }

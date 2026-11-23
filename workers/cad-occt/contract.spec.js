@@ -69,14 +69,16 @@ describe('cad-occt listing contract', () => {
     const wasm = assets.find(asset => asset.path === 'assets/vendor/occt-wasm.wasm');
     expect(wasm.contentType).toBe('application/wasm');
     expect(wasm.buffer.length).toBeGreaterThan(20 * 1024 * 1024);
+    expect(paths).toContain('surfaces/occt-shape-preview.mjs');
     // Every staged module outside the vendor graph is first-party: the
-    // runtime entry and the SDK derivation bundle.
-    expect(paths.filter(path => path.endsWith('.mjs') && !path.startsWith('assets/vendor/'))).toEqual(['runtime/cad-occt.mjs']);
+    // runtime entry and the preview surface.
+    expect(paths.filter(path => path.endsWith('.mjs') && !path.startsWith('assets/vendor/')).sort())
+      .toEqual(['runtime/cad-occt.mjs', 'surfaces/occt-shape-preview.mjs']);
   });
 
   it('keeps every bare import of a staged first-party module inside the declared dependency set', () => {
     for (const asset of prepareListingRelease(listing, packageRoot)) {
-      if (asset.path !== 'runtime/cad-occt.mjs') continue;
+      if (!['runtime/cad-occt.mjs', 'surfaces/occt-shape-preview.mjs'].includes(asset.path)) continue;
       const source = asset.buffer.toString('utf8');
       const declared = new Set(listing.declarations.dependencies.map(dependency => dependency.name));
       for (const match of source.matchAll(/(?:\bimport[\s\S]*?\sfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\1/g)) {
@@ -98,9 +100,11 @@ describe('cad-occt provider honesty', () => {
     const serviceIds = services.map(service => service.id).sort();
     expect(contribution.definitions.map(definition => definition.id).sort()).toEqual(serviceIds);
     expect(contribution.definitions).toEqual(nodeDefinitions(listing));
+    expect(contribution.previewRenderers).toEqual({ 'occt-shape': 'occt-shape-preview' });
     expect(() => normalizeNodeProvider({
       provider,
       definitions: contribution.definitions,
+      previewRenderers: contribution.previewRenderers,
       conversions: contribution.conversions,
       execute: () => {}
     })).not.toThrow();
@@ -110,6 +114,7 @@ describe('cad-occt provider honesty', () => {
     const normalized = normalizeNodeProvider({
       provider,
       definitions: contribution.definitions,
+      previewRenderers: contribution.previewRenderers,
       conversions: contribution.conversions,
       execute: () => {}
     });
