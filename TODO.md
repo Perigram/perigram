@@ -55,8 +55,14 @@
 - [x] Gate graph-document validation, node-definition derivation, and dirty detection on an authoring signature so drags and selection churn re-serialize nothing per frame.
 - [ ] WAITING — Name placed Use Graph cards by the invoked graph and place reusable-graph entries in the graph-boundary palette section.
 - [ ] WAITING — Apply boundary interface declarations live from the inspector and warn when the edited graph is pinned by other graph documents.
-- [ ] WAITING — Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.14); the static SVG projection is not a 3D viewport.
+- [x] Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.4, §28.14).
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
+
+### Agent Notes (2026-11-23, agent/real-3d-viewer-20261123)
+
+- `Scene3DViewer` renders `perigram.scene-3d` through three.js WebGL: depth-correct occlusion, lighting, orbit/pan/zoom/fit, and face selection with a highlight overlay. The camera is Z-up and the scene contract is millimetres, matching the geometry providers.
+- `utils/scene3d.js` owns `scene3dGeometry`: it validates vertices/faces/edges/normals, triangulates polygon faces, derives unique edges, and returns renderer buffers while preserving source vertex indexes.
+- Open: the standard 2D viewer's layer/group visibility, object selection, and inspection; solid topology correspondence and native OCCT preview under the geometry program.
 
 ### Agent Notes (2026-11-22, agent/issue-spec-20261122)
 
@@ -73,7 +79,7 @@
 - The editor's dirty marker compares the persisted draft shape (positions included) in one pass through the session's `draftSignature`, with no graph normalization.
 - Use Graph entries ride the `graph-boundary` palette section; a placed invocation card resolves its label from the catalog record's stored `graphId` and re-enriches when the catalog loads or renames.
 - Boundary interface controls commit on edit; a graph pinned by other readable graph documents lists those consumers in the inspector.
-- `perigram.scene-3d` outputs mount the shared interactive `Scene3DViewer` (pointer orbit, wheel zoom); projection math is the pure `utils/scene3d.js`.
+- `perigram.scene-3d` outputs mount the shared interactive `Scene3DViewer` (real WebGL scene, Z-up orbit and fit); `utils/scene3d.js` owns the renderer buffers.
 - Open design question: tab grouping for plugin-native previews stays under §28.4's representation/channel law; the occt channel and cast node are not implemented.
 
 ## Application-wide drag and drop (SPEC §4, owner direction 2026-11-21)

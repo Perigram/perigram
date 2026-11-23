@@ -26,15 +26,16 @@ Parent: [root README](../README.md).
   tessellated mesh channel (SPEC §20 client-carried engines) is the
   `perigram.scene-3d` value: `{ representation: 'perigram.scene-3d',
   vertices: [[x, y, z], …], faces: [[i, j, k], …] (triangle indices),
-  normals?: [[nx, ny, nz], …] (per-vertex, parallel to vertices) }` —
-  plain structured-cloneable data, so it crosses Worker and channel
-  mounts unchanged; the scene-2d/scene-3d host projections and plugin
-  preview surfaces (the demo engine's mesh channel) are its renderers.
-- `scene3d.js`: `projectScene3d(value, { yaw, pitch, zoom, width, height })`
-  — the host's orbit projection for `perigram.scene-3d` values: validates
-  vertex and face indexes, fits the scene, sorts faces back-to-front, and
-  derives edges from face loops when none are declared. The shared
-  `Scene3DViewer` component owns the gestures; this module owns the math.
+  normals?: [[nx, ny, nz], …] (per-vertex, parallel to vertices) }` in
+  millimetres, right-handed Z-up — plain structured-cloneable data, so it
+  crosses Worker and channel mounts unchanged; the scene-2d/scene-3d host
+  renderers and plugin preview surfaces (the demo engine's mesh channel)
+  are its viewers.
+- `scene3d.js`: `scene3dGeometry(value)` — the host scene renderer's input:
+  validates `perigram.scene-3d` vertices and face/edge indexes, triangulates
+  polygon faces, flattens positions, normals, triangle indexes, and unique
+  edges into buffers, keeps source vertex indexes stable, and derives scene
+  bounds. The shared `Scene3DViewer` renders those buffers through three.js.
 - `instance-hierarchy.js`: The containment walk — ancestor refs carry the
   declaration's canonical type id so breadcrumb labels, glyphs, and popup
   targets resolve through the served type view.
