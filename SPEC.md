@@ -2050,6 +2050,161 @@ mechanisms to arbitrary graph outputs; do not create a parallel preview
 system. The dedicated preview workspace replaces the current
 process-inspector preview.
 
+
+#### Geometry, scene, and viewer contracts
+
+Geometry, renderable scenes, and viewer capabilities are separate contracts.
+They must not be collapsed into one type system:
+
+- **Geometry contracts** describe semantic geometric data and operations,
+  independent of presentation. A point, curve, region, mesh, or B-Rep
+  remains that geometry regardless of which viewer happens to be installed.
+  Geometry ownership and library-backed operation providers follow the
+  geometry decision above.
+- **Scene contracts** describe a renderable arrangement of content. A scene
+  references or contains geometry and defines the presentation context:
+  hierarchy, stable object identity, transforms, units, visibility, layers
+  or groups, styles/materials, and optional bounds and annotations. 2D and
+  3D scenes are distinct versioned contracts; neither is a substitute for
+  the underlying semantic geometry.
+- **Viewer capabilities** declare which scene versions and features a
+  viewer can display and interact with. Viewer support does not define which
+  geometry types the platform supports.
+- **Native renderer contracts** let a plugin provide domain-specific
+  inspection when the common scene projection is insufficient. They are
+  alternate preview representations of the same output, not a replacement
+  for the platform's common viewers.
+
+The platform owns the versioned common scene contracts, default viewer
+integration, representation selection, viewer lifecycle, and shared
+interaction semantics. Plugins own geometry-to-scene adapters where those
+adapters depend on their native formats or kernels, and may contribute
+native renderers. A plugin renderer must declare its input representation,
+contract version, required capabilities, and supported interactions. It
+runs with scoped read-only output access and explicit host capabilities;
+it cannot mutate graph state or persistent data through preview.
+
+#### Standard 2D and 3D viewers
+
+Perigram provides one standard interactive 2D viewer and one standard
+interactive 3D viewer for supported common scene contracts. These are
+platform viewers, not one viewer per geometry plugin. They share the
+preview host's lifecycle, output/representation selection, loading and
+error states, and explicit interaction contract.
+
+The **2D viewer** displays common 2D scenes with correct coordinate and
+unit handling, pan/zoom, fit-to-content, layer/group visibility, object
+selection, highlighting, and inspection of supported geometry and
+annotations. It must handle vector geometry as geometry, not merely show a
+rasterized page. Reuse and generalize the existing drawing-canvas
+capabilities where appropriate; do not create a second, incompatible
+drawing model or discard its useful editing/inspection behavior. Editing
+is a separate capability from preview and is not implied by a read-only
+viewer.
+
+The **3D viewer** displays common 3D scenes with a real 3D rendering
+pipeline, not a 2D projection of vertices and faces. It provides orbit,
+pan, zoom, fit-to-content, predictable camera controls, depth-correct
+occlusion, visible edges where requested, basic lighting/material display,
+object visibility, selection/highlighting, and inspection of supported
+scene objects. It supports meshes and tessellated representations of
+solids as well as other scene objects. The rendering implementation should
+use an established browser 3D engine rather than a bespoke renderer; select
+and integrate the engine against repository/runtime constraints instead
+of making the scene contract depend on that engine.
+
+Both viewers must support large scenes through bounded rendering work,
+incremental updates where available, and clear empty/error states. Scene
+units and coordinate conventions are explicit; the viewer must not silently
+reinterpret units, axes, handedness, or transforms. Viewer-specific
+presentation state (camera, visibility toggles, selection) is transient and
+must not modify the source graph value.
+
+#### Output-to-preview pipeline
+
+The common pipeline is:
+
+1. The graph execution exposes an output value and its declared semantic
+   type, provenance, and available preview representations.
+2. The preview host discovers representations and applicable viewers from
+   versioned declarations. It does not infer renderability from arbitrary
+   JSON shape or plugin identity.
+3. If the output is not already a supported scene representation, a
+   declared adapter/conversion produces one. The conversion identifies its
+   source and target contracts, provider, runtime requirements, and any
+   approximation or information loss.
+4. The host selects the standard 2D or 3D viewer for a supported common
+   scene, or offers a plugin-native renderer as another representation when
+   one is declared.
+5. The viewer renders the selected representation and may publish
+   transient selection/highlight events through the preview interaction
+   contract. These events are scoped to the preview and never write graph
+   values or persistent records.
+
+A preview must represent the actual output or an explicitly declared
+conversion of it. Raw JSON, a textual dump, or a generic placeholder is
+not a substitute for a visual representation when a suitable visual
+representation can be produced. The host must show which representation
+is being viewed and disclose conversion/approximation where material.
+Diagnostics remain a separate preview channel; they must not be presented
+as though they were the output itself.
+
+#### Solid and native-kernel preview
+
+A solid's semantic source remains its native solid/B-Rep representation.
+The common 3D viewer receives a derived tessellated scene representation;
+tessellation is a display conversion, not a replacement of the solid and
+not a lossy rewrite of the graph output. The pipeline preserves a link from
+display objects and, where supported, displayed faces/edges/vertices back
+to stable source topology identities. This enables selection and
+highlighting in the common viewer without pretending that a triangle mesh
+is the original B-Rep.
+
+The geometry provider or format adapter that owns the native solid is
+responsible for tessellation settings, topology correspondence, and
+fidelity metadata. The platform viewer owns common mesh display and
+interaction. A plugin may additionally provide a native solid renderer
+for exact topology inspection and kernel-specific operations. The native
+renderer is an optional richer representation; it does not make the common
+3D preview unavailable.
+
+The same pattern applies to other rich native data: preserve the semantic
+source, provide a common scene projection for the platform viewer, and
+offer a native renderer when domain-specific structure or interaction
+cannot be represented by the common scene contract.
+
+#### Delivery and acceptance
+
+Implement the pipeline end to end rather than treating viewer, scene
+schema, and conversion work as unrelated UI tasks. The first complete
+vertical slice is a native OCCT solid output that:
+- remains a native B-Rep output in the graph;
+- exposes an explicit tessellation-to-common-3D-scene representation;
+- renders in the platform 3D viewer with depth-correct interaction;
+- supports object selection and, where topology correspondence is
+  available, face/edge selection and source highlighting;
+- can also expose an OCCT-native inspection renderer without replacing
+  the common viewer.
+
+The 2D vertical slice uses imported or constructed vector geometry, displays
+it in the standard 2D viewer, and preserves layers, units, transforms, and
+object identity through preview conversion. It should reuse the existing
+drawing-canvas foundations rather than fork its rendering and interaction
+model.
+
+Acceptance requires contract/schema validation and tests for scene
+versioning, units and coordinate conventions, transforms, hierarchy,
+visibility, style/material data, unsupported features, conversion fidelity,
+and stable object identity. Viewer tests cover camera/navigation,
+depth/occlusion in 3D, pan/zoom and fit in 2D, selection/highlighting,
+empty/error/loading states, and large-scene behavior. Integration tests
+prove that multiple geometry or format providers can feed the same common
+viewer contracts, and that native renderers coexist as alternate views.
+The existing SVG-based scene previews are transitional implementations;
+they do not satisfy the standard 3D viewer requirement. The existing
+drawing canvas is a foundation for the standard 2D viewer, not evidence
+that the complete common 2D scene contract is already implemented.
+
 ### 28.5 Reusable subgraphs and graph interfaces
 
 Reusable subgraphs are part of the initial graph architecture, not a later
