@@ -986,31 +986,94 @@ instances, stored refs, and authored type bindings to the new id before
 the per-type migration steps run. The drain gate refuses a removed type;
 a renamed type with data migrates.
 
-Owner decision (2026-11-20): the geometry domain ships as a family of
-plugins over external computation libraries. `geometry.base` owns the
-canonical geometry types, units (the CTS unit table), coordinate
-conventions, and basic operations; `cad.occt` owns B-rep operations and
-STEP/IGES exchange over brepjs/occt-wasm; `geometry.nurbs` owns NURBS
-construction over verb; `geometry.mesh` owns mesh solids and Boolean
-operations over Manifold; `geometry.sketch` owns plane constraint
-solving over PlaneGCS. Kernel-native objects live as runtime-scoped
-handles (§30.13); every cross-kernel conversion is an explicit graph
-operation declaring fidelity through the SDK conversion grammar.
-Plugin node catalogs generate from the libraries' type declarations,
-preserving provider provenance and the palette law. Schema validation
-stays in the platform's existing grammars — the listing schema, CTS
-declarations, and the SDK node contract; TypeBox/Zod is not adopted.
-Licensing: brepjs is Apache-2.0 and the occt-wasm binary is LGPL-2.1,
-which passes the dependency gate; `geometry.cgal` stays unbuilt while
-its GPL license refuses the gate and no named algorithm requires it.
-Server execution of wasm kernels rides a language-dispatched managed
-runtime with one warm process per installed package and per-invocation
-bounds. The build order is vertical: platform contracts, then
-`geometry.base` + `cad.occt` with one conversion to mesh, preview
-through the shape viewport, and generic Bake; the remaining kernels and
-conversions follow. The build123d plugin conversion is dropped
-(2026-11-20); the platform engine slices — engine bootstrap (E3b) and
-shape viewport (E6) — serve this program.
+Owner decision (2026-11-23; supersedes the 2026-11-20 geometry
+plugin ownership decision): geometry is a layered, library-backed plugin
+ecosystem. Perigram standardizes interoperability; plugins provide
+format adapters and computational capabilities. The platform must not
+become another geometry kernel or duplicate algorithms already available
+in suitable libraries.
+
+**Canonical contracts — platform-owned.** The platform owns the
+versioned, library-independent geometry data contracts and their
+interoperability rules: semantic type identifiers, units and unit
+conversion, coordinate-system conventions, transforms, serialization,
+validation, and conversion metadata. The contract family covers the
+required 2D and 3D primitives and compound representations, including
+points, vectors, angles, frames, lines, curves, paths, regions, planes,
+surfaces, meshes, solids/B-reps where appropriate, and bounds. Contracts
+describe data and semantics, not a preferred library's classes or memory
+layout. Keep native kernel objects as runtime-scoped handles
+(§30.13); do not serialize or pass opaque kernel objects across runtimes.
+
+**Geometry operation plugins — library-backed.** Geometry construction
+and algorithms are exposed as ordinary typed graph operations supplied
+by plugins. This includes primitive construction, vector and matrix
+math, bounds, measurements, transforms, intersections, projections,
+tessellation, offsets, constraints, and Boolean operations. Each
+operation declares its accepted and produced canonical types, semantic
+and unit requirements, runtime requirements, and any approximation or
+fidelity characteristics. Implementations should adapt established
+libraries rather than reimplement their algorithms. A plugin may expose
+a coherent family of operations backed by one library, or bridge several
+libraries where useful. Library choice is an implementation decision
+subject to capability fit, runtime compatibility, maintenance, and the
+existing dependency/license gate; the architecture does not mandate a
+fixed one-library-per-geometry-domain roster. The same canonical
+operation may have multiple provider implementations.
+
+**Format plugins — format-owned adapters.** DXF, PDF, SVG, STEP/IGES,
+and other format plugins own import and export between their native
+representations and canonical geometry. They also own format-specific
+operations that cannot be represented faithfully as generic geometry
+operations. Import/export nodes declare supported entities, options,
+units, coordinate handling, and conversion fidelity. Preserve native
+metadata and unsupported content where possible (for example DXF
+layers, blocks, dimensions and attributes; PDF text, images, annotations,
+page structure and vector paths). Do not claim lossless round-tripping
+when conversion discards or approximates information. A format plugin
+must not become the owner of general-purpose geometry algorithms merely
+because its format supplied the input.
+
+**Graph composition and conversions.** Graphs compose format adapters
+with geometry operations through canonical typed values. For example,
+DXF import → bounds/intersection/transform operations → DXF export is
+the same composition model as SVG or STEP input. Cross-library and
+cross-representation conversions are explicit typed graph operations
+when they change representation or fidelity; they declare source and
+target types, provider/runtime constraints, and fidelity or loss
+metadata through the SDK conversion grammar. Do not insert implicit,
+lossy conversions merely to make otherwise incompatible nodes connect.
+Provider provenance remains visible in operation declarations and
+execution results, while graph compatibility is based on canonical
+contracts rather than provider-specific classes.
+
+**Catalog and runtime.** Plugin node catalogs are generated from
+declared operation/type contracts and library-backed implementations;
+they are not handwritten copies of library APIs. Keep validation in
+the platform's existing grammars — listing schema, CTS declarations,
+and SDK node contract — rather than introducing a parallel schema
+system. Browser and server execution use the existing managed,
+language-dispatched plugin runtime and its resource bounds. Dependency
+licensing and compatibility remain enforced by the existing dependency
+gate. No particular geometry library or plugin roster is a platform
+requirement; evaluate concrete providers against the needed operations
+and supported licenses before adoption.
+
+**Migration and delivery.** First establish the canonical contracts and
+the SDK operation/conversion declarations. Then adapt one real vertical
+slice: DXF import, canonical 2D geometry operations (including bounds
+and placement), preview, and DXF export, preserving native metadata.
+Add PDF vector import/export as a separate format adapter with explicit
+coverage and fidelity limits; PDF page rendering alone is not a
+substitute for editable vector geometry. Verify that the same geometry
+operations can consume values from more than one format adapter.
+Then add further geometry providers and formats based on actual graph
+capabilities, not a predetermined plugin taxonomy. Existing
+`geometry.base` hand-written algorithms should be migrated to suitable
+library-backed operation providers or retired; the canonical contract
+package remains small and dependency-light. The existing shape viewport,
+generic Bake, conversion grammar, and managed runtime remain the
+platform integration points.
 
 ## 21. Exports are declarations (owner direction 2026-10-14)
 
