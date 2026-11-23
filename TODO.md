@@ -64,6 +64,7 @@
 - The graph-document preview region carries the viewer, a compact output selector, representation tabs, and a refresh control. Per-node outputs stay in the selected node inspector.
 - The viewer fills the preview region; the output selector renders for multiple graph outputs and the representation tabs render for multiple views.
 - The preview dock grows to a 320px floor when opened and preserves a larger saved size.
+- `Scene3DViewer` renders through WebGL and falls back to three.js's SVG software renderer when the host provides no WebGL context.
 
 ### Agent Notes (2026-11-23, agent/graph-preview-split-20261123)
 

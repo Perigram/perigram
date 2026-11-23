@@ -72,8 +72,9 @@ its best supported view by default (JSON is an explicit choice), and the
 outputs channel selects one evaluated output first with the per-node
 listing as collapsed diagnostics. A `perigram.scene-3d` value mounts the
 shared interactive `Scene3DViewer` ([components/shared](../shared/README.md)):
-a real WebGL scene through three.js with Z-up camera, orbit, pan, zoom, fit,
-lighting, depth-correct occlusion, and face selection. A `perigram.scene-2d`
+a three.js scene with Z-up camera, orbit, pan, zoom, fit, lighting,
+depth-correct occlusion, and face selection, rendered through WebGL or its
+SVG software fallback. A `perigram.scene-2d`
 value mounts the shared interactive canvas with the same pan/zoom/fit
 grammar. The graph-document preview region carries the viewer, a compact
 output selector, representation tabs, and a refresh control. Per-node
