@@ -3468,6 +3468,7 @@
     "previewOutputsChannel": "Outputs",
     "noPreviewOutputs": "No visible outputs",
     "previewChannelUnavailable": "Preview channel unavailable",
+    "previewUnavailable": "Preview unavailable",
     "previewNodeHide": "Hide from preview",
     "previewNodeShow": "Show in preview",
     "nodeDescription": "Node description",

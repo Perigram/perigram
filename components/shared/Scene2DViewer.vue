@@ -1,7 +1,7 @@
 <template>
   <div
-    class="relative h-80 w-full touch-none select-none"
-    :class="panning ? 'cursor-grabbing' : 'cursor-grab'"
+    class="relative w-full touch-none select-none"
+    :class="[fill ? 'h-full min-h-48' : 'h-80', panning ? 'cursor-grabbing' : 'cursor-grab']"
     data-scene-2d
     @pointerdown="startPan"
     @pointermove="pan"
@@ -46,7 +46,8 @@ import { computed, ref } from 'vue';
 
 const props = defineProps({
   value: { type: Object, default: () => ({}) },
-  alt: { type: String, default: '' }
+  alt: { type: String, default: '' },
+  fill: { type: Boolean, default: false }
 });
 
 const zoom = ref(1);

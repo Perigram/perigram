@@ -9,11 +9,13 @@
     v-else-if="view === 'scene-2d' && scene2dReady"
     :value="value"
     :alt="alt"
+    :fill="fill"
   />
   <Scene3DViewer
     v-else-if="view === 'scene-3d' && scene3dReady"
     :value="value"
     :alt="alt"
+    :fill="fill"
   />
   <pre v-else-if="view === 'text' && isScalar" class="whitespace-pre-wrap break-words text-supporting">{{ textValue }}</pre>
   <div
@@ -60,7 +62,9 @@ const props = defineProps({
   // The selected output port's declared representation; the standardized
   // scene viewers take precedence over value sniffing.
   representation: { type: String, default: '' },
-  alt: { type: String, default: '' }
+  alt: { type: String, default: '' },
+  // Scene viewers take their parent's height instead of a fixed band.
+  fill: { type: Boolean, default: false }
 });
 
 const supportedViews = computed(() => graphOutputViews(props.value, { representation: props.representation }));

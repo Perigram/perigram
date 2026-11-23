@@ -59,11 +59,19 @@
             :graph-revisions="graphRevisions"
             :graph-revisions-loading="graphRevisionsLoading"
             :graph-revisions-error="graphRevisionsError"
+            :graph-inputs="graphDocument?.interface?.inputs || []"
+            :graph-outputs="graphDocument?.interface?.outputs || []"
+            :input-bindings="inputBindings"
+            :execution="executionRecord"
+            :can-bake-to-saved-graph="canBakeToSavedGraph"
+            :baking="bakingOutput"
             @update-config="updateNodeConfig"
             @update-boundary-label="updateBoundaryLabel"
             @update-boundary-declaration="updateBoundaryDeclaration"
             @select-graph-document="loadGraphRevisions"
             @hydrate-graph="hydrateSelectedGraph"
+            @update-input-binding="setGraphInputBinding"
+            @bake="bakeGraphOutput"
           />
         </div>
       </template>
@@ -76,16 +84,11 @@
           :error="previewError"
           :running="previewRunning"
           :graph="graphDocument"
-          :input-bindings="inputBindings"
           :preview-renderers="previewRenderers"
           :node-definitions="nodeDefinitions"
           :channels="graphPreviewChannels"
           :provider-errors="providerErrors"
-          :can-bake-to-saved-graph="canBakeToSavedGraph"
-          :baking="bakingOutput"
           @refresh="refreshPreviewAndRecord"
-          @update-input-binding="setGraphInputBinding"
-          @bake="bakeGraphOutput"
         />
       </template>
     </GraphCanvas>
@@ -232,6 +235,8 @@ const {
   graphDocument,
   validation,
   previewResult,
+  previewRenderers,
+  nodeDefinitions,
   executionRecord,
   inputBindings,
   previewError,
@@ -356,6 +361,7 @@ function bindCanvasPane(element) {
 
 watch(() => canvasFrame.value?.panels?.preview, open => {
   emit('preview-visibility', Boolean(open));
+  if (open && !props.session) refreshPreviewAndRecord();
 });
 
 function providerLoadFailure(binding, error, contribution = null) {

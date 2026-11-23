@@ -3468,6 +3468,7 @@
     "previewOutputsChannel": "Выходные данные",
     "noPreviewOutputs": "Нет видимых выходных данных",
     "previewChannelUnavailable": "Канал предпросмотра недоступен",
+    "previewUnavailable": "Предпросмотр недоступен",
     "previewNodeHide": "Скрыть из предпросмотра",
     "previewNodeShow": "Показать в предпросмотре",
     "nodeDescription": "Описание узла",

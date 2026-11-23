@@ -70,6 +70,15 @@ describe('graph output value renderer', () => {
     expect(html).toContain('data-scene-3d');
   });
 
+  it('lets the scene viewer fill its parent when asked', async () => {
+    const html = await render({
+      value: { vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]], faces: [[0, 1, 2]] },
+      representation: 'perigram.scene-3d',
+      fill: true
+    });
+    expect(html).toContain('h-full min-h-48');
+  });
+
   it('falls back to JSON for structured values without a better view', async () => {
     const html = await render({ value: { a: 1 } });
     expect(html).toContain('&quot;a&quot;: 1');
