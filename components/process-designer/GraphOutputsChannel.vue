@@ -4,12 +4,13 @@
     <div v-if="showControls" class="flex min-w-0 flex-wrap items-center gap-1">
       <InstanceSelect
         v-if="flatOutputs.length > 1"
-        v-model="selectedKey"
+        :model-value="selectedKey"
         :options="flatOutputs"
         option-label="label"
         option-value="key"
         class="min-w-40 flex-1"
         :aria-label="$t('processDesigner.graphOutput')"
+        @update:model-value="chooseOutput"
       />
       <div v-if="availableViews.length > 1" class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
         <Button
@@ -88,11 +89,18 @@ const flatOutputs = computed(() => entries.value.flatMap(entry => entry.outputs.
 const selectedKey = ref('');
 const activeView = ref('json');
 const viewChosen = ref(false);
+const outputChosen = ref(false);
+
+function chooseOutput(value) {
+  selectedKey.value = value;
+  outputChosen.value = true;
+}
 
 watch(flatOutputs, outputs => {
-  if (!outputs.some(output => output.key === selectedKey.value)) {
-    const scene = outputs.find(output => ['perigram.scene-3d', 'perigram.scene-2d']
-      .includes(output.representation || output.value?.representation));
+  const current = outputs.find(output => output.key === selectedKey.value);
+  const scene = outputs.find(output => ['perigram.scene-3d', 'perigram.scene-2d']
+    .includes(output.representation || output.value?.representation));
+  if (!current || (!outputChosen.value && scene)) {
     selectedKey.value = scene?.key || outputs[0]?.key || '';
     viewChosen.value = false;
   }

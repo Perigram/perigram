@@ -4,12 +4,13 @@
       <InstanceSelect
         v-if="outputOptions.length > 1"
         id="graph-preview-output"
-        v-model="selectedOutputId"
+        :model-value="selectedOutputId"
         :options="outputOptions"
         option-label="label"
         option-value="_id"
         :aria-label="$t('processDesigner.graphOutput')"
         class="min-w-40 flex-1"
+        @update:model-value="chooseOutput"
       />
       <div v-if="availableViews.length > 1" class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
         <Button
@@ -103,6 +104,11 @@ defineEmits(['refresh']);
 const selectedOutputId = ref('');
 const activeView = ref('json');
 const viewChosen = ref(false);
+const outputChosen = ref(false);
+function chooseOutput(value) {
+  selectedOutputId.value = value;
+  outputChosen.value = true;
+}
 function chooseView(view) {
   viewChosen.value = true;
   activeView.value = view;
@@ -156,8 +162,9 @@ const availableViews = computed(() => {
 const showControls = computed(() => outputOptions.value.length > 0
   && (outputOptions.value.length > 1 || availableViews.value.length > 1));
 watch(outputOptions, options => {
-  if (!options.some(option => option._id === selectedOutputId.value)) {
-    const scene = options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation));
+  const current = options.find(option => option._id === selectedOutputId.value);
+  const scene = options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation));
+  if (!current || (!outputChosen.value && scene)) {
     selectedOutputId.value = scene?._id || options[0]?._id || '';
     viewChosen.value = false;
   }
