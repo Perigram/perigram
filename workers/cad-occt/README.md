@@ -137,7 +137,7 @@ curl -sS -X POST http://localhost:3001/api/plugins/catalog \
 for f in runtime/cad-occt.mjs surfaces/occt-shape-preview.mjs listing.json assets/vendor/brepjs.mjs \
          assets/vendor/occt-wasm.mjs assets/vendor/occt-wasm.wasm \
          assets/vendor/perigram-plugin-sdk-nodes.mjs; do
-  curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/cad-occt/assets/$f?version=3" \
+  curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/cad-occt/assets/$f?version=4" \
     -H 'x-operator-token: perigram-dev-operator' \
     -H 'content-type: ${f##*.}=application/wasm' \
     --data-binary @workers/cad-occt/$f
