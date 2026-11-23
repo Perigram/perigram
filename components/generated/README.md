@@ -65,7 +65,9 @@ overview's system-screen buttons open them as home pane tabs through the
 page-open seam (`utils/workspace-page-open.js` — the page twin of the
 entity workspace-open event, with a mobile route fallback). Every
 organization surface opens as a home pane tab; the routes remain as
-mobile/deep-link fallbacks. The
+mobile/deep-link fallbacks. Page and record opens requested before the
+workspace dock reports ready wait for that signal, the queue the call
+tab shares. The
 workspace-page registry also carries the route→page map
 (`workspacePageIdForRoute`) that chrome resolve through. The seam's
 `params` channel carries one-shot page intent (the directory's invite
