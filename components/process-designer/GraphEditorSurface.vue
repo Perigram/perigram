@@ -378,7 +378,7 @@ watch(() => canvasFrame.value?.panels?.preview, open => {
   }
 });
 
-watch(authoringSignature, () => {
+watch(() => authoringSignature?.value, () => {
   if (!props.session && canvasFrame.value?.panels?.preview) schedulePreviewRefresh();
 });
 

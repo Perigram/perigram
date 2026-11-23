@@ -213,6 +213,7 @@ async function onDockReady() {
     await nextTick();
     if (hasFile.value && !dock.value?.hasPanel('file')) await addAuxPanel('file', 'above');
     if (hasCommands.value && !dock.value?.hasPanel('commands')) await addAuxPanel('commands', 'below');
+    if (hasPreview.value && dock.value?.hasPanel('preview')) await sizeAuxPanel('preview', 'height', { onlyGrow: true });
     syncPanels();
     schedulePersist();
     return;
@@ -275,23 +276,26 @@ async function addAuxPanel(key, direction) {
   await sizeAuxPanel(key, direction === 'left' || direction === 'right' ? 'width' : 'height');
 }
 
-async function sizeAuxPanel(key, axis) {
+async function sizeAuxPanel(key, axis, options = {}) {
   const live = dock.value;
   if (!live) return;
   const sizing = key === 'file'
     ? { min: 84, max: 96, ratio: 0.12 }
     : key === 'commands'
       ? { min: 48, max: 72, ratio: 0.1 }
-      : axis === 'height'
-        ? { min: 160, max: 520, ratio: 0.5 }
-        : { min: 180, max: key === 'inspector' ? 460 : 380, ratio: 0.32 };
-  await live.sizePanelToContent(key, { axis, ...sizing });
+      : key === 'preview'
+        ? { min: 320, max: 640, ratio: 0.5 }
+        : axis === 'height'
+          ? { min: 160, max: 520, ratio: 0.5 }
+          : { min: 180, max: key === 'inspector' ? 460 : 380, ratio: 0.32 };
+  await live.sizePanelToContent(key, { axis, ...sizing, ...options });
 }
 
 function showPanel(key) {
   if (!dock.value || !panelKeys.value.includes(key)) return;
   if (dock.value.hasPanel(key)) {
     dock.value.focusPanel(key);
+    if (key === 'preview') sizeAuxPanel('preview', 'height', { onlyGrow: true });
   } else if (key === 'file') {
     addAuxPanel('file', 'above').then(() => schedulePersist());
   } else if (key === 'palette') {

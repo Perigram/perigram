@@ -429,7 +429,7 @@ function setPanelTitle(key, title) {
   api.value?.getPanel(key)?.setTitle(title);
 }
 
-async function sizePanelToContent(key, { axis = 'width', min = 160, max = null, ratio = 0.4 } = {}) {
+async function sizePanelToContent(key, { axis = 'width', min = 160, max = null, ratio = 0.4, onlyGrow = false } = {}) {
   await nextTick();
   if (typeof requestAnimationFrame === 'function') {
     await new Promise(resolve => requestAnimationFrame(resolve));
@@ -460,6 +460,12 @@ async function sizePanelToContent(key, { axis = 'width', min = 160, max = null, 
     : 0;
   const upper = max ?? Math.max(min, Math.floor(bounds[axis] * ratio));
   const size = Math.min(upper, Math.max(min, measured + header + chrome));
+  if (onlyGrow) {
+    const current = axis === 'height'
+      ? panel.group.element?.getBoundingClientRect().height || 0
+      : panel.group.element?.getBoundingClientRect().width || 0;
+    if (current >= size) return;
+  }
   panel.group.api.setSize(axis === 'height' ? { height: size } : { width: size });
 }
 
