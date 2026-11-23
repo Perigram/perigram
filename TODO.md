@@ -63,7 +63,7 @@
 
 - The graph-document preview panel renders output selection, representation tabs, and the one output-value renderer. Graph input bindings and the Bake action render in the selected Graph Input and Graph Output node inspectors.
 - The scene viewers take a `fill` prop; the graph-document preview panel uses it so the 3D canvas consumes the preview region's height.
-- The preview opens with the best supported representation (JSON is an explicit choice), and opening the graph-document preview region runs the preview evaluation.
+- The preview opens with the best supported representation (JSON is an explicit choice); opening the graph-document preview region runs the preview evaluation and authoring changes re-run it while the region stays open.
 
 ### Agent Notes (2026-11-23, agent/literal-config-migration-20261123)
 

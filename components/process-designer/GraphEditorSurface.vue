@@ -359,9 +359,27 @@ function bindCanvasPane(element) {
   bindFrame(element);
 }
 
+let previewTimer = null;
+
+function schedulePreviewRefresh() {
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    previewTimer = null;
+    refreshPreview();
+  }, 300);
+}
+
 watch(() => canvasFrame.value?.panels?.preview, open => {
   emit('preview-visibility', Boolean(open));
-  if (open && !props.session) refreshPreviewAndRecord();
+  if (!props.session && open) refreshPreviewAndRecord();
+  if (!open && previewTimer) {
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
+});
+
+watch(authoringSignature, () => {
+  if (!props.session && canvasFrame.value?.panels?.preview) schedulePreviewRefresh();
 });
 
 function providerLoadFailure(binding, error, contribution = null) {
@@ -426,7 +444,11 @@ async function loadGraphProviders() {
   }
 }
 
-onBeforeUnmount(() => pluginRuntime.dispose());
+onBeforeUnmount(() => {
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = null;
+  pluginRuntime.dispose();
+});
 
 async function loadGraphRevisions(graphId) {
   graphRevisions.value = [];
