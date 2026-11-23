@@ -458,12 +458,52 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return node;
   }
 
+  function inferredLiteralConfig(node, targetPort) {
+    if (node?.data?.operation?.id !== 'source.literalItem') return null;
+    const wrapper = node.data.config && typeof node.data.config === 'object' ? node.data.config : {};
+    const config = wrapper.record && typeof wrapper.record === 'object' ? wrapper.record : wrapper;
+    const currentBase = config.type?.base || config.base || 'string';
+    if (!['string', 'json'].includes(currentBase)) return null;
+    const targetBase = targetPort?.semantic?.base;
+    const value = literalValueForBase(config.value, targetBase);
+    if (value === undefined) return null;
+    const next = { ...config, type: { base: targetBase, nullable: false }, value };
+    return wrapper.record && typeof wrapper.record === 'object' ? { ...wrapper, record: next } : next;
+  }
+
+  function literalValueForBase(value, base) {
+    if (base === 'number' || base === 'integer') {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value !== 'string' || !value.trim()) return undefined;
+      const number = Number(value);
+      if (!Number.isFinite(number)) return undefined;
+      return base === 'integer' ? Math.trunc(number) : number;
+    }
+    if (base === 'boolean') {
+      if (typeof value === 'boolean') return value;
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return undefined;
+    }
+    if (base === 'string' && ['string', 'number', 'boolean'].includes(typeof value)) return String(value);
+    if (['date', 'dateTime'].includes(base) && typeof value === 'string' && value.trim()) return value;
+    return undefined;
+  }
+
   function onConnect(connection) {
     const source = nodes.value.find(node => node.id === connection.source);
     const target = nodes.value.find(node => node.id === connection.target);
-    const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
+    let sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
     const targetPort = definitionFor(target)?.inputs?.find(port => port.id === connection.targetHandle);
-    const compatibility = sourcePort && targetPort ? portCompatibility.compare(sourcePort, targetPort) : null;
+    let compatibility = sourcePort && targetPort ? portCompatibility.compare(sourcePort, targetPort) : null;
+    if (!compatibility?.compatible && targetPort) {
+      const inferred = inferredLiteralConfig(source, targetPort);
+      if (inferred) {
+        updateNodeConfig(source.id, inferred);
+        sourcePort = definitionFor(nodes.value.find(node => node.id === source.id))?.outputs?.find(port => port.id === connection.sourceHandle);
+        compatibility = sourcePort ? portCompatibility.compare(sourcePort, targetPort) : null;
+      }
+    }
     if (!compatibility?.compatible) {
       const detail = t('processDesigner.incompatiblePortsDetail', {
         source: sourcePort?.label || sourcePort?.id || t('processDesigner.source'),
