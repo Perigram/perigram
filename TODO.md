@@ -65,6 +65,10 @@
 - The scene viewers take a `fill` prop; the graph-document preview panel uses it so the 3D canvas consumes the preview region's height.
 - The preview opens with the best supported representation (JSON is an explicit choice); opening the graph-document preview region runs the preview evaluation and authoring changes re-run it while the region stays open.
 
+### Agent Notes (2026-11-23, agent/literal-connection-inference-20261123)
+
+- A literal authored with the default text type kept that type when its value was numeric, so typed sockets refused it as `string`. The connect gesture now lets a text literal adopt the target socket's base when its value converts safely; the convert check covers number/integer, boolean, string, date, and dateTime, and a value that does not convert leaves the literal unchanged with the refusal warning.
+
 ### Agent Notes (2026-11-23, agent/literal-config-migration-20261123)
 
 - Owner report: an old persisted literal node could not wire into CAD OCCT Box inputs while a newly placed literal worked. A persisted literal without a `type` resolves its socket as `json`; the compatibility gate refuses `json → number` silently.

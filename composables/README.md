@@ -46,7 +46,11 @@ names both sockets and the compatibility reason. Optional-source connections
 are conditional and the
 evaluator checks required-value presence and semantic nullability when the graph runs.
 A loaded literal that carries no typed-value contract recovers its base from
-the authored value, so its socket keeps the contract the author saw.
+the authored value, so its socket keeps the contract the author saw. A text
+literal dragged into a typed socket adopts that socket's base when its value
+converts safely (a numeric string becomes a number, `true`/`false` becomes a
+boolean); a value that does not convert leaves the literal unchanged and the
+connection refused with the warning.
 
 Every registered operation must declare `palette.group`; the host does not infer categories from operation-id prefixes. Provider ids remain stable search terms and registry identities, not visible palette group labels. Group labels and search aliases come from the normalized declaration.
 
