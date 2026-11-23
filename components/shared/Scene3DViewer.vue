@@ -58,6 +58,9 @@ let pointerStart = null;
 let meshMaterial = null;
 let edgeMaterial = null;
 let highlightMaterial = null;
+let surface = null;
+let animationFrame = null;
+let software = false;
 
 function readColor(property, fallback) {
   const styles = host.value ? getComputedStyle(host.value) : null;
@@ -162,7 +165,7 @@ function handlePointerUp(event) {
   const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
   pointerStart = null;
   if (moved > 4) return;
-  const rect = canvas.value.getBoundingClientRect();
+  const rect = surface.getBoundingClientRect();
   const pointer = new THREE.Vector2(
     ((event.clientX - rect.left) / rect.width) * 2 - 1,
     -((event.clientY - rect.top) / rect.height) * 2 + 1
@@ -188,7 +191,18 @@ onMounted(async () => {
     const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
     if (!host.value || !canvas.value) return;
 
-    renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true, alpha: true });
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true, alpha: true });
+      surface = canvas.value;
+    } catch {
+      const { SVGRenderer } = await import('three/addons/renderers/SVGRenderer.js');
+      software = true;
+      renderer = new SVGRenderer();
+      surface = renderer.domElement;
+      surface.setAttribute('class', 'block h-full w-full');
+      canvas.value.style.display = 'none';
+      host.value.appendChild(surface);
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x000000, 0);
 
@@ -223,25 +237,34 @@ onMounted(async () => {
     keyLight.position.set(1, -1.2, 1.6);
     scene.add(keyLight);
 
-    controls = new OrbitControls(camera, canvas.value);
+    controls = new OrbitControls(camera, surface);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
     controls.minDistance = 0.01;
     controls.maxDistance = 1e7;
 
-    canvas.value.addEventListener('pointerdown', handlePointerDown);
-    canvas.value.addEventListener('pointerup', handlePointerUp);
-    canvas.value.addEventListener('dblclick', frameAll);
+    surface.addEventListener('pointerdown', handlePointerDown);
+    surface.addEventListener('pointerup', handlePointerUp);
+    surface.addEventListener('dblclick', frameAll);
     resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host.value);
     resize();
     ready.value = true;
     rebuild();
-    renderer.setAnimationLoop(() => {
+    const renderFrame = () => {
       controls?.update();
       renderer?.render(scene, camera);
-    });
+    };
+    if (typeof renderer.setAnimationLoop === 'function') {
+      renderer.setAnimationLoop(renderFrame);
+    } else {
+      const loop = () => {
+        animationFrame = requestAnimationFrame(loop);
+        renderFrame();
+      };
+      animationFrame = requestAnimationFrame(loop);
+    }
   } catch {
     failure.value = true;
     ready.value = false;
@@ -252,15 +275,18 @@ watch(() => props.value, rebuild);
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
-  canvas.value?.removeEventListener('pointerdown', handlePointerDown);
-  canvas.value?.removeEventListener('pointerup', handlePointerUp);
-  canvas.value?.removeEventListener('dblclick', frameAll);
-  renderer?.setAnimationLoop(null);
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+  animationFrame = null;
+  surface?.removeEventListener('pointerdown', handlePointerDown);
+  surface?.removeEventListener('pointerup', handlePointerUp);
+  surface?.removeEventListener('dblclick', frameAll);
+  renderer?.setAnimationLoop?.(null);
   clearSceneObjects();
   controls?.dispose();
   meshMaterial?.dispose();
   edgeMaterial?.dispose();
   highlightMaterial?.dispose();
-  renderer?.dispose();
+  if (software) surface?.remove();
+  renderer?.dispose?.();
 });
 </script>
