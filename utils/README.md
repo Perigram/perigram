@@ -20,9 +20,10 @@ Parent: [root README](../README.md).
   the editor id, user, and organization; a version bump drops every stored
   layout so the editor rebuilds its default composition.
 - `graphOutputViews.js`: The graph-output representation contract — the
-  ordered views a graph output value supports (text, markdown, table,
+  ordered views a graph output value supports (markdown, text, table,
   image, document, scene-2d, scene-3d, plugin, JSON fallback) and the
-  table-column derivation. A stored file reference (`fileId`) or an inline
+  table-column derivation. A string value renders as Markdown first;
+  text is an explicit view. A stored file reference (`fileId`) or an inline
   `{ payload: { base64, mime, name } }` value offers the image or document
   view by mime. The graph preview panel and the Page graph-result embed
   both derive their renderers through it. The

@@ -380,8 +380,9 @@ surface — the host's — frames the preview.
 
 ### `GraphOutputView.vue`
 The one graph-output value renderer: selects the best supported
-representation from `utils/graphOutputViews.js` and mounts text (including
-numeric and boolean scalars), Markdown, tables, images, file payloads, the
+representation from `utils/graphOutputViews.js` and mounts Markdown for
+strings (text is an explicit view), text for numeric and boolean scalars,
+tables, images, file payloads, the
 interactive `Scene2DViewer`, or the interactive `Scene3DViewer`; JSON is the
 explicit fallback view. Stored file references and inline
 `{ payload: { base64, mime, name } }` values render through

@@ -76,10 +76,10 @@ a three.js scene with Z-up camera, orbit, pan, zoom, fit, lighting,
 depth-correct occlusion, and face selection, rendered through WebGL or its
 SVG software fallback. A `perigram.scene-2d`
 value mounts the shared interactive canvas with the same pan/zoom/fit
-grammar. The preview region carries the viewer, a compact output selector,
-representation tabs, and a refresh control. Per-node outputs live in the
-selected node inspector; graph-input bindings and the Graph Output Bake
-action live in those nodes' inspector.
+grammar. The preview region carries the viewer, a compact output selector
+over the declared graph outputs and every evaluated node output,
+representation tabs, and a refresh control. Graph-input bindings and the
+Graph Output Bake action live in those nodes' inspector.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -611,13 +611,16 @@ workspace frame's `panels` ref API). The channel selects one evaluated
 output (labeled `node · socket` over `graphOutputEntries`,
 [utils](../../utils/README.md)) and renders it through the shared
 `GraphOutputView.vue` ([components/shared](../shared/README.md); best
-representation first, JSON an explicit choice). Installed plugin channels
+representation first, JSON an explicit choice). The graph-document
+preview selects the declared graph outputs and every evaluated node
+output; a scene value, then a node output carrying a plugin renderer, are
+the preferred defaults. Installed plugin channels
 join the representation tab strip and mount their plugin surface read-only
 (`PreviewChannelMount.vue`, the same contract-1 mount the generic preview
 slots ride). A scene value is the default selection when present, and a
 document value renders through its Documents channel. Node errors surface
-on the canvas fault and in the selected node inspector; per-node outputs
-live there too. A failed node removes its dependent outputs while
+on the canvas fault and in the selected node inspector. A failed node
+removes its dependent outputs while
 independent outputs keep rendering. A file-payload output
 (`documents.file`) renders through the shared file-payload viewer by
 mime. A plugin channel that cannot mount (unconfigured executor,
@@ -685,7 +688,7 @@ Graph Input, Graph Output, and the reusable-graph invocations share the
 graph-boundary palette section; a placed invocation card names the invoked
 graph. Preview invokes the core procedural evaluator
 with registered process data-node adapters; the preview panel leads with
-the selected graph output, and the Graph Input inspector authors the JSON
+the selected evaluated output, and the Graph Input inspector authors the JSON
 input bindings. The preview evaluation runs when the region opens and
 re-runs on authoring changes while it stays open. The canvas activity
 indicator opens the preview region directly. Preview

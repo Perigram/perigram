@@ -459,7 +459,8 @@ component receives `{ record, persistence, mode }` (`mode` is the
 grant-keyed mount mode — a module that declares the prop degrades to its
 read-only presentation under `'read'`); the factory receives the
 host context `{ vue, components, locale }` (the host's Vue runtime subset,
-the vetted PrimeVue pack, i18n) — the consistency law: a surface composes
+the vetted PrimeVue pack and shared viewers such as `Scene3DViewer`, i18n)
+— the consistency law: a surface composes
 from the host's vocabulary, never bundles its own (`checkSurfaceModule` in
 [@perigram/plugin-sdk](../../packages/plugin-sdk/README.md) enforces
 the import graph author-side). The persistence callbacks

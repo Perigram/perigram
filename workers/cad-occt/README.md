@@ -14,7 +14,7 @@ Parent: [workers README](../README.md). Contract:
 
 | Path | Role |
 |---|---|
-| `listing.json` | Generated: the type-less node-library listing — one shared runtime, 13 managed pure services, the vendored-dependency declarations. |
+| `listing.json` | Generated: the type-less node-library listing — one shared runtime, 13 managed pure services, the native-shape preview surface and its `3D` channel, the vendored-dependency declarations. |
 | `generate-listing.mjs` | The generator (the law): reads brepjs's published `.d.ts` declarations, verifies every curated operation against the signature it names, emits the listing. |
 | `runtime/cad-occt.mjs` | The runtime entry (`createRuntime()`): dispatches operations through brepjs, owns the shape-handle table, derives providers from the listing through the SDK derivation. |
 | `build-runtime.mjs` | The vendor build: bundles the SDK derivation module from this checkout, stages the wasm kernel, rewrites the loader's default wasm URL. |
@@ -50,6 +50,15 @@ shape ports as `{ handle, brep }`.
 - The managed child runs one operation per process, so every inter-node
   hop on the server travels through the BREP form; the browser Worker
   keeps live handles and pays serialization only on the wire.
+
+## Preview
+
+Shape outputs declare the `occt-shape` node renderer; the provider maps it to
+`occt-shape-preview`. The preview surface tessellates each `brep` through the
+same occt-wasm kernel in the host page and renders the resulting
+`perigram.scene-3d` value through the host `Scene3DViewer`. Its `3D` preview
+channel scans the whole preview payload, so a shape-producing node renders
+whether or not a Graph Output boundary exposes it.
 
 ## Kinds and conventions
 
@@ -124,7 +133,7 @@ cd workers/cad-occt && node generate-listing.mjs && node build-runtime.mjs
 curl -sS -X POST http://localhost:3001/api/plugins/catalog \
   -H 'x-operator-token: perigram-dev-operator' -H 'content-type: application/json' \
   --data-binary @workers/cad-occt/listing.json
-for f in runtime/cad-occt.mjs listing.json assets/vendor/brepjs.mjs \
+for f in runtime/cad-occt.mjs surfaces/occt-shape-preview.mjs listing.json assets/vendor/brepjs.mjs \
          assets/vendor/occt-wasm.mjs assets/vendor/occt-wasm.wasm \
          assets/vendor/perigram-plugin-sdk-nodes.mjs; do
   curl -sS -X PUT "http://localhost:3001/api/plugins/catalog/cad-occt/assets/$f?version=1" \

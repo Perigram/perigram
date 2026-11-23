@@ -59,6 +59,12 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/graph-preview-outputs-20261123)
+
+- The graph-document preview output selector now includes every evaluated node output beside the declared graph outputs. A scene output is preferred, then a node output with a plugin renderer, then the declared output.
+- CAD OCCT shape outputs declare the `occt-shape` preview renderer; the `occt-shape-preview` surface tessellates the BREP through occt-wasm and mounts the host `Scene3DViewer`, with a `3D` channel that scans the whole preview payload.
+- String graph outputs render as Markdown first; text remains an explicit representation.
+
 ### Agent Notes (2026-11-23, agent/graph-preview-scope-20261123)
 
 - Graph preview evaluates every node and collects failures in `nodeErrors`/`diagnostics`; the failing node keeps its fault on the canvas and selected node inspector while independent graph outputs still render. A valid scene output keeps its 3D viewer beside a failed document node.
