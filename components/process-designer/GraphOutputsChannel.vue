@@ -1,9 +1,6 @@
 <template>
   <div class="flex h-full min-h-0 flex-col gap-2">
     <Message v-if="error" severity="error" class="shrink-0">{{ error }}</Message>
-    <Message v-for="entry in errorEntries" :key="entry.id" severity="error" class="shrink-0">
-      {{ entry.label }}: {{ entry.error }}
-    </Message>
     <div v-if="showControls" class="flex min-w-0 flex-wrap items-center gap-1">
       <InstanceSelect
         v-if="flatOutputs.length > 1"
@@ -67,6 +64,7 @@ import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 import { graphOutputEntries } from '~/utils/processDesignerChannelOutputs.js';
+import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
 
 const props = defineProps({
@@ -79,12 +77,13 @@ const props = defineProps({
 defineEmits(['refresh']);
 
 const entries = computed(() => (props.payload ? graphOutputEntries(props.payload, props.nodes) : []));
-const errorEntries = computed(() => entries.value.filter(entry => entry.error));
 
 // One selectable output per evaluated socket, labeled node · socket.
 const flatOutputs = computed(() => entries.value.flatMap(entry => entry.outputs.map(output => ({
   key: `${entry.id}:${output.id}`,
-  label: `${entry.label} · ${output.label}`
+  label: `${entry.label} · ${output.label}`,
+  representation: output.representation,
+  value: outputValue(output.tree)
 }))));
 const selectedKey = ref('');
 const activeView = ref('json');
@@ -92,7 +91,9 @@ const viewChosen = ref(false);
 
 watch(flatOutputs, outputs => {
   if (!outputs.some(output => output.key === selectedKey.value)) {
-    selectedKey.value = outputs[0]?.key || '';
+    const scene = outputs.find(output => ['perigram.scene-3d', 'perigram.scene-2d']
+      .includes(output.representation || output.value?.representation));
+    selectedKey.value = scene?.key || outputs[0]?.key || '';
     viewChosen.value = false;
   }
 }, { immediate: true });
@@ -124,7 +125,12 @@ function chooseView(view) {
 }
 
 watch(availableViews, views => {
-  if (!viewChosen.value || !views.some(view => view.value === activeView.value)) {
+  const documentsChannel = props.channels.find(channel => channel.id === 'documents');
+  const preferred = isDocumentsPreviewValue(selectedValue.value) && documentsChannel
+    ? `channel:${documentsChannel.id}`
+    : '';
+  if (preferred && views.some(view => view.value === preferred)) activeView.value = preferred;
+  else if (!viewChosen.value || !views.some(view => view.value === activeView.value)) {
     activeView.value = views[0]?.value || 'json';
   }
 }, { immediate: true });

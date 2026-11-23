@@ -109,7 +109,10 @@ function chooseView(view) {
 }
 const outputOptions = computed(() => (props.graph.interface?.outputs || []).map(port => ({
   _id: String(port.id),
-  label: String(port.label || port.id)
+  label: String(port.label || port.id),
+  representation: port.contract?.semantic?.representation
+    || props.result?.outputs?.[port.id]?.representation
+    || ''
 })));
 const selectedValue = computed(() => props.result?.outputs?.[selectedOutputId.value]);
 const selectedOutput = computed(() => props.graph.interface?.outputs?.find(port => port.id === selectedOutputId.value) || null);
@@ -154,7 +157,8 @@ const showControls = computed(() => outputOptions.value.length > 0
   && (outputOptions.value.length > 1 || availableViews.value.length > 1));
 watch(outputOptions, options => {
   if (!options.some(option => option._id === selectedOutputId.value)) {
-    selectedOutputId.value = options[0]?._id || '';
+    const scene = options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation));
+    selectedOutputId.value = scene?._id || options[0]?._id || '';
     viewChosen.value = false;
   }
 }, { immediate: true });
