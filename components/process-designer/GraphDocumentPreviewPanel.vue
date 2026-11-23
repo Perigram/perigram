@@ -5,7 +5,7 @@
       <Button icon="pi pi-refresh" size="small" text :loading="running" :aria-label="$t('processDesigner.refreshPreview')" @click="$emit('refresh')" />
     </div>
     <Message v-if="error" severity="error">{{ error }}</Message>
-    <section v-if="result && outputOptions.length" class="flex min-h-0 flex-1 flex-col gap-2">
+    <section v-if="result && outputOptions.length" class="flex min-h-0 shrink-0 grow flex-col gap-2">
       <label class="text-supporting text-muted" for="graph-preview-output">{{ $t('processDesigner.graphOutput') }}</label>
       <InstanceSelect
         id="graph-preview-output"
