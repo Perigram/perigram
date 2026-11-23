@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, shallowRef, toRaw, unref, watch } from 'vue';
+import { computed, getCurrentInstance, nextTick, ref, shallowRef, toRaw, unref, watch } from 'vue';
 import {
   CORE_GRAPH_PROVIDER,
   GRAPH_DOCUMENT_FORMAT,
@@ -16,6 +16,7 @@ import {
   validateGraphDocument
 } from '@perigram/core';
 import { createNodeProviderRegistry, createPortCompatibilityRegistry, normalizeNodeProvider, normalizeNodeDefinition, TRANSPORT_SHAPES } from '@perigram/plugin-sdk/nodes';
+import { useToast } from 'primevue/usetoast';
 import { createGraphAuthoringState, useGraphAuthoringSession } from '~/composables/useGraphAuthoringSession.js';
 import { mintId } from '~/utils/processDesignerIdentity.js';
 import { graphInvocationName } from '~/utils/graphInvocation.js';
@@ -59,6 +60,10 @@ export function createEmptyGraphDocument({ id = stableId('graph'), name = '' } =
 }
 
 export function useGraphDocumentSession({ t, te, providers = [], definitions = [], nodeResolvers = [], previewResolvers = [], compatibilityProfiles = [], frameworkProviders = [], executors = {}, graphDocuments = [], queryOrganizationData = null, finalizeExecution = null, definitionText = null, pluginNames = null }) {
+  let toast = null;
+  if (getCurrentInstance()) {
+    try { toast = useToast(); } catch { toast = null; }
+  }
   const graphDocument = ref(createEmptyGraphDocument());
   const { nodes, edges } = createGraphAuthoringState();
   const validation = ref(null);
@@ -458,7 +463,20 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     const target = nodes.value.find(node => node.id === connection.target);
     const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
     const targetPort = definitionFor(target)?.inputs?.find(port => port.id === connection.targetHandle);
-    if (!sourcePort || !targetPort || !compatible(sourcePort, targetPort)) return;
+    const compatibility = sourcePort && targetPort ? portCompatibility.compare(sourcePort, targetPort) : null;
+    if (!compatibility?.compatible) {
+      const detail = t('processDesigner.incompatiblePortsDetail', {
+        source: sourcePort?.label || sourcePort?.id || t('processDesigner.source'),
+        target: targetPort?.label || targetPort?.id || t('processDesigner.target')
+      });
+      toast?.add({
+        severity: 'warn',
+        summary: t('processDesigner.incompatiblePorts'),
+        detail: compatibility?.reason ? `${detail} — ${compatibility.reason}` : detail,
+        life: 3000
+      });
+      return;
+    }
     if (edges.value.some(edge => edge.target === target.id && edge.targetHandle === targetPort.id)) {
       edges.value = edges.value.filter(edge => !(edge.target === target.id && edge.targetHandle === targetPort.id));
     }
@@ -563,6 +581,31 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     });
   }
 
+  function normalizeLoadedConfig(operation, config) {
+    const kind = String(operation?.id || '');
+    if (!kind.startsWith('source.literal') || !config || typeof config !== 'object') return config;
+    if (config.record && typeof config.record === 'object') {
+      return { ...config, record: withLiteralType(config.record) };
+    }
+    return withLiteralType(config);
+  }
+
+  // A persisted literal without `type` keeps the base its authored value
+  // implies; the value is the socket contract's remaining evidence.
+  function withLiteralType(config = {}) {
+    if (config.type?.base) return config;
+    const base = config.base || (config.value === undefined || config.value === null
+      ? 'string'
+      : typeof config.value === 'number'
+        ? (Number.isInteger(config.value) ? 'integer' : 'number')
+        : typeof config.value === 'boolean'
+          ? 'boolean'
+          : typeof config.value === 'string'
+            ? 'string'
+            : 'json');
+    return { ...config, type: { base, nullable: false } };
+  }
+
   function loadDocument(source) {
     invalidatePreview();
     const graph = assertValidGraphDocument(source);
@@ -572,7 +615,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
       id: node.id,
       type: 'graphNode',
       position: node.position || { x: 0, y: 0 },
-      data: { operation: node.operation, config: node.config }
+      data: { operation: node.operation, config: normalizeLoadedConfig(node.operation, node.config) }
     }));
     edges.value = graph.edges.map(edge => ({
       id: edge.id,
