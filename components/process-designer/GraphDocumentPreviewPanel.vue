@@ -64,14 +64,14 @@
         </div>
       </div>
     </Message>
-    <details v-if="result" class="shrink-0">
+    <details v-if="hasNodeOutputs" class="shrink-0">
       <summary class="text-supporting text-muted">{{ $t('processDesigner.graphNodeOutputs') }}</summary>
       <div v-for="(outputs, nodeId) in result.nodeOutputs" :key="nodeId" class="rounded-ui bg-subtle p-2">
         <strong class="block text-supporting">{{ nodeLabel(nodeId) }}</strong>
         <pre class="mt-1 whitespace-pre-wrap break-all text-supporting">{{ format(outputs) }}</pre>
       </div>
     </details>
-    <StateBlock v-else-if="!running && !error" :message="$t('processDesigner.noPreviewOutputs')" />
+    <StateBlock v-if="!running && !error && (!result || (!outputOptions.length && !hasNodeOutputs))" :message="$t('processDesigner.noPreviewOutputs')" />
   </div>
 </template>
 
@@ -142,6 +142,7 @@ const channelPayload = computed(() => ({
   execution: props.execution,
   selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
 }));
+const hasNodeOutputs = computed(() => Object.keys(props.result?.nodeOutputs || {}).length > 0);
 const availableViews = computed(() => {
   const views = graphOutputViews(selectedValue.value, {
     hasPluginRenderer: Boolean(rendererForOutput.value),
