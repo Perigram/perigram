@@ -57,6 +57,13 @@
 - [ ] WAITING — Apply boundary interface declarations live from the inspector and warn when the edited graph is pinned by other graph documents.
 - [x] Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.4, §28.14).
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
+- [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
+
+### Agent Notes (2026-11-23, agent/graph-preview-split-20261123)
+
+- The graph-document preview panel renders output selection, representation tabs, and the one output-value renderer. Graph input bindings and the Bake action render in the selected Graph Input and Graph Output node inspectors.
+- The scene viewers take a `fill` prop; the graph-document preview panel uses it so the 3D canvas consumes the preview region's height.
+- The preview opens with the best supported representation (JSON is an explicit choice), and opening the graph-document preview region runs the preview evaluation.
 
 ### Agent Notes (2026-11-23, agent/literal-config-migration-20261123)
 
