@@ -53,6 +53,29 @@ describe('graph document preview panel', () => {
     expect(html).not.toContain('processDesigner.graphNodeOutputs');
   });
 
+  it('prefers a declared scene output over an earlier text output', async () => {
+    const html = await render({
+      graph: {
+        interface: {
+          outputs: [
+            { id: 'text', label: 'Text', contract: { shape: 'item', semantic: { base: 'string' } } },
+            { id: 'shape', label: 'Shape', contract: { shape: 'item', semantic: { base: 'json', representation: 'perigram.scene-3d' } } }
+          ]
+        },
+        nodes: [],
+        edges: []
+      },
+      result: {
+        outputs: {
+          text: 'first',
+          shape: { representation: 'perigram.scene-3d', vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]], faces: [[0, 1, 2]] }
+        },
+        nodeOutputs: {}
+      }
+    });
+    expect(html).toContain('data-scene-3d');
+  });
+
   it('renders the empty state for a graph without outputs', async () => {
     const html = await render({
       graph: { interface: { outputs: [] }, nodes: [], edges: [] },
