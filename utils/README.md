@@ -35,7 +35,9 @@ Parent: [root README](../README.md).
   crosses Worker and channel mounts unchanged; the scene-2d/scene-3d host
   renderers and plugin preview surfaces (the demo engine's mesh channel)
   are its viewers.
-- `scene3d.js`: `scene3dGeometry(value)` — the host scene renderer's input:
+- `scene3d.js`: `compositeScene3D(values)` merges every scene value into
+  one `perigram.scene-3d` value, shifting face indexes by each source's
+  vertex count. `scene3dGeometry(value)` — the host scene renderer's input:
   validates `perigram.scene-3d` vertices and face/edge indexes, triangulates
   polygon faces, flattens positions, normals, triangle indexes, and unique
   edges into buffers, keeps source vertex indexes stable, and derives scene

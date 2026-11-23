@@ -612,9 +612,10 @@ output (labeled `node · socket` over `graphOutputEntries`,
 [utils](../../utils/README.md)) and renders it through the shared
 `GraphOutputView.vue` ([components/shared](../shared/README.md); best
 representation first, JSON an explicit choice). The graph-document
-preview selects the declared graph outputs and every evaluated node
-output; a scene value, then a node output carrying a plugin renderer, are
-the preferred defaults. Installed plugin channels
+preview selects the declared graph outputs and one composite scene
+assembled from every evaluated 3D node output; the composite scene is the
+preferred default. Node-only values render in the selected node
+inspector. Installed plugin channels
 join the representation tab strip and mount their plugin surface read-only
 (`PreviewChannelMount.vue`, the same contract-1 mount the generic preview
 slots ride). A scene value is the default selection when present, and a

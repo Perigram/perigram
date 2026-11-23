@@ -59,6 +59,10 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/preview-composite-20261123)
+
+- Owner direction: 3D output from every node forms one composite scene in the preview; per-node values belong to the node inspector. The graph-document preview now offers a single `3D scene` output built by `compositeScene3D`; the CAD `3D` channel merges every native shape into one `Scene3DViewer`. The selected node inspector renders its own outputs, including the plugin renderer for native shapes.
+
 ### Agent Notes (2026-11-23, agent/occt-preview-syntax-20261123)
 
 - Owner report: the CAD preview channel and the `occt-shape` node renderer both mounted as “Preview channel unavailable”. The surface's kernel-byte fetch used `await` inside a non-async `then` callback, so the module failed to parse. The callback is async; the contract suite now runs `node --check` over every declared surface module. The CAD plugin publishes as v3.

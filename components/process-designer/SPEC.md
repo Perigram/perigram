@@ -231,16 +231,17 @@ actionable diagnostics.
 ### Preview and diagnostics
 
 The preview workspace leads with the selected output's viewer. Output
-selection covers the declared graph outputs and every evaluated node
-output; representation tabs are compact chrome around it. Its default is
-the best supported user-facing renderer: a scene value is the default
-selection when present, then a node output carrying a plugin renderer,
-then the declared graph output. A document value renders through its
-declared channel. Raw JSON is an explicit structured-data or diagnostic
-view, never the universal default.
+selection covers the declared graph outputs and one composite scene
+assembled from every evaluated node 3D output; representation tabs are
+compact chrome around it. Its default is the best supported user-facing
+renderer: the composite scene when present, then the declared graph
+output. A document value renders through its declared channel. Raw JSON
+is an explicit structured-data or diagnostic view, never the universal
+default.
 
 Node errors belong to the node's canvas fault and inspector; the preview
-renders valid outputs. Node outputs remain selectable in the preview.
+renders valid outputs. Per-node values render in the selected node
+inspector.
 
 The host owns output selection, representation tabs, layout, loading,
 errors, and empty states. Generic representations use platform viewers;

@@ -55,10 +55,11 @@ shape ports as `{ handle, brep }`.
 
 Shape outputs declare the `occt-shape` node renderer; the provider maps it to
 `occt-shape-preview`. The preview surface tessellates each `brep` through the
-same occt-wasm kernel in the host page and renders the resulting
-`perigram.scene-3d` value through the host `Scene3DViewer`. Its `3D` preview
-channel scans the whole preview payload, so a shape-producing node renders
-whether or not a Graph Output boundary exposes it.
+same occt-wasm kernel in the host page, merges every shape into one
+`perigram.scene-3d` value, and renders it through the host `Scene3DViewer`.
+Its `3D` preview channel scans the whole preview payload, so a
+shape-producing node renders whether or not a Graph Output boundary exposes
+it.
 
 ## Kinds and conventions
 
