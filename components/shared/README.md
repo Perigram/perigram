@@ -389,13 +389,15 @@ through it.
 
 ### `Scene3DViewer.vue`
 The host's common interactive 3D viewer for `perigram.scene-3d` graph values
-(`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges? }`).
-Pointer drag orbits, shift/middle drag pans, wheel zooms (`0.4x`–`4x`),
-double-click or the fit control restores the default view; faces paint
-back-to-front as a solid wireframe. Projection math is the pure
-`utils/scene3d.js` `projectScene3d`, which validates vertex/face indexes,
-applies pan offsets, and derives edges from face loops when none are
-declared.
+(`{ representation, vertices: [[x,y,z]], faces: [[i,...]], edges?, normals? }`
+in millimetres, right-handed Z-up). It renders a real WebGL scene through
+three.js: depth-correct occlusion, basic lighting/material display, orbit,
+pan, zoom, fit, and face selection with a highlight overlay. The camera is
+Z-up and `OrbitControls` supplies the pointer, touch, and wheel gestures;
+the fit control or double-click frames the scene bounds. `utils/scene3d.js`
+`scene3dGeometry` validates the value, triangulates polygon faces, derives
+unique edges from face loops when none are declared, and keeps source vertex
+indexes stable.
 
 ### `Scene2DViewer.vue`
 The host's common interactive 2D viewer for `perigram.scene-2d` graph

@@ -43,7 +43,7 @@ describe('graph output value renderer', () => {
       alt: 'Mesh'
     });
     expect(html).toContain('data-scene-3d');
-    expect(html).toContain('<polygon');
+    expect(html).toContain('<canvas');
   });
 
   it('renders numeric and boolean values as text', async () => {
