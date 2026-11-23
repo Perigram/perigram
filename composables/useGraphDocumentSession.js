@@ -263,16 +263,24 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return graph ? cloneJson(graph) : null;
   }
 
-  // Definitions are immutable per node identity: every authoring rewrite
-  // replaces the node object, so an unchanged node keeps its resolved
-  // definition across validation, edge checks, and preview lookups.
+  // Definitions cache per node object and authoring content: a node can be
+  // mutated in place by the canvas, so the operation/config signature decides
+  // whether the resolved definition still holds.
   let definitionCache = new WeakMap();
+  function definitionSignature(node) {
+    return JSON.stringify({
+      operation: node?.data?.operation || node?.operation || null,
+      config: node?.data?.config || node?.config || {}
+    });
+  }
   function definitionFor(node) {
     if (!node) return null;
     const key = toRaw(node);
-    if (definitionCache.has(key)) return definitionCache.get(key);
+    const signature = definitionSignature(node);
+    const cached = definitionCache.get(key);
+    if (cached?.signature === signature) return cached.definition;
     const definition = computeDefinitionFor(node);
-    definitionCache.set(key, definition);
+    definitionCache.set(key, { signature, definition });
     return definition;
   }
 
@@ -338,7 +346,7 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
         error: node.data.error || ''
       }
     };
-    definitionCache.set(toRaw(enriched), definition);
+    definitionCache.set(toRaw(enriched), { signature: definitionSignature(enriched), definition });
     return enriched;
   }
 
@@ -458,52 +466,12 @@ export function useGraphDocumentSession({ t, te, providers = [], definitions = [
     return node;
   }
 
-  function inferredLiteralConfig(node, targetPort) {
-    if (node?.data?.operation?.id !== 'source.literalItem') return null;
-    const wrapper = node.data.config && typeof node.data.config === 'object' ? node.data.config : {};
-    const config = wrapper.record && typeof wrapper.record === 'object' ? wrapper.record : wrapper;
-    const currentBase = config.type?.base || config.base || 'string';
-    if (!['string', 'json'].includes(currentBase)) return null;
-    const targetBase = targetPort?.semantic?.base;
-    const value = literalValueForBase(config.value, targetBase);
-    if (value === undefined) return null;
-    const next = { ...config, type: { base: targetBase, nullable: false }, value };
-    return wrapper.record && typeof wrapper.record === 'object' ? { ...wrapper, record: next } : next;
-  }
-
-  function literalValueForBase(value, base) {
-    if (base === 'number' || base === 'integer') {
-      if (typeof value === 'number' && Number.isFinite(value)) return value;
-      if (typeof value !== 'string' || !value.trim()) return undefined;
-      const number = Number(value);
-      if (!Number.isFinite(number)) return undefined;
-      return base === 'integer' ? Math.trunc(number) : number;
-    }
-    if (base === 'boolean') {
-      if (typeof value === 'boolean') return value;
-      if (value === 'true') return true;
-      if (value === 'false') return false;
-      return undefined;
-    }
-    if (base === 'string' && ['string', 'number', 'boolean'].includes(typeof value)) return String(value);
-    if (['date', 'dateTime'].includes(base) && typeof value === 'string' && value.trim()) return value;
-    return undefined;
-  }
-
   function onConnect(connection) {
     const source = nodes.value.find(node => node.id === connection.source);
     const target = nodes.value.find(node => node.id === connection.target);
-    let sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
+    const sourcePort = definitionFor(source)?.outputs?.find(port => port.id === connection.sourceHandle);
     const targetPort = definitionFor(target)?.inputs?.find(port => port.id === connection.targetHandle);
-    let compatibility = sourcePort && targetPort ? portCompatibility.compare(sourcePort, targetPort) : null;
-    if (!compatibility?.compatible && targetPort) {
-      const inferred = inferredLiteralConfig(source, targetPort);
-      if (inferred) {
-        updateNodeConfig(source.id, inferred);
-        sourcePort = definitionFor(nodes.value.find(node => node.id === source.id))?.outputs?.find(port => port.id === connection.sourceHandle);
-        compatibility = sourcePort ? portCompatibility.compare(sourcePort, targetPort) : null;
-      }
-    }
+    const compatibility = sourcePort && targetPort ? portCompatibility.compare(sourcePort, targetPort) : null;
     if (!compatibility?.compatible) {
       const detail = t('processDesigner.incompatiblePortsDetail', {
         source: sourcePort?.label || sourcePort?.id || t('processDesigner.source'),

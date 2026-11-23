@@ -17,7 +17,7 @@
       option-label="label"
       option-value="value"
       size="small"
-      class="w-28 shrink-0"
+      class="w-32 shrink-0"
       @update:model-value="value => emit('update:base', value)"
     />
     <div class="min-w-0 flex-1">
