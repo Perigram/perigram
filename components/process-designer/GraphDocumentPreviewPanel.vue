@@ -1,23 +1,17 @@
 <template>
-  <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
-    <div class="flex shrink-0 items-center justify-between gap-2">
-      <span class="text-label">{{ $t('processDesigner.graphOutputs') }}</span>
-      <Button icon="pi pi-refresh" size="small" text :loading="running" :aria-label="$t('processDesigner.refreshPreview')" @click="$emit('refresh')" />
-    </div>
-    <Message v-if="error" severity="error">{{ error }}</Message>
-    <section v-if="result && outputOptions.length" class="flex min-h-0 shrink-0 grow flex-col gap-2">
-      <label class="text-supporting text-muted" for="graph-preview-output">{{ $t('processDesigner.graphOutput') }}</label>
+  <div class="flex h-full min-h-0 flex-col gap-2 p-2">
+    <div v-if="showControls" class="flex min-w-0 flex-wrap items-center gap-1">
       <InstanceSelect
+        v-if="outputOptions.length > 1"
         id="graph-preview-output"
         v-model="selectedOutputId"
         :options="outputOptions"
         option-label="label"
         option-value="_id"
         :aria-label="$t('processDesigner.graphOutput')"
-        class="w-full"
+        class="min-w-40 flex-1"
       />
-      <div v-if="execution" class="text-supporting text-muted">{{ $t('processDesigner.previewExecution') }} · {{ execution.status }} · {{ execution.id }}</div>
-      <div class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
+      <div v-if="availableViews.length > 1" class="flex flex-wrap gap-1" role="tablist" :aria-label="$t('processDesigner.previewRepresentations')">
         <Button
           v-for="view in availableViews"
           :key="view.value"
@@ -28,7 +22,21 @@
           @click="chooseView(view.value)"
         />
       </div>
-      <div class="min-h-48 flex-1 overflow-hidden rounded-ui bg-subtle p-3">
+    </div>
+    <Message v-if="error" severity="error" class="shrink-0">{{ error }}</Message>
+    <Message v-if="providerErrors.length" severity="warn" class="shrink-0">
+      <div v-for="(failure, index) in providerErrors" :key="`${failure.pluginId}:${failure.runtimeId}:${failure.provider}:${index}`">
+        {{ failure.provider || failure.pluginId }}: {{ failure.message }}
+      </div>
+    </Message>
+    <div class="relative min-h-0 flex-1 overflow-hidden rounded-ui bg-subtle">
+      <div v-if="running && !result" class="grid h-full place-items-center">
+        <StateBlock state="loading" :message="$t('common.loading')" />
+      </div>
+      <div v-else-if="!result && !error" class="grid h-full place-items-center">
+        <StateBlock :message="$t('processDesigner.noPreviewOutputs')" />
+      </div>
+      <template v-else-if="result">
         <PreviewChannelMount
           v-if="activeView.startsWith('channel:') && activeChannel"
           :channel="activeChannel"
@@ -53,25 +61,17 @@
           :alt="selectedOutput?.label || 'Graph output'"
           fill
         />
-      </div>
-    </section>
-    <Message v-if="providerErrors.length" severity="warn">
-      <div class="flex flex-col gap-2">
-        <div v-for="(failure, index) in providerErrors" :key="`${failure.pluginId}:${failure.runtimeId}:${failure.provider}:${index}`" class="flex flex-col gap-1">
-          <strong>{{ failure.provider || failure.pluginId }}<span v-if="failure.runtimeId"> · {{ failure.runtimeId }}</span></strong>
-          <span>{{ failure.message }}</span>
-          <span v-if="failure.operations?.length" class="text-supporting text-muted">{{ failure.operations.join(', ') }}</span>
-        </div>
-      </div>
-    </Message>
-    <details v-if="hasNodeOutputs" class="shrink-0">
-      <summary class="text-supporting text-muted">{{ $t('processDesigner.graphNodeOutputs') }}</summary>
-      <div v-for="(outputs, nodeId) in result.nodeOutputs" :key="nodeId" class="rounded-ui bg-subtle p-2">
-        <strong class="block text-supporting">{{ nodeLabel(nodeId) }}</strong>
-        <pre class="mt-1 whitespace-pre-wrap break-all text-supporting">{{ format(outputs) }}</pre>
-      </div>
-    </details>
-    <StateBlock v-if="!running && !error && (!result || (!outputOptions.length && !hasNodeOutputs))" :message="$t('processDesigner.noPreviewOutputs')" />
+      </template>
+      <Button
+        icon="pi pi-refresh"
+        size="small"
+        text
+        :loading="running"
+        :aria-label="$t('processDesigner.refreshPreview')"
+        class="absolute right-2 top-2 z-10"
+        @click="$emit('refresh')"
+      />
+    </div>
   </div>
 </template>
 
@@ -142,7 +142,6 @@ const channelPayload = computed(() => ({
   execution: props.execution,
   selectedOutput: selectedOutput.value ? { id: selectedOutput.value.id, label: selectedOutput.value.label, value: selectedValue.value } : null
 }));
-const hasNodeOutputs = computed(() => Object.keys(props.result?.nodeOutputs || {}).length > 0);
 const availableViews = computed(() => {
   const views = graphOutputViews(selectedValue.value, {
     hasPluginRenderer: Boolean(rendererForOutput.value),
@@ -151,6 +150,7 @@ const availableViews = computed(() => {
   for (const channel of props.channels) views.push({ value: `channel:${channel.id}`, label: channel.label });
   return views;
 });
+const showControls = computed(() => outputOptions.value.length > 1 || availableViews.value.length > 1);
 watch(outputOptions, options => {
   if (!options.some(option => option._id === selectedOutputId.value)) {
     selectedOutputId.value = options[0]?._id || '';
@@ -166,12 +166,4 @@ watch(availableViews, views => {
   else if (!viewChosen.value) activeView.value = views[0]?.value || 'json';
   else if (!views.some(view => view.value === activeView.value)) activeView.value = views[0]?.value || 'json';
 }, { immediate: true });
-
-function format(value) {
-  try { return JSON.stringify(value, null, 2); } catch { return String(value); }
-}
-function nodeLabel(id) {
-  const node = props.graph.nodes?.find(item => item.id === id);
-  return node?.operation?.id || id;
-}
 </script>

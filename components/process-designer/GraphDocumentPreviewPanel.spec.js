@@ -46,9 +46,10 @@ describe('graph document preview panel', () => {
     expect(html).toContain('h-full min-h-48');
   });
 
-  it('keeps graph-input bindings and Bake in the node inspector', async () => {
+  it('carries the viewer and compact output controls', async () => {
     const html = await render({ graph, result, execution: { status: 'succeeded', profile: 'procedural-preview', id: 'execution-1' } });
     expect(html).not.toContain('data-graph-input-binding');
     expect(html).not.toContain('data-graph-output-bake');
+    expect(html).not.toContain('processDesigner.graphNodeOutputs');
   });
 });
