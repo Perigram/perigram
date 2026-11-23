@@ -75,9 +75,10 @@ shared interactive `Scene3DViewer` ([components/shared](../shared/README.md)):
 a real WebGL scene through three.js with Z-up camera, orbit, pan, zoom, fit,
 lighting, depth-correct occlusion, and face selection. A `perigram.scene-2d`
 value mounts the shared interactive canvas with the same pan/zoom/fit
-grammar. The preview panel renders the selected output through the value
-renderer; graph-input bindings and the Graph Output Bake action live in
-those nodes' inspector.
+grammar. The graph-document preview region carries the viewer, a compact
+output selector, representation tabs, and a refresh control. Per-node
+outputs live in the selected node inspector; graph-input bindings and
+the Graph Output Bake action live in those nodes' inspector.
 
 The inspector renders node configuration properties from each
 definition's JSON schema and edits graph interface transport shape,
@@ -684,11 +685,11 @@ the graph-specific inspector edits JSON configuration and boundary labels.
 Graph Input, Graph Output, and the reusable-graph invocations share the
 graph-boundary palette section; a placed invocation card names the invoked
 graph. Preview invokes the core procedural evaluator
-with registered process data-node adapters; the preview panel displays the
-selected graph output plus per-node outputs, and the Graph Input inspector
-authors the JSON input bindings. The preview evaluation runs when the
-region opens and re-runs on authoring changes while it stays open. The
-canvas activity indicator opens the preview region directly. Preview
+with registered process data-node adapters; the preview panel leads with
+the selected graph output, and the Graph Input inspector authors the JSON
+input bindings. The preview evaluation runs when the region opens and
+re-runs on authoring changes while it stays open. The canvas activity
+indicator opens the preview region directly. Preview
 is read-only and does not commit organization state. The Use Graph invocation UI
 authors its pinned graph ID, revision, and public-interface snapshot in
 the node's JSON configuration; the graph catalog feeds the invocation

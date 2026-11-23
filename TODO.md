@@ -59,6 +59,11 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/graph-preview-viewer-first-20261123)
+
+- The graph-document preview region carries the viewer, a compact output selector, representation tabs, and a refresh control. Per-node outputs stay in the selected node inspector.
+- The viewer fills the preview region; the output selector renders for multiple graph outputs and the representation tabs render for multiple views.
+
 ### Agent Notes (2026-11-23, agent/graph-preview-split-20261123)
 
 - The graph-document preview panel renders output selection, representation tabs, and the one output-value renderer. Graph input bindings and the Bake action render in the selected Graph Input and Graph Output node inspectors.

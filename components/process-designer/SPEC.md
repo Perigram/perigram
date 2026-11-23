@@ -230,10 +230,10 @@ actionable diagnostics.
 
 ### Preview and diagnostics
 
-The preview workspace selects a declared graph output and then presents
-the representations available for that output. Its default is the best
-supported user-facing renderer. Raw JSON is an explicit structured-data
-or diagnostic view, never the universal default.
+The preview workspace leads with the selected output's viewer. Output
+selection and representation tabs are compact chrome around it. Its
+default is the best supported user-facing renderer. Raw JSON is an
+explicit structured-data or diagnostic view, never the universal default.
 
 The host owns output selection, representation tabs, layout, loading,
 errors, and empty states. Generic representations use platform viewers;
@@ -242,10 +242,9 @@ scene/geometry representations mount the actual host-provided interactive
 3D viewer. An SVG projection or a list of serialized node entries is not
 an acceptable substitute for a 3D viewer.
 
-Intermediate node outputs and execution traces are optional diagnostics.
-They must not replace the selected graph output, and they must not be
-rendered as though the entire execution envelope were the output value.
-Page graph-result embeds consume the selected declared output and its
+Intermediate node outputs and execution traces live in the selected node
+inspector as optional diagnostics. Page graph-result embeds consume the
+selected declared output and its
 representation contract.
 
 ### Process profile boundary
