@@ -368,7 +368,9 @@ uninstall, uncovered breaking changes on types with live instances
 block the apply (zero-instance types re-break freely, mirroring org
 authoring relief), and covered steps — declared on the new
 declaration's transient `migrate` — execute against instances on
-apply. A type rename is a covered migration: the new declaration's
+apply. A type-less node library upgrades through the same preview and
+apply with an empty type plan; its services, surfaces, preview
+channels, runtimes, and dependencies replace with the new snapshot. A type rename is a covered migration: the new declaration's
 transient `renameFrom: <retired id>` reports the rename in the preview
 and the apply rewrites the org's stored instances, typed refs, and
 authored type bindings to the new id before the per-type steps run — a

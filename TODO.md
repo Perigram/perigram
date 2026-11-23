@@ -59,6 +59,10 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/typeless-plugin-upgrade-20261123)
+
+- Owner report: the CAD OCCT plugin upgrade refused with “Plugin declares no types”. The type-less node library now previews and applies through the same upgrade flow with an empty type plan; services, surfaces, preview channels, runtimes, and dependencies replace with the new snapshot.
+
 ### Agent Notes (2026-11-23, agent/graph-preview-outputs-20261123)
 
 - The graph-document preview output selector now includes every evaluated node output beside the declared graph outputs. A scene output is preferred, then a node output with a plugin renderer, then the declared output.
