@@ -556,10 +556,14 @@ derived from payload traits) plus the payload download URL (instance
 payload blobs live in the `files` GridFS bucket). `resolveAttachmentPeek`
 is the bare-descriptor twin for stored file references without a served
 type (chat attachments, generator blobs): it sniffs the renderable peek
-mode (`image`, `svg`, `pdf`, `text`, `dxf`, `graph` — extension-first for
-`.perigram-graph`, then mime-first with extension fallbacks) and returns
-`{ mode, fileUrl }` honoring the descriptor's
-bucket, or null for files without a bounded preview. Graph documents save
+mode (`image`, `svg`, `pdf`, `docx`, `workbook`, `text`, `dxf`, `graph` —
+extension-first for `.perigram-graph`, then mime-first with extension
+fallbacks) and returns `{ mode, fileUrl }` honoring the descriptor's
+bucket, or null for files without a bounded preview.
+`resolveInlinePayloadPreview` is the in-memory twin for the plugin
+graph-output envelope `{ payload: { base64, mime, name } }`: it sniffs the
+same mode and returns `{ mode, fileUrl, attachment }` with a data URL, or
+null when the bytes have no renderable preview mode. Graph documents save
 under the `.perigram-graph` extension with a JSON payload; their card
 previews render the graph payload visually, and Page-created graph
 references open the `graph-editor` page through the workspace page-open

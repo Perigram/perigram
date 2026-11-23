@@ -381,13 +381,18 @@ surface — the host's — frames the preview.
 ### `GraphOutputView.vue`
 The one graph-output value renderer: selects the best supported
 representation from `utils/graphOutputViews.js` and mounts text (including
-numeric and boolean scalars), Markdown, tables, images, document links, the
+numeric and boolean scalars), Markdown, tables, images, file payloads, the
 interactive `Scene2DViewer`, or the interactive `Scene3DViewer`; JSON is the
-explicit fallback view. The selected output port's declared representation
-chooses the scene viewer even when the value omits the marker. The `fill`
-prop makes the scene viewers consume their parent's height. The graph
-editor preview, outputs channel, and Page graph-result embed all render
-through it.
+explicit fallback view. Stored file references and inline
+`{ payload: { base64, mime, name } }` values render through
+`FilePayloadViewer` with the mime-sniffed preview mode
+(`resolveAttachmentPeek`/`resolveInlinePayloadPreview` in
+[file-preview-contract](../generated/README.md)); an unrenderable stored
+reference degrades to a download link. The selected output
+port's declared representation chooses the scene viewer even when the
+value omits the marker. The `fill` prop makes the scene and file viewers
+consume their parent's height. The graph editor preview, outputs channel,
+and Page graph-result embed all render through it.
 
 ### `Scene3DViewer.vue`
 The host's common interactive 3D viewer for `perigram.scene-3d` graph values

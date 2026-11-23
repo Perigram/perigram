@@ -22,8 +22,10 @@ Parent: [root README](../README.md).
 - `graphOutputViews.js`: The graph-output representation contract — the
   ordered views a graph output value supports (text, markdown, table,
   image, document, scene-2d, scene-3d, plugin, JSON fallback) and the
-  table-column derivation. The graph preview panel and the Page
-  graph-result embed both derive their renderers through it. The
+  table-column derivation. A stored file reference (`fileId`) or an inline
+  `{ payload: { base64, mime, name } }` value offers the image or document
+  view by mime. The graph preview panel and the Page graph-result embed
+  both derive their renderers through it. The
   tessellated mesh channel (SPEC §20 client-carried engines) is the
   `perigram.scene-3d` value: `{ representation: 'perigram.scene-3d',
   vertices: [[x, y, z], …], faces: [[i, j, k], …] (triangle indices),

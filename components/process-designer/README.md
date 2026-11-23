@@ -616,8 +616,11 @@ join the representation tab strip and mount their plugin surface read-only
 (`PreviewChannelMount.vue`, the same contract-1 mount the generic preview
 slots ride). A scene value is the default selection when present, and a
 document value renders through its Documents channel. Node errors surface
-on the canvas and in the selected node inspector; per-node outputs live
-there too. A plugin channel that cannot mount (unconfigured executor,
+on the canvas fault and in the selected node inspector; per-node outputs
+live there too. A failed node removes its dependent outputs while
+independent outputs keep rendering. A file-payload output
+(`documents.file`) renders through the shared file-payload viewer by
+mime. A plugin channel that cannot mount (unconfigured executor,
 refused contract) renders its unavailable state.
 
 The process channel preview evaluates through the process-definition
