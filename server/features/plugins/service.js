@@ -1880,8 +1880,6 @@ async function loadUpgradePair(organizationId, pluginId) {
   if (listing.version === install.version) {
     throw createError({ statusCode: 409, message: 'Plugin is already at the pinned catalog version' });
   }
-  const types = listing.declarations?.types || [];
-  if (!types.length) throw createError({ statusCode: 400, message: 'Plugin declares no types' });
   return { install, listing };
 }
 

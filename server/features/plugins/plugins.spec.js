@@ -1512,6 +1512,48 @@ describe('upgrades', () => {
     expect(coating.covered).toBe(true);
   });
 
+  it('upgrades a type-less node library through the same preview and apply', async () => {
+    const typelessInstall = {
+      ...installedV2,
+      pluginId: 'cad-occt',
+      declarations: { types: [], surfaces: [], previewChannels: [] }
+    };
+    const typelessListing = {
+      pluginId: 'cad-occt',
+      name: 'CAD (OCCT)',
+      version: '3',
+      requires: [],
+      declarations: {
+        types: [],
+        services: [{
+          id: 'make-box',
+          label: 'Box',
+          signature: { input: { base: 'record', fields: {} }, output: { base: 'json', kind: 'geometry.occt.shape' } },
+          execution: { runtime: 'cad-occt', kind: 'pure', targets: ['browser', 'server'] },
+          palette: { group: 'primitives' }
+        }],
+        runtimes: [{ id: 'cad-occt', language: 'javascript', version: '1', entry: '/runtime/cad-occt.mjs', targets: ['browser', 'server'] }],
+        surfaces: [{ id: 'occt-shape-preview', module: '/surfaces/occt-shape-preview.mjs', surfaceContract: 1, kind: 'preview' }],
+        previewChannels: [{ id: 'occt', surface: 'occt-shape-preview', label: '3D' }]
+      }
+    };
+    repository.findInstall.mockResolvedValue(typelessInstall);
+    repository.findCatalogByPluginId.mockResolvedValue(typelessListing);
+    repository.listInstallsByOrganization.mockResolvedValue([typelessInstall]);
+
+    const plan = await upgradePreview({ organizationId: ORG, pluginId: 'cad-occt', auth: AUTH });
+    expect(plan).toMatchObject({ pluginId: 'cad-occt', from: '2', to: '3', added: [], removed: [], changed: [], blocked: [] });
+
+    const result = await applyUpgrade({ organizationId: ORG, pluginId: 'cad-occt', auth: AUTH });
+    expect(result).toMatchObject({ pluginId: 'cad-occt', version: '3' });
+    const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
+    expect(persisted.declarations.types).toEqual([]);
+    expect(persisted.declarations.previewChannels).toEqual([
+      { id: 'occt', surface: 'occt-shape-preview', label: '3D' }
+    ]);
+    expect(persisted.services.map(service => service.id)).toEqual(['make-box']);
+  });
+
   it('blocks a removed type that still has live instances', async () => {
     const removedListing = {
       ...listingV3,
