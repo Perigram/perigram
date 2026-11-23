@@ -244,6 +244,11 @@
   padding — the v49 chrome law never reached the layout. Verified live on
   a v50 org: dock 1268×505, canvas 305px, one native host seeding the
   face hatch and dims.
+- Owner reported the canvas still missing. Each reload restored the dock
+  layout saved during the collapsed days: dockview stores absolute sizes,
+  so the saved canvas leaf kept the canvas at 59px whatever the page
+  height. The designer layout state version now moves past those
+  snapshots, so every browser rebuilds the default composition once.
 
 ## Priority: Graph editor workspace convergence (SPEC §28.14, owner direction 2026-11-19; GitHub issue #24; one-editor direction 2026-11-19)
 
