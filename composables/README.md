@@ -41,8 +41,12 @@ may declare `palette.group`, `palette.label`, and `palette.keywords`;
 the session groups operations by provider and semantic group, then exposes
 provider id, operation id, group id, and keywords to palette search. The
 session applies `compareNodePorts` to connection gestures, persisted edges,
-and preview preflight. Optional-source connections are conditional and the
+and preview preflight. A refused gesture surfaces the PrimeVue warning that
+names both sockets and the compatibility reason. Optional-source connections
+are conditional and the
 evaluator checks required-value presence and semantic nullability when the graph runs.
+A loaded literal that carries no typed-value contract recovers its base from
+the authored value, so its socket keeps the contract the author saw.
 
 Every registered operation must declare `palette.group`; the host does not infer categories from operation-id prefixes. Provider ids remain stable search terms and registry identities, not visible palette group labels. Group labels and search aliases come from the normalized declaration.
 
