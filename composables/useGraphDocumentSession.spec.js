@@ -240,6 +240,30 @@ describe('useGraphDocumentSession', () => {
       version: '1',
       execution: { kind: 'pure' }
     });
+    expect(node.data.definition.outputs[0].semantic.base).toBe('string');
+  });
+
+  it('restores the socket type of literals saved without a typed-value contract', () => {
+    const graph = {
+      format: 'perigram.graph',
+      version: 1,
+      id: 'legacy-literal',
+      revision: 'legacy-literal-r1',
+      name: 'Legacy literal',
+      interface: { inputs: [], outputs: [] },
+      nodes: [{
+        id: 'number',
+        operation: { provider: 'perigram.processes', id: 'source.literalItem', version: '1' },
+        config: { kind: 'source.literalItem', value: 12 },
+        position: { x: 0, y: 0 }
+      }],
+      edges: []
+    };
+    const session = createProcessSession();
+    session.loadDocument(graph);
+    const node = session.nodes.value.find(item => item.id === 'number');
+    expect(node.data.config.type).toEqual({ base: 'integer', nullable: false });
+    expect(node.data.definition.outputs[0].semantic.base).toBe('integer');
   });
 
   it('loads durable control operations through the shared process node registry', () => {

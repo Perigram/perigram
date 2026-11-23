@@ -58,6 +58,11 @@
 - [x] Mount an interactive 3D viewer for `perigram.scene-3d` graph outputs (SPEC §28.4, §28.14).
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 
+### Agent Notes (2026-11-23, agent/literal-config-migration-20261123)
+
+- Owner report: an old persisted literal node could not wire into CAD OCCT Box inputs while a newly placed literal worked. A persisted literal without a `type` resolves its socket as `json`; the compatibility gate refuses `json → number` silently.
+- Graph-document load restores a literal's base from its authored value (or `base`) when the typed-value contract is absent. A refused connection surfaces the PrimeVue warning naming both sockets and the compatibility reason.
+
 ### Agent Notes (2026-11-23, agent/real-3d-viewer-20261123)
 
 - `Scene3DViewer` renders `perigram.scene-3d` through three.js WebGL: depth-correct occlusion, lighting, orbit/pan/zoom/fit, and face selection with a highlight overlay. The camera is Z-up and the scene contract is millimetres, matching the geometry providers.
