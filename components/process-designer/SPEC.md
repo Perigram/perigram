@@ -232,8 +232,14 @@ actionable diagnostics.
 
 The preview workspace leads with the selected output's viewer. Output
 selection and representation tabs are compact chrome around it. Its
-default is the best supported user-facing renderer. Raw JSON is an
-explicit structured-data or diagnostic view, never the universal default.
+default is the best supported user-facing renderer: a scene value is the
+default selection when present, and a document value renders through its
+declared channel. Raw JSON is an explicit structured-data or diagnostic
+view, never the universal default.
+
+Node errors belong to the node's canvas fault and inspector; the preview
+renders valid outputs. Per-node outputs live in the selected node
+inspector.
 
 The host owns output selection, representation tabs, layout, loading,
 errors, and empty states. Generic representations use platform viewers;

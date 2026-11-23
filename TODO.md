@@ -59,6 +59,11 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/graph-preview-errors-20261123)
+
+- The preview outputs channel renders valid outputs only; node errors stay on the canvas and selected node inspector.
+- A scene output is the default selection when present, and a document value renders through the Documents channel.
+
 ### Agent Notes (2026-11-23, agent/graph-preview-viewer-first-20261123)
 
 - The graph-document preview region carries the viewer, a compact output selector, representation tabs, and a refresh control. Per-node outputs stay in the selected node inspector.

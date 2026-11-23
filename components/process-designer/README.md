@@ -614,9 +614,11 @@ output (labeled `node · socket` over `graphOutputEntries`,
 representation first, JSON an explicit choice). Installed plugin channels
 join the representation tab strip and mount their plugin surface read-only
 (`PreviewChannelMount.vue`, the same contract-1 mount the generic preview
-slots ride). Node errors stay first-plane; per-node outputs live in the
-selected node inspector. A plugin channel that cannot mount (unconfigured
-executor, refused contract) renders its unavailable state.
+slots ride). A scene value is the default selection when present, and a
+document value renders through its Documents channel. Node errors surface
+on the canvas and in the selected node inspector; per-node outputs live
+there too. A plugin channel that cannot mount (unconfigured executor,
+refused contract) renders its unavailable state.
 
 The process channel preview evaluates through the process-definition
 preview endpoint: the evaluation runs when the region opens and re-runs on
