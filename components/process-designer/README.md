@@ -651,7 +651,9 @@ the Vue Flow graph with node/edge templates, the palette dock, the
 context palette, the selection speed dial, the empty state, and the
 validation feedback strip — over the session composable's state and
 verbs passed as props (`v-model:nodes`/`v-model:edges`, palette groups,
-gesture handlers). The `lane` slot carries a host's zoom-pane background
+gesture handlers). The viewport sits inset from the canvas cell's edges, so
+a socket on a node at graph `x=0` stays clear of the dock splitter.
+The `lane` slot carries a host's zoom-pane background
 (the process page's lane bands); the `inspector` slot carries the host's
 inspector panel content; the `preview` slot carries a host's preview
 workspace content. The graph-document mount places its preview panel in the

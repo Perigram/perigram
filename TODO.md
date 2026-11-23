@@ -65,9 +65,11 @@
 - The scene viewers take a `fill` prop; the graph-document preview panel uses it so the 3D canvas consumes the preview region's height.
 - The preview opens with the best supported representation (JSON is an explicit choice); opening the graph-document preview region runs the preview evaluation and authoring changes re-run it while the region stays open.
 
-### Agent Notes (2026-11-23, agent/literal-connection-inference-20261123)
+### Agent Notes (2026-11-23, agent/literal-cache-authoring-20261123)
 
-- A literal authored with the default text type kept that type when its value was numeric, so typed sockets refused it as `string`. The connect gesture now lets a text literal adopt the target socket's base when its value converts safely; the convert check covers number/integer, boolean, string, date, and dateTime, and a value that does not convert leaves the literal unchanged with the refusal warning.
+- Changing a literal from Text to Number in the inspector left its cached node definition on the previous config, so the output socket stayed `string` and typed inputs refused it. Authoring-signature changes now rebuild the definition cache and re-enrich the nodes.
+- The canvas viewport sits inset from the dock cell so a socket on a node at graph `x=0` stays clear of the splitter; the literal type selector fits its label.
+- Connections never rewrite the source node's authored type. The inspector's typed literal selector owns the literal type.
 
 ### Agent Notes (2026-11-23, agent/literal-config-migration-20261123)
 
