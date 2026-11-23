@@ -59,6 +59,10 @@
 - [ ] WAITING — Give the occt plugin a declared preview channel for its native shapes and add an occt→perigram scene cast node so native CAD outputs reach the host preview.
 - [ ] WAITING — Owner verification: the graph-document preview panel renders the selected output alone; the Graph Input and Graph Output node inspectors own the binding and Bake controls, and the preview viewer consumes the region height.
 
+### Agent Notes (2026-11-23, agent/graph-preview-provider-race-20261123)
+
+- Owner report: graph preview reported every plugin operation as unresolved and the preview channel as unavailable. The preview could start while the plugin runtime workers were still loading and finish after provider discovery without re-running. Provider readiness now invalidates an open preview and re-runs it after every installed provider registers.
+
 ### Agent Notes (2026-11-23, agent/typeless-plugin-upgrade-20261123)
 
 - Owner report: the CAD OCCT plugin upgrade refused with “Plugin declares no types”. The type-less node library now previews and applies through the same upgrade flow with an empty type plan; services, surfaces, preview channels, runtimes, and dependencies replace with the new snapshot.

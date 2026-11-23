@@ -661,6 +661,8 @@ The `lane` slot carries a host's zoom-pane background
 inspector panel content; the `preview` slot carries a host's preview
 workspace content. The graph-document mount places its preview panel in the
 workspace preview region; the canvas header's panel menu opens that region.
+Preview evaluation follows provider discovery: a preview requested while
+plugin runtimes load re-runs once every provider is registered.
 Function-ref props (`bindFrame`, `bindContextPaletteSearch`)
 hand the mounted instances to the session's refs — plain ref props would
 unwrap at the host template. `readOnly` renders the canvas alone: the
