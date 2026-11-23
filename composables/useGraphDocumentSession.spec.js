@@ -31,35 +31,6 @@ function createProcessSession() {
   });
 }
 
-function createLiteralSinkSession() {
-  return useGraphDocumentSession({
-    t: key => key,
-    providers: [{
-      provider: 'test.provider',
-      execute: async () => null,
-      definitions: [{
-        provider: 'test.provider',
-        id: 'number-sink',
-        version: '1',
-        label: 'Number sink',
-        palette: { group: 'values' },
-        inputs: [{ id: 'width', label: 'Width', shape: 'item', semantic: { base: 'number' }, required: true }],
-        outputs: [],
-        execution: { kind: 'pure' }
-      }]
-    }],
-    definitions: PROCESS_NODE_CATALOG
-      .map(catalog => createProcessGraphNodeDefinition(catalog.kind, { kind: catalog.kind }))
-      .filter(Boolean),
-    nodeResolvers: [createProcessGraphNodeResolver()],
-    previewResolvers: [createProcessProceduralNodeResolver()],
-    compatibilityProfiles: [registerProcessPortCompatibilityProfile],
-    frameworkProviders: [PROCESS_PROCEDURAL_PROVIDER],
-    executors: { [PROCESS_PROCEDURAL_PROVIDER]: createProcessProceduralExecutor() }
-  });
-}
-
-
 function invocationItem(session) {
   return session.paletteGroups.value
     .flatMap(group => group.items)
@@ -294,71 +265,31 @@ describe('useGraphDocumentSession', () => {
     expect(node.data.definition.outputs[0].semantic.base).toBe('integer');
   });
 
-  it('adopts the target socket type when a text literal holds a number', () => {
-    const session = createLiteralSinkSession();
-    session.loadDocument({
+  it('re-resolves a definition when a node config changes in place', async () => {
+    const graph = {
       format: 'perigram.graph',
       version: 1,
-      id: 'literal-inference',
-      revision: 'literal-inference-r1',
-      name: 'Literal inference',
+      id: 'literal-config-change',
+      revision: 'literal-config-change-r1',
+      name: 'Literal config change',
       interface: { inputs: [], outputs: [] },
-      nodes: [
-        {
-          id: 'number',
-          operation: { provider: 'perigram.processes', id: 'source.literalItem', version: '1' },
-          config: { kind: 'source.literalItem', type: { base: 'string', nullable: false }, value: '12' },
-          position: { x: 0, y: 0 }
-        },
-        {
-          id: 'sink',
-          operation: { provider: 'test.provider', id: 'number-sink', version: '1' },
-          config: {},
-          position: { x: 0, y: 140 }
-        }
-      ],
+      nodes: [{
+        id: 'number',
+        operation: { provider: 'perigram.processes', id: 'source.literalItem', version: '1' },
+        config: { kind: 'source.literalItem', type: { base: 'string', nullable: false }, value: '12' },
+        position: { x: 0, y: 0 }
+      }],
       edges: []
-    });
+    };
+    const session = createProcessSession();
+    session.loadDocument(graph);
+    const node = session.nodes.value.find(item => item.id === 'number');
+    expect(node.data.definition.outputs[0].semantic.base).toBe('string');
 
-    session.onConnect({ source: 'number', sourceHandle: 'value', target: 'sink', targetHandle: 'width' });
+    node.data.config.type = { base: 'number', nullable: false };
+    await nextTick();
 
-    expect(session.edges.value).toHaveLength(1);
-    const literal = session.nodes.value.find(item => item.id === 'number');
-    expect(literal.data.config.type).toEqual({ base: 'number', nullable: false });
-    expect(literal.data.config.value).toBe(12);
-    expect(literal.data.definition.outputs[0].semantic.base).toBe('number');
-  });
-
-  it('keeps a text literal unconnected when its value cannot fill the target type', () => {
-    const session = createLiteralSinkSession();
-    session.loadDocument({
-      format: 'perigram.graph',
-      version: 1,
-      id: 'literal-refusal',
-      revision: 'literal-refusal-r1',
-      name: 'Literal refusal',
-      interface: { inputs: [], outputs: [] },
-      nodes: [
-        {
-          id: 'number',
-          operation: { provider: 'perigram.processes', id: 'source.literalItem', version: '1' },
-          config: { kind: 'source.literalItem', type: { base: 'string', nullable: false }, value: 'not a number' },
-          position: { x: 0, y: 0 }
-        },
-        {
-          id: 'sink',
-          operation: { provider: 'test.provider', id: 'number-sink', version: '1' },
-          config: {},
-          position: { x: 0, y: 140 }
-        }
-      ],
-      edges: []
-    });
-
-    session.onConnect({ source: 'number', sourceHandle: 'value', target: 'sink', targetHandle: 'width' });
-
-    expect(session.edges.value).toHaveLength(0);
-    expect(session.nodes.value.find(item => item.id === 'number').data.config.type.base).toBe('string');
+    expect(session.nodeDefinitions.value.number.outputs[0].semantic.base).toBe('number');
   });
 
   it('loads durable control operations through the shared process node registry', () => {

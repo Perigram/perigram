@@ -15,7 +15,7 @@
            coordinate (context palette position, client→graph conversion)
            resolves against THIS box, and floating chrome inside it
            positions relative to it. -->
-      <div :ref="bindCanvasPane" class="absolute inset-0">
+      <div :ref="bindCanvasPane" class="absolute inset-4">
         <ClientOnly>
           <VueFlow
             v-model:nodes="nodes"
