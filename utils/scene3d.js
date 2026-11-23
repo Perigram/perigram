@@ -28,6 +28,32 @@ function faceTriangles(face) {
   return result;
 }
 
+// The one scene-3d composition pass: every scene value with vertices joins
+// one scene; face and normal indexes shift by the source vertex count.
+export function compositeScene3D(values = []) {
+  const scenes = [...new Set((Array.isArray(values) ? values : [])
+    .filter(value => value && typeof value === 'object' && Array.isArray(value.vertices) && value.vertices.length))];
+  if (!scenes.length) return null;
+  if (scenes.length === 1) return scenes[0];
+  const vertices = [];
+  const faces = [];
+  const normals = [];
+  let allNormals = true;
+  let offset = 0;
+  for (const scene of scenes) {
+    vertices.push(...scene.vertices);
+    for (const face of Array.isArray(scene.faces) ? scene.faces : []) {
+      if (Array.isArray(face)) faces.push(face.map(index => Number(index) + offset));
+    }
+    if (Array.isArray(scene.normals) && scene.normals.length === scene.vertices.length) normals.push(...scene.normals);
+    else allNormals = false;
+    offset += scene.vertices.length;
+  }
+  const value = { representation: 'perigram.scene-3d', vertices, faces };
+  if (allNormals && normals.length === vertices.length) value.normals = normals;
+  return value;
+}
+
 export function scene3dGeometry(value = {}) {
   const sourceVertices = Array.isArray(value?.vertices) ? value.vertices : [];
   if (!sourceVertices.length) return EMPTY;

@@ -46,13 +46,13 @@
         <PreviewChannelMount
           v-else-if="activeView === 'plugin' && rendererForOutput && typeof rendererForOutput === 'object'"
           :channel="rendererForOutput"
-          :payload="{ value: selectedValue, output: selectedPort }"
+          :payload="{ value: selectedValue, output: selectedOutput }"
         />
         <component
           :is="rendererForOutput"
           v-else-if="activeView === 'plugin' && typeof rendererForOutput === 'function'"
           :value="selectedValue"
-          :output="selectedPort"
+          :output="selectedOutput"
         />
         <GraphOutputView
           v-else
@@ -85,6 +85,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
 import { graphOutputViews } from '~/utils/graphOutputViews.js';
+import { compositeScene3D } from '~/utils/scene3d.js';
 import { isDocumentsPreviewValue } from '~/utils/documents-preview.js';
 import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 
@@ -122,47 +123,43 @@ const declaredOutputOptions = computed(() => (props.graph.interface?.outputs || 
     || '',
   value: props.result?.outputs?.[port.id]
 })));
-// Every evaluated node output is selectable beside the declared graph
-// outputs, so a canvas node renders its own value whether or not a Graph
-// Output boundary exposes it.
-const nodeOutputOptions = computed(() => {
-  const nodes = new Map((props.graph.nodes || []).map(node => [node.id, node]));
-  const options = [];
-  for (const [nodeId, outputs] of Object.entries(props.result?.nodeOutputs || {})) {
-    const node = nodes.get(nodeId);
-    if (!node || [GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION].includes(node.operation?.id)) continue;
-    const definition = props.nodeDefinitions?.[nodeId];
-    for (const [portId, value] of Object.entries(outputs || {})) {
-      const port = definition?.outputs?.find(item => item.id === portId);
-      options.push({
-        _id: `node:${nodeId}:${portId}`,
-        nodeId,
-        portId,
-        label: `${definition?.label || node.operation?.id || nodeId} · ${port?.label || portId}`,
-        representation: port?.semantic?.representation || value?.representation || '',
-        value
-      });
-    }
+// Every evaluated 3D scene joins one composite scene in the preview;
+// per-node values render in the selected node inspector.
+const sceneValues = computed(() => [...new Set([
+  ...declaredOutputOptions.value
+    .filter(option => option.representation === 'perigram.scene-3d' || Array.isArray(option.value?.vertices))
+    .map(option => option.value),
+  ...Object.entries(props.result?.nodeOutputs || {}).flatMap(([nodeId, outputs]) => {
+    const node = props.graph.nodes?.find(item => item.id === nodeId);
+    if (!node || [GRAPH_INPUT_OPERATION, GRAPH_OUTPUT_OPERATION].includes(node.operation?.id)) return [];
+    return Object.values(outputs || {}).filter(value => Array.isArray(value?.vertices));
+  })
+])]);
+const outputOptions = computed(() => {
+  const options = [...declaredOutputOptions.value];
+  const composite = compositeScene3D(sceneValues.value);
+  const declaredScene = options.some(option => (
+    ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation) && option.value === composite
+  ));
+  if (composite && !(declaredScene && sceneValues.value.length === 1)) {
+    options.unshift({
+      _id: 'scene:composite',
+      label: '3D scene',
+      representation: 'perigram.scene-3d',
+      value: composite
+    });
   }
   return options;
 });
-const outputOptions = computed(() => [...declaredOutputOptions.value, ...nodeOutputOptions.value]);
 const selectedOption = computed(() => outputOptions.value.find(option => option._id === selectedOutputId.value) || null);
 const selectedValue = computed(() => selectedOption.value?.value);
 const selectedOutput = computed(() => selectedOption.value?.interfaceId
   ? props.graph.interface?.outputs?.find(port => port.id === selectedOption.value.interfaceId) || null
   : null);
-const selectedPort = computed(() => selectedOutput.value
-  || (selectedOption.value?.nodeId
-    ? props.nodeDefinitions?.[selectedOption.value.nodeId]?.outputs?.find(port => port.id === selectedOption.value.portId) || null
-    : null));
 const outputNode = computed(() => props.graph.nodes?.find(node => (
   node.operation?.id === GRAPH_OUTPUT_OPERATION && node.config?.interfaceId === selectedOutput.value?.id
 )));
 const sourceNode = computed(() => {
-  if (selectedOption.value?.nodeId) {
-    return props.graph.nodes?.find(node => node.id === selectedOption.value.nodeId) || null;
-  }
   const edge = props.graph.edges?.find(item => item.target?.node === outputNode.value?.id && item.target?.port === 'value');
   return props.graph.nodes?.find(node => node.id === edge?.source?.node) || null;
 });
@@ -200,7 +197,7 @@ const availableViews = computed(() => {
 });
 const showControls = computed(() => outputOptions.value.length > 0
   && (outputOptions.value.length > 1 || availableViews.value.length > 1));
-watch([outputOptions, () => props.previewRenderers], ([options]) => {
+watch(outputOptions, options => {
   if (outputChosen.value && options.some(option => option._id === selectedOutputId.value)) return;
   const preferred = preferredOutput(options);
   if (preferred && preferred._id !== selectedOutputId.value) {
@@ -208,20 +205,12 @@ watch([outputOptions, () => props.previewRenderers], ([options]) => {
     viewChosen.value = false;
   }
 }, { immediate: true });
-// Default output: a scene value, then a node output whose plugin
-// renderer is mounted, then the declared graph output, then the first
-// node output.
+// Default output: the composite scene, then the declared graph output.
 function preferredOutput(options) {
   return options.find(option => ['perigram.scene-3d', 'perigram.scene-2d'].includes(option.representation))
-    || options.find(option => Boolean(nodeRenderer(option)))
     || options.find(option => option.interfaceId)
     || options[0]
     || null;
-}
-function nodeRenderer(option) {
-  const definition = props.nodeDefinitions?.[option.nodeId];
-  const rendererId = definition?.preview?.renderer;
-  return rendererId ? props.previewRenderers?.[`${definition.provider}:${rendererId}`] : null;
 }
 watch(selectedOutputId, () => { viewChosen.value = false; });
 watch(availableViews, views => {

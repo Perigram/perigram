@@ -105,6 +105,28 @@ describe('graph document inspector boundary declarations', () => {
     expect(html).toContain('Node output-1 is missing required input document');
   });
 
+  it('renders the selected node output in the inspector', async () => {
+    const html = await render({
+      node: {
+        id: 'mesh',
+        data: {
+          label: 'Tessellate',
+          definition: {
+            provider: 'plugin.cad-occt',
+            id: 'tessellate-shape',
+            version: '1',
+            outputs: [{ id: 'value', label: 'Value', semantic: { base: 'json', representation: 'perigram.scene-3d' } }]
+          }
+        }
+      },
+      nodeOutput: {
+        value: { representation: 'perigram.scene-3d', vertices: [[0, 0, 0], [10, 0, 0], [10, 10, 10]], faces: [[0, 1, 2]] }
+      }
+    });
+    expect(html).toContain('data-node-output-preview');
+    expect(html).toContain('data-scene-3d');
+  });
+
   it('renders Bake in the Graph Output node inspector', async () => {
     const html = await render({
       node: outputNode,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scene3dGeometry } from './scene3d.js';
+import { compositeScene3D, scene3dGeometry } from './scene3d.js';
 
 const cube = {
   representation: 'perigram.scene-3d',
@@ -62,5 +62,20 @@ describe('scene3dGeometry', () => {
     const geometry = scene3dGeometry({ vertices: cube.vertices, faces: [[7, 6, 5, 4]] });
     expect(geometry.indices).toEqual([7, 6, 5, 7, 5, 4]);
     expect(geometry.edges).toEqual([7, 6, 6, 5, 5, 4, 4, 7]);
+  });
+});
+
+describe('compositeScene3D', () => {
+  it('merges scene vertices and shifts face indexes into one value', () => {
+    const upper = { representation: 'perigram.scene-3d', vertices: [[0, 0, 10], [1, 0, 10], [0, 1, 10]], faces: [[0, 1, 2]] };
+    const merged = compositeScene3D([cube, upper]);
+    expect(merged.vertices).toHaveLength(11);
+    expect(merged.faces).toEqual([[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [8, 9, 10]]);
+    expect(scene3dGeometry(merged).vertexCount).toBe(11);
+  });
+
+  it('returns a single scene unchanged and ignores frames without vertices', () => {
+    expect(compositeScene3D([cube])).toBe(cube);
+    expect(compositeScene3D([{ representation: 'perigram.scene-3d' }, null])).toBeNull();
   });
 });

@@ -51,6 +51,8 @@
             :node="selectedNode"
             :type-options="graphTypeOptions"
             :node-output="previewResult?.nodeOutputs?.[selectedNode?.id] || null"
+            :node-definition="selectedNode ? nodeDefinitions?.[selectedNode.id] : null"
+            :preview-renderers="previewRenderers"
             :boundary-declaration="selectedBoundaryDeclaration"
             :graph-documents="graphDocuments"
             :graph-documents-loading="graphDocumentsLoading"

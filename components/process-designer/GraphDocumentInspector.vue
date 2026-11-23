@@ -210,6 +210,23 @@
       </p>
     </template>
     <Message v-else severity="warn">{{ $t('processDesigner.graphUnavailableNode') }}</Message>
+    <div v-if="!isBoundary && outputPorts.length" class="flex flex-col gap-2 border-t border-surface pt-3" data-node-output-preview>
+      <strong class="text-supporting">{{ $t('processDesigner.outputPreview') }}</strong>
+      <div v-for="port in outputPorts" :key="port.id" class="flex min-w-0 flex-col gap-1">
+        <span class="text-supporting text-muted">{{ port.label || port.id }}</span>
+        <PreviewChannelMount
+          v-if="rendererForPort"
+          :channel="rendererForPort"
+          :payload="{ value: nodeOutput[port.id], output: port }"
+        />
+        <GraphOutputView
+          v-else
+          :value="nodeOutput[port.id]"
+          :representation="port.semantic?.representation || ''"
+          :alt="port.label || port.id"
+        />
+      </div>
+    </div>
   </div>
   <StateBlock v-else :message="$t('processDesigner.graphNoSelection')" />
 </template>
@@ -228,6 +245,8 @@ import TypedLiteralControl from '~/components/process-designer/TypedLiteralContr
 import TemplateValuesControl from '~/components/process-designer/TemplateValuesControl.vue';
 import GraphInputBindingControl from '~/components/process-designer/inspector/GraphInputBindingControl.vue';
 import GraphOutputBakeControl from '~/components/process-designer/inspector/GraphOutputBakeControl.vue';
+import PreviewChannelMount from '~/components/process-designer/PreviewChannelMount.vue';
+import GraphOutputView from '~/components/shared/GraphOutputView.vue';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { GRAPH_INPUT_OPERATION, GRAPH_INVOKE_OPERATION, GRAPH_OUTPUT_OPERATION } from '@perigram/core';
@@ -254,7 +273,9 @@ const props = defineProps({
   execution: { type: Object, default: null },
   canBakeToSavedGraph: { type: Boolean, default: false },
   baking: { type: Boolean, default: false },
-  nodeOutput: { type: [Object, Array, String, Number, Boolean], default: null }
+  nodeOutput: { type: [Object, Array, String, Number, Boolean], default: null },
+  nodeDefinition: { type: Object, default: null },
+  previewRenderers: { type: Object, default: () => ({}) }
 });
 const emit = defineEmits(['update-config', 'update-boundary-label', 'update-boundary-declaration', 'hydrate-graph', 'select-graph-document', 'update-input-binding', 'bake']);
 const configDraft = ref({});
@@ -284,6 +305,17 @@ const isGraphInvocation = computed(() => props.node?.data?.operation?.id === GRA
 const templateOutput = computed(() => props.nodeOutput?.value ?? props.nodeOutput);
 const templateTokens = computed(() => Array.isArray(templateOutput.value?.meta?.tokens) ? templateOutput.value.meta.tokens : []);
 const templateSections = computed(() => Array.isArray(templateOutput.value?.meta?.sections) ? templateOutput.value.meta.sections : []);
+const outputDefinition = computed(() => props.nodeDefinition || props.node?.data?.definition || null);
+const outputPorts = computed(() => {
+  const values = props.nodeOutput && typeof props.nodeOutput === 'object' ? props.nodeOutput : {};
+  return (outputDefinition.value?.outputs || []).filter(port => Object.hasOwn(values, port.id));
+});
+const rendererForPort = computed(() => {
+  const rendererId = outputDefinition.value?.preview?.renderer;
+  return rendererId
+    ? props.previewRenderers?.[`${outputDefinition.value.provider}:${rendererId}`] || null
+    : null;
+});
 const configFields = computed(() => Object.entries(props.node?.data?.definition?.configuration?.properties || {})
   .map(([id, schema]) => ({
     id,

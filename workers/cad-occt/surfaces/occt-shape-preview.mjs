@@ -38,6 +38,25 @@ function sceneValue(shapeMesh) {
   return value;
 }
 
+function compositeScene(scenes) {
+  if (scenes.length <= 1) return scenes[0] || null;
+  const vertices = [];
+  const faces = [];
+  const normals = [];
+  let allNormals = true;
+  let offset = 0;
+  for (const scene of scenes) {
+    vertices.push(...scene.vertices);
+    for (const face of scene.faces || []) faces.push(face.map(index => index + offset));
+    if (Array.isArray(scene.normals) && scene.normals.length === scene.vertices.length) normals.push(...scene.normals);
+    else allNormals = false;
+    offset += scene.vertices.length;
+  }
+  const value = { representation: 'perigram.scene-3d', vertices, faces };
+  if (allNormals && normals.length === vertices.length) value.normals = normals;
+  return value;
+}
+
 function shapeValues(payload = {}) {
   const found = [];
   const seen = new Set();
@@ -86,7 +105,7 @@ export default function createSurface(ctx) {
         try {
           await ensureKernel();
           const built = values.map(value => sceneValue(mesh(unwrap(fromBREP(value.brep)), {})));
-          if (current === token) scenes.value = built;
+          if (current === token) scenes.value = built.length ? [compositeScene(built)] : [];
         } catch (cause) {
           if (current === token) error.value = cause?.message || String(cause);
         } finally {
