@@ -55,7 +55,7 @@ class PlatformPluginWorker {
     mkdirSync(workerDir, { recursive: true });
     cpSync(resolve(pluginRoot, '../../shared/plugin-runtime.js'), join(workerDir, 'plugin-runtime.js'));
     const source = readFileSync(resolve(pluginRoot, '../../composables/plugin-runtime.worker.js'), 'utf8')
-      .replace("'../shared/plugin-runtime.js'", "'./plugin-runtime.js'");
+      .replace("'#shared/plugin-runtime.js'", "'./plugin-runtime.js'");
     writeFileSync(join(workerDir, 'plugin-runtime.worker.mjs'), source);
     const shim = `
 const { parentPort } = await import('node:worker_threads');
