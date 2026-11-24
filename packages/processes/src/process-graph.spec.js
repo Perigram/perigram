@@ -81,6 +81,27 @@ describe('canonical process graph document', () => {
     expect(() => createProcessGraphDocument(source)).toThrow(/no source or target port/);
   });
 
+  it('keeps activation records top-level and out of authored source data', () => {
+    const source = definition();
+    const first = createProcessGraphDocument(source);
+    const withActivationRecords = {
+      ...source,
+      history: [{ at: '2026-01-01T00:00:00.000Z', actor: 'u1', data: { processNodes: source.processNodes } }],
+      activated: { processNodes: source.processNodes },
+      compiled: { actions: {} }
+    };
+    const graph = createProcessGraphDocument(withActivationRecords);
+    const sourceData = graph.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData;
+    expect(sourceData.history).toBeUndefined();
+    expect(sourceData.activated).toBeUndefined();
+    expect(sourceData.compiled).toBeUndefined();
+    expect(graph.revision).toBe(first.revision);
+    const restored = authoredProcessDataFromGraphDocument(graph);
+    expect(restored.history).toBeUndefined();
+    expect(restored.activated).toBeUndefined();
+    expect(restored.compiled).toBeUndefined();
+  });
+
   it('projects the canonical graph back to authored process data', () => {
     const source = definition();
     const restored = authoredProcessDataFromGraphDocument(createProcessGraphDocument(source));

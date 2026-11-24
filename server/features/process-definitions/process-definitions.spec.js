@@ -26,7 +26,12 @@ import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { stateService } from '~/server/core/machines/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
-import { authoredProcessDataFromGraphDocument, PROCESS_DATAFLOW_VERSION } from '#packages/processes';
+import {
+  authoredProcessDataFromGraphDocument,
+  createProcessGraphDocument,
+  PROCESS_DATAFLOW_VERSION,
+  PROCESS_GRAPH_METADATA_KEY
+} from '#packages/processes';
 import { createTypeRegistry, frameworkTypes } from '#packages/cts';
 import { cncTypePack } from '@perigram/cts/pack/cnc';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
@@ -345,6 +350,33 @@ describe('current process-definition service contract', () => {
     expect(stored.compiled).toBeNull();
     expect(authoredProcessDataFromGraphDocument(stored)).toEqual(authored);
     expect(result.data.format).toBe('perigram.graph');
+  });
+
+  it('keeps activation records server-owned and compact across saves', async () => {
+    const authored = createPersistedAcceptanceFixture().processDefinition.data;
+    const canonical = createProcessGraphDocument(authored);
+    canonical.history = [{
+      at: '2026-01-01T00:00:00.000Z',
+      actor: 'admin',
+      data: canonical
+    }];
+    canonical.activated = canonical;
+    canonical.compiled = { actions: {} };
+    processRepository.findById.mockResolvedValue(draftRecord(canonical));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    await update('process-draft', { data: createProcessGraphDocument(authored) }, adminAuth());
+
+    const stored = processRepository.updateById.mock.calls[0][1].data;
+    expect(stored.history).toHaveLength(1);
+    expect(stored.history[0].data.processNodes).toEqual(authored.processNodes);
+    expect(stored.history[0].data.history).toBeUndefined();
+    expect(stored.history[0].data.activated).toBeUndefined();
+    expect(stored.history[0].data.compiled).toBeUndefined();
+    expect(stored.activated).toBeDefined();
+    expect(stored.activated.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.history).toBeUndefined();
+    expect(stored.activated.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.activated).toBeUndefined();
+    expect(stored.activated.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.compiled).toBeUndefined();
   });
 
   it('creates a draft from a bare name (the empty current-protocol document seeds)', async () => {
@@ -900,6 +932,32 @@ describe('current process-definition service contract', () => {
     expect(Array.isArray(persisted.data.history)).toBe(true);
     expect(persisted.data.history).toHaveLength(1);
     expect(persisted.data.history[0].data.processNodes).toEqual(fixture.processDefinition.data.processNodes);
+  });
+
+  it('stores the superseded authored snapshot when re-activating a canonical definition', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const authored = fixture.processDefinition.data;
+    const canonical = createProcessGraphDocument(authored);
+    canonical.history = [{ at: '2026-01-01T00:00:00.000Z', actor: 'admin', data: canonical }];
+    canonical.activated = canonical;
+    const activeRecord = {
+      ...draftRecord(canonical),
+      _id: 'process-draft',
+      status: { ...draftRecord(canonical).status, state: 'ACTIVE' }
+    };
+    processRepository.findById.mockResolvedValue(activeRecord);
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+    processRepository.findActiveSetByOrganization.mockResolvedValue([activeRecord]);
+
+    await activate('process-draft', adminAuth());
+
+    const persisted = processRepository.updateById.mock.calls[0][1].toJSON();
+    const superseded = persisted.data.history.at(-1);
+    expect(superseded.data.processNodes).toEqual(authored.processNodes);
+    expect(superseded.data.history).toBeUndefined();
+    expect(superseded.data.activated).toBeUndefined();
+    expect(superseded.data.compiled).toBeUndefined();
+    expect(persisted.data.activated.metadata[PROCESS_GRAPH_METADATA_KEY].sourceData.history).toBeUndefined();
   });
 
   it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
