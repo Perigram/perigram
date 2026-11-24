@@ -1050,7 +1050,8 @@ providers.
 - [ ] WAITING — owner verification: Cassette create/save from the
   collection's New button ends clean. The first Save creates the record,
   reloads the stored template, and clears the dirty marker; opening a
-  stored cassette also opens clean.
+  stored cassette also opens clean. A cassette created from a parent
+  collection is persisted under that parent as the editor opens.
 
   ### Agent Notes (2026-11-24, cassette save dirty marker)
 
@@ -1065,6 +1066,15 @@ providers.
   adopt it through `server/scripts/migrate-facade-cassette-surface.js`.
   Regression: `e2e/cassette-save.spec.js` (first save persists, Save
   returns to clean, and the collection lists the record).
+
+  Editor-protocol creates from a parent collection were opening the
+  unscoped blank editor, so the saved cassette carried no lineage and
+  never appeared in that collection. `GeneratedScreenHost` now resolves
+  the launch parent through the create dialog's own lineage row contract
+  (`scopedLineageData`), runs the construct with that binding, and opens
+  the created record's editor. Regression:
+  `e2e/cassette-scoped-create.spec.js` (the cassette exists under the
+  library as the editor opens).
 
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
   hosting. Current inventory: all 34 declared Documents services run behind
