@@ -169,14 +169,23 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('layoutLoop', { type: { base: 'json', nullable: true } });
   authoring.drop('castValue', { id: 'layoutRecord' });
   authoring.configure('layoutRecord', { outputType: { base: 'record' } });
-  authoring.drop('recordField', { id: 'layoutKey' });
-  authoring.configure('layoutKey', { path: 'compositionKey', type: { base: 'string', nullable: true } });
-  authoring.drop('lookupByKey', { id: 'matchStored' });
-  authoring.configure('matchStored', { itemsKey: 'fields.compositionKey' });
-  authoring.drop('recordField', { id: 'matchFound' });
-  authoring.configure('matchFound', { path: 'found', type: { base: 'boolean', nullable: false } });
+  authoring.drop('joinByKey', { id: 'matchStored' });
+  authoring.configure('matchStored', {
+    leftKey: 'compositionKey', rightKey: 'fields.compositionKey', joinMode: 'left'
+  });
   authoring.drop('recordField', { id: 'matchDesign' });
-  authoring.configure('matchDesign', { path: 'item', type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
+  authoring.configure('matchDesign', { path: 'right', type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
+  authoring.drop('literal', { id: 'matchNull' });
+  authoring.configure('matchNull', {
+    type: { base: 'entityRef', typeId: 'sheet-design', nullable: true },
+    typeId: 'sheet-design',
+    value: null
+  });
+  authoring.drop('compareValues', { id: 'matchFound' });
+  authoring.configure('matchFound', {
+    type: { base: 'entityRef', typeId: 'sheet-design', nullable: true },
+    operation: 'neq'
+  });
 
   authoring.drop('construct', { id: 'mkSheetInstance' });
   authoring.wireDeclaration('sheetInstanceRef', 'mkSheetInstance', 'binds');
@@ -278,12 +287,12 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.connect('solveLayouts', 'data:value', 'layoutLoop', 'data:items');
   authoring.connect('layoutLoop', 'data:item', 'layoutRecord', 'data:value');
-  authoring.connect('layoutRecord', 'data:value', 'layoutKey', 'data:value');
-  authoring.connect('layoutKey', 'data:value', 'matchStored', 'data:keys');
-  authoring.connect('storedSheets', 'data:result', 'matchStored', 'data:items');
-  authoring.connect('matchStored', 'data:matches', 'matchFound', 'data:value');
-  authoring.connect('matchStored', 'data:matches', 'matchDesign', 'data:value');
-  authoring.connect('matchFound', 'data:value', 'hasStoredBranch', 'data:condition');
+  authoring.connect('layoutRecord', 'data:value', 'matchStored', 'data:left');
+  authoring.connect('storedSheets', 'data:result', 'matchStored', 'data:right');
+  authoring.connect('matchStored', 'data:pairs', 'matchDesign', 'data:value');
+  authoring.connect('matchDesign', 'data:value', 'matchFound', 'data:left');
+  authoring.connect('matchNull', 'data:value', 'matchFound', 'data:right');
+  authoring.connect('matchFound', 'data:result', 'hasStoredBranch', 'data:condition');
 
   authoring.connect('attempt', 'data:result', 'mkSheetInstance', 'data:lineage.nestingAttemptId');
   authoring.connect('attempt', 'data:result', 'mkSheet', 'data:lineage.nestingAttemptId');
