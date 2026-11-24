@@ -258,8 +258,9 @@ SDK contract refuses the rest, including `handler` resolves, which only
 endpoint executors bind). A projection is a synchronous read inside the
 caller's request and parks on no queue. The platform
 reads the target instance and dispatches `{ typeId, instanceId, fields,
-payloadBase64? }` — the instance's §3 field values and,
-when it carries one, its payload as base64; the service's JSON response
+payloadBase64?, mime?, name? }` — the instance's §3 field values and,
+when it carries one, its payload as base64 with the payload reference's
+MIME type and file name; the service's JSON response
 is the projection value (`resolveProjectionValue` here; the process
 runtime's `projectEntity` calls it). Pure compute over values — the
 platform carries no plugin code.

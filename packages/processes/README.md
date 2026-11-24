@@ -219,7 +219,8 @@ typeId already uses).
 ## Canonical process graph document
 
 `createProcessGraphDocument()` emits the persisted process envelope: the
-canonical `perigram.graph` document. Executable nodes carry their authored
+canonical `perigram.graph` document. A wire whose handle names a control
+socket canonicalizes as a `control` edge. Executable nodes carry their authored
 configuration under `config.data` and their process record under
 `config.record`; process-wide records, schema/dataflow version, and the
 viewport live under `metadata['perigram.process-definition']`.
@@ -1348,7 +1349,7 @@ aligned key list produced by Get Field:
 | Distinct | `items` plus optional `keys`: with keys, keeps the first item per aligned key value; keyless, dedups the items themselves by structural equality. |
 | Group By | `items` + `keys`, grouped by the aligned key, appending a group index to each source branch path; the `keys` output emits the grouping key of each branch, tree-aligned with `groups`. |
 | Slice / Item At | Authorable integer fallbacks (`start`/`end`, `index`) with native negative-index and empty-list semantics; Item At resolves an absent, out-of-range, or empty index to null. |
-| Join | Inner mode requires every left key to match one right entry; left mode emits `{ left, right: null }` for unmatched keys. |
+| Join | Inner mode requires every left key to match one right entry; left mode emits `{ left, right: null }` for unmatched keys. An empty data tree reads as an empty list. |
 
 Sort, Distinct, and Group By reuse the strict `alignSelectorPackets`
 alignment shared with Filter/Dispatch, rejecting any branch-path or
