@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createRuntime } from './server.mjs';
+import listing from '../listing.json';
 
 describe('Nesting managed runtime', () => {
+  it('declares browser and server execution for the graph operation', () => {
+    const runtime = listing.declarations.runtimes.find(item => item.id === 'nesting-server');
+    const service = listing.declarations.services.find(item => item.id === 'nesting-solve');
+    expect(runtime.targets).toEqual(['browser', 'server']);
+    expect(service.execution.targets).toEqual(['browser', 'server']);
+    expect(service.palette.group).toBe('nesting');
+  });
+
   it('solves generic polygon parts and preserves source metadata for consumers', async () => {
     const call = vi.fn(async (_name, request) => ({
       bins:[{id:0,shape:{data:{outer:[[0,0],[100,0],[100,100],[0,100],[0,0]],inner:[]}}}],

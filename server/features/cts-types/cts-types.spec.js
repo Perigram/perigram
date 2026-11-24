@@ -29,6 +29,8 @@ vi.mock('./repository.js', () => ({
 import * as repository from './repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+import facadeListing from '../../../workers/facade/listing.json' with { type: 'json' };
+import nestingListing from '../../../workers/nesting/listing.json' with { type: 'json' };
 const documentsTypes = documentsListing.declarations.types;
 pluginInstalls.listDeclarationsByOrganization.mockImplementation(async () => documentsTypes);
 import { compileRegistryForOrganization, defineType, removeType, describeOrganizationTypes } from './service.js';
@@ -192,11 +194,76 @@ describe('cts type storage', () => {
         targets: ['browser', 'server'], entryUrl: '/api/plugins/coatings/module/runtime.mjs'
       },
       services: [{ id: 'shape', execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' } }],
+      nodeDefinitions: [],
       previewRenderers: []
     }]);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
+
+  it('serves normalized graph-node definitions for browser-targeted managed services', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      organizationId: ORG,
+      pluginId: 'coatings',
+      version: '4',
+      declarations: {
+        runtimes: [{ id: 'javascript', language: 'javascript', version: '1', entry: '/runtime.mjs', targets: ['browser', 'server'] }]
+      },
+      services: [
+        {
+          id: 'match',
+          label: 'Match coating',
+          palette: { group: 'coatings', label: 'Coatings' },
+          signature: { input: { base: 'record', fields: { code: { base: 'string' } } }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', kind: 'pure', targets: ['browser', 'server'], capabilities: [] }
+        },
+        {
+          id: 'helper',
+          palette: { group: 'coatings', visible: false },
+          signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', kind: 'pure', targets: ['browser'], capabilities: [] }
+        }
+      ]
+    }]);
+    const view = await describeOrganizationTypes(ORG);
+    expect(view.clientRuntimes[0].nodeDefinitions).toEqual([
+      expect.objectContaining({
+        provider: 'plugin.coatings',
+        id: 'match',
+        version: '1',
+        label: 'Match coating',
+        palette: { group: 'coatings', label: 'Coatings', keywords: [] },
+        execution: expect.objectContaining({ runtime: 'javascript', targets: ['browser', 'server'] })
+      })
+    ]);
+  });
+
+  it('serves the Facade and Nesting graph operations from their installed listings', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([
+      {
+        organizationId: ORG,
+        pluginId: facadeListing.pluginId,
+        name: facadeListing.name,
+        version: facadeListing.version,
+        declarations: { runtimes: facadeListing.declarations.runtimes },
+        services: facadeListing.declarations.services
+      },
+      {
+        organizationId: ORG,
+        pluginId: nestingListing.pluginId,
+        name: nestingListing.name,
+        version: nestingListing.version,
+        declarations: { runtimes: nestingListing.declarations.runtimes },
+        services: nestingListing.declarations.services
+      }
+    ]);
+    const view = await describeOrganizationTypes(ORG);
+    const definitions = view.clientRuntimes.flatMap(binding => binding.nodeDefinitions);
+    expect(definitions.map(definition => `${definition.provider}/${definition.id}`).sort()).toEqual([
+      'plugin.facade/match-sheet',
+      'plugin.nesting/nesting-solve'
+    ]);
+  });
 
   it('resolves plugin preview surfaces for worker node renderers', async () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{

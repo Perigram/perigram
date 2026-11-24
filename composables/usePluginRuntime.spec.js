@@ -82,6 +82,30 @@ describe('usePluginRuntime', () => {
       .resolves.toEqual({ operationId: 'math.double', input: { input: 2 } });
   });
 
+  it('fills runtime provider contributions from served listing node definitions', async () => {
+    const runtimeDefinition = {
+      provider: 'plugin.demo', id: 'runtime.op', version: '1', inputs: [], outputs: [],
+      palette: { group: 'demo' },
+      execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+    };
+    const servedDefinition = {
+      provider: 'plugin.demo', id: 'served.op', version: '1', inputs: [], outputs: [],
+      palette: { group: 'demo' },
+      execution: { kind: 'pure', runtime: 'javascript', targets: ['browser'] }
+    };
+    const worker = new FakeWorker([{ provider: 'plugin.demo', definitions: [runtimeDefinition] }]);
+    const pluginRuntime = usePluginRuntime({ createWorker: () => worker });
+    const providers = await pluginRuntime.loadProviders({
+      ...binding,
+      nodeDefinitions: [runtimeDefinition, servedDefinition]
+    }, runtime);
+    const provider = providers.find(item => item.definitions.some(definition => definition.id === 'served.op'));
+    expect(providers.flatMap(item => item.definitions.map(definition => definition.id))).toEqual(['runtime.op', 'served.op']);
+    await expect(provider.execute(provider.definitions[0], { input: 3 }))
+      .resolves.toEqual({ operationId: 'served.op', input: { input: 3 } });
+    pluginRuntime.dispose();
+  });
+
   it('loads the Documents listing-derived provider and dispatches a graph invocation', async () => {
     const documents = createDocumentsRuntime();
     const worker = new FakeWorker(documents.providers);
