@@ -51,6 +51,7 @@ import {
   actionLabelKey,
   localizedLabel,
   resolveCreateDialogInputs,
+  scopedLineagePayload,
   resolveRunDialogInputs,
   createDialogPayload,
   numericControlWrite,
@@ -1791,5 +1792,57 @@ describe('builder field derivation', () => {
 
   it('returns direct fields alone without a bundle', () => {
     expect(builderFieldsForType(documentType).map(field => field.name)).toEqual(['title', 'pages', 'grade', 'secret', 'madeAt']);
+  });
+});
+
+describe('scopedLineagePayload', () => {
+  const bundle = {
+    types: [
+      {
+        id: 'library',
+        edges: {
+          children: {
+            cassettes: { lineageKey: 'libraryId', types: ['cassette-template'] }
+          }
+        }
+      },
+      { id: 'cassette-template', fields: { name: { base: 'string', identifier: true } } }
+    ]
+  };
+  const action = {
+    actionKind: 'createEntity',
+    typeId: 'cassette-template',
+    inputPolicy: {
+      fields: [{
+        id: 'lineage.libraryId',
+        path: 'lineage.libraryId',
+        type: 'entity',
+        typeId: 'library',
+        prompt: true
+      }]
+    },
+    construction: { mode: 'editor', inputs: ['lineage.libraryId'] }
+  };
+
+  it('binds the launch parent on the create lineage row', () => {
+    expect(scopedLineagePayload(action, {
+      scopeTypeId: 'library',
+      scopeId: 'library-1',
+      type: bundle.types[1],
+      bundle
+    })).toEqual({ 'lineage.libraryId': 'library-1' });
+  });
+
+  it('leaves a contextless launch empty', () => {
+    expect(scopedLineagePayload(action, { type: bundle.types[1], bundle })).toEqual({});
+  });
+
+  it('ignores a scope whose type the create does not accept', () => {
+    expect(scopedLineagePayload(action, {
+      scopeTypeId: 'organization',
+      scopeId: 'org-1',
+      type: bundle.types[1],
+      bundle
+    })).toEqual({});
   });
 });

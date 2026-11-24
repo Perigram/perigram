@@ -122,7 +122,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { LAYOUT, resolveCreateDialogInputs, resolveRunDialogInputs, createDialogRowUnfilled, createDialogPayload } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveCreateDialogInputs, resolveRunDialogInputs, createDialogRowUnfilled, createDialogPayload, scopedLineagePayload } from '#shared/ui-mapping/index.js';
 import InstancePicker from './InstancePicker.vue';
 import SpotPartsRow from './SpotPartsRow.vue';
 import LayerMappingRow from './LayerMappingRow.vue';
@@ -227,11 +227,12 @@ function seedDraft() {
   }
   const scoped = props.scopedInstance;
   if (scoped) {
-    for (const row of rows.value) {
-      if (row.lineage?.accepts?.includes(scoped.type)) {
-        draft[row.id] = { type: scoped.type, id: scoped.id };
-      }
-    }
+    Object.assign(draft, scopedLineagePayload(props.action, {
+      scopeTypeId: scoped.type,
+      scopeId: scoped.id,
+      type: type.value,
+      bundle: props.bundle
+    }));
   }
 }
 
