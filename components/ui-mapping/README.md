@@ -217,10 +217,13 @@ application.
   blocks also edit and delete. A text block is seamless document
   content: click mounts the engine inline at the click point (crepe's
   page chrome stripped through `ck-inline-editor`), Escape or
-  Cmd/Ctrl+Enter closes it, and Enter at the block's end starts the
-  next block. An empty paragraph keeps Enter inside the same block, so
-  sequential empty lines never stack as separate blocks. Backspace in an
-  empty block removes it and resumes the previous text block. An arrow
+  Cmd/Ctrl+Enter closes it. Enter splits the focused top-level textblock
+  at the caret and starts the next block from the tail; an empty
+  paragraph keeps Enter inside the same block, folding sequential empty
+  lines into one block. Backspace in an empty block removes it
+  and resumes the previous text block; Backspace at a non-empty block's
+  start appends the block into the previous text block; Delete at a
+  block's end appends the next text block into the current one. An arrow
   key at a text block's visual edge continues in the adjacent text block
   at its start or end. The engine scrolls the block into view on mount.
   Inline instance references ride the text as `#instance:` links; the
@@ -231,8 +234,9 @@ application.
   the live engine mounts from the first activation. Enter commits its
   text as a block and leaves a fresh empty line, and
   Backspace in its empty line resumes the document's last text block. It
-  is the document's single placeholder: empty text blocks render nothing
-  and drop when their editor closes. `TrailingTextBlock` is the one
+  is the document's single placeholder and mounts only while no block
+  editor holds focus: empty text blocks render nothing and drop when
+  their editor releases focus. `TrailingTextBlock` is the one
   mount; the custom page
   ([generated](../generated/README.md)) renders the same component over
   its page session. The record's own

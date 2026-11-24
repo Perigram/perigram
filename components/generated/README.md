@@ -235,7 +235,14 @@ the `section` field set.
   delete; the document's trailing line is
   [ui-mapping](../ui-mapping/README.md)'s shared `TrailingTextBlock`,
   mounted while no block editor holds focus — the single placeholder of
-  the document. The page frame carries no typography role: every editor
+  the document. Enter splits the focused top-level textblock at the caret
+  into two page blocks; Backspace at a block's start appends it to the
+  previous text block and Delete at its end appends the next text block.
+  Empty text blocks drop when their editor releases focus and on the
+  stored-document seed. Text blocks co-edit live through
+  [usePageCollab](../../composables/README.md): each block binds its own Yjs
+  document with cursor awareness, while one page-level document syncs
+  block order and metadata over the `page:<pageId>` connections topic. The page frame carries no typography role: every editor
   host and read face owns its own voice, so the header, the class
   collection, and the controls keep the interface font. Insertion is contextual
   (SPEC §27.1): the slash panel and the gutter plus carry Link to record
@@ -343,7 +350,10 @@ the `section` field set.
   document's trailing line is
   always mounted while no block editor holds focus — the idle placeholder
   alone, the live engine from the first activation; Enter commits it as a block
-  and Backspace in its empty line resumes the last text block. Arrow keys
+  and Backspace in its empty line resumes the last text block. Enter splits
+  a focused top-level textblock at the caret; Backspace at a block's start
+  joins it into the previous text block and Delete at its end joins the
+  next one. Arrow keys
   at a text block's visual edge continue in the adjacent text block. The composition and its authoring
   affordances live in
   [components/ui-mapping](../ui-mapping/README.md) (the record

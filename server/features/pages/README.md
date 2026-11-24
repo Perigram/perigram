@@ -85,7 +85,22 @@ Service seam: `listTree`, `getById`, `create`, `update`, `remove`; `retractBaked
 | `GET /api/pages/backlinks/:typeId/:instanceId` | Discover derived page backlinks from the owning organization's page documents. |
 | `PATCH /api/pages/:id` | Rename / move / save the block document (`{ name?, parentId?, blocks?, order? }`, any subset); removing file blocks retracts page-owned blobs that no longer have references. |
 | `POST /api/pages/:id/files` | Attach a baked file to this exact page at a validated relative path, with explicit conflict policy (`fail`, `create-revision`, admin-only `replace`, or `create-distinct-name`); GridFS bytes and page document references are updated with a compare-and-swap write. |
+| `POST /api/pages/:id/collab` | Live co-editing transport operations (`claim`, `sync`, `update`, `awareness`) for the page's Yjs documents; org membership is the gate. |
 | `DELETE /api/pages/:id` | Delete; children become roots. |
+
+## Collaboration
+
+`collab.js` holds per-page Yjs state in worker memory: one `structure`
+document for block order and block metadata, and one `block:<id>` document
+for each text block. `claim` leases an uninitialized document to one client
+for five seconds; `update` with `seed: true` replaces the held state with
+the owner's full document and clears the lease. `sync` answers with the
+state missing from the caller's state vector. `awareness` fans cursor
+updates out and drops them. Seeded and live updates broadcast on the
+connections topic `page:<pageId>` (admitted by organization ownership);
+the server-side Yjs state is ephemeral and the persisted `fields.blocks` +
+`fields.order` document remains the source of truth, written by the
+client's ordinary page save.
 
 ## Related
 

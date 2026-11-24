@@ -2936,6 +2936,31 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
   authors flush at the click point, autosave keeps the editor open, the
   gutter plus opens the slash vocabulary, and the header carries the
   type's saved views as tabs.
+- [ ] WAITING — owner verification: Notion block seams and live page
+  co-editing — Enter splits at the caret, Backspace joins the previous
+  text block, Delete joins the next one, the single trailing placeholder
+  appears only while no block editor has focus, empty text blocks drop on
+  blur and on load, and two sessions edit the same page with live cursors.
+
+### Agent Notes (2026-11-24, agent/page-edit-flow-20261124-1935)
+
+- `CrepeEditor` intercepts Enter, Backspace, and Delete at block
+  boundaries: Enter serializes both halves of the focused top-level
+  textblock, Backspace appends the block into the previous text block
+  through its live editor, and Delete appends the next text block into the
+  current one.
+- Empty text blocks drop on the document seed and when their editor
+  releases focus; `TrailingTextBlock` mounts only while no block editor
+  holds focus. Inline page editors mount flush; the page surface owns the
+  scroll column.
+- `usePageCollab` carries one structure Yjs document and one Yjs document
+  per text block over the `page:<pageId>` connections topic. The pages
+  feature's in-memory collab store leases and seeds uninitialized
+  documents; saves pull missed Yjs state before serializing blocks.
+- Focused vitest: `usePageDocument`, `useRecordOverlay`, page collab
+  transport, generated/worker surfaces (four pre-existing
+  `graph-output-embed` representation failures reproduce on the base),
+  custom-page SSR smoke, and both syntax checks.
 
 ### Agent Notes (2026-11-08, agent/notion-blocks-20261108)
 

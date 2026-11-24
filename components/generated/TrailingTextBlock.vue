@@ -1,5 +1,5 @@
 <template>
-  <div v-if="session?.writable && !session.editingBlockId && !session.activeBlockId" class="ck-doc-tail min-h-6">
+  <div v-if="session?.writable && session.collabReady !== false && !session.editingBlockId && !session.activeBlockId" class="ck-doc-tail min-h-6">
     <CrepeEditor
       v-if="activated"
       :key="editorKey"
@@ -7,7 +7,8 @@
       class="ck-inline-editor"
       :default-value="draft"
       :placeholder="t('editors.slashHint')"
-      split-on-enter
+      :scroll="false"
+      commit-on-enter
       delete-on-empty-backspace
       @ready="focusIfRequested"
       @update="text => (draft = text)"

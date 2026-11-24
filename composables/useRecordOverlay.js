@@ -1,4 +1,4 @@
-import { computed, onScopeDispose, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onScopeDispose, reactive, ref, watch } from 'vue';
 import { useInstanceOverlaysStore } from '~/stores/instance-overlays';
 import { editorWriteGranted } from '~/components/generated/file-surfaces.js';
 import { setWorkspacePageDirty } from '~/utils/workspace-page-dirty.js';
@@ -30,11 +30,13 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
   // on every change: the draft seeds from them and the save decision
   // compares against them.
   const flowKeys = ref([]);
+  const textEditors = new Map();
   let naturalKeys = [];
 
   const applied = computed(() => (dirty.value
     ? { blocks: draftBlocks.value, order: draftOrder.value }
     : null));
+  const blockById = computed(() => new Map(draftBlocks.value.map(block => [block.id, block])));
 
   function syncFlow(keys, declaredKeys) {
     flowKeys.value = keys;
@@ -99,20 +101,21 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     return block.id;
   }
 
-  function insertText(at, initialBlock = '') {
-    const id = insertBlock({ id: blockId(), kind: 'text', text: '' }, at);
+  function insertText(at, initialBlock = '', text = '') {
+    const id = insertBlock({ id: blockId(), kind: 'text', text: String(text || '') }, at);
     if (id) {
       editingInitialBlock.value = initialBlock;
       editingCaret.value = 'start';
       editingBlockId.value = id;
     }
+    return id;
   }
 
-  function insertTextAfter(blockId, initialBlock = 'paragraph') {
-    if (!ensureDraft()) return;
+  function insertTextAfter(blockId, initialBlock = 'paragraph', text = '') {
+    if (!ensureDraft()) return null;
     const index = draftOrder.value.indexOf(blockId);
-    if (index < 0) return;
-    insertText(index + 1, initialBlock);
+    if (index < 0) return null;
+    return insertText(index + 1, initialBlock, text);
   }
 
   function appendTextBlock(text) {
@@ -157,19 +160,103 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     if (activeBlockId.value === id) activeBlockId.value = null;
   }
 
+  function previousTextBlock(id) {
+    const index = draftOrder.value.indexOf(id);
+    if (index < 0) return null;
+    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+      const key = draftOrder.value[cursor];
+      if (blockById.value.get(key)?.kind === 'text') return key;
+    }
+    return null;
+  }
+
+  function nextTextBlock(id) {
+    const index = draftOrder.value.indexOf(id);
+    if (index < 0) return null;
+    for (let cursor = index + 1; cursor < draftOrder.value.length; cursor += 1) {
+      const key = draftOrder.value[cursor];
+      if (blockById.value.get(key)?.kind === 'text') return key;
+    }
+    return null;
+  }
+
   function removeEmptyBlock(id) {
     if (!ensureDraft()) return;
-    const index = draftOrder.value.indexOf(id);
-    if (index < 0) return;
-    const previous = draftOrder.value.slice(0, index)
-      .reverse()
-      .find(key => draftBlocks.value.some(block => block.id === key && block.kind === 'text'));
+    const previous = previousTextBlock(id);
     removeBlock(id);
     if (previous) {
       editingInitialBlock.value = '';
       editingCaret.value = 'end';
       editingBlockId.value = previous;
     }
+  }
+
+  function splitBlock(id, after = '') {
+    if (!ensureDraft()) return null;
+    const index = draftOrder.value.indexOf(id);
+    if (index < 0) return null;
+    return insertText(index + 1, '', after);
+  }
+
+  function mergeWithPrevious(id) {
+    if (!ensureDraft()) return false;
+    const previous = previousTextBlock(id);
+    if (!previous) return false;
+    const markdown = textEditors.get(id)?.getMarkdown?.() ?? blockById.value.get(id)?.text ?? '';
+    const target = textEditors.get(previous);
+    if (target?.appendMarkdown) target.appendMarkdown(markdown);
+    else updateText(previous, `${blockById.value.get(previous)?.text || ''}${markdown}`);
+    removeBlock(id);
+    return true;
+  }
+
+  function mergeNext(id) {
+    if (!ensureDraft()) return false;
+    const next = nextTextBlock(id);
+    if (!next) return false;
+    const markdown = textEditors.get(next)?.getMarkdown?.() ?? blockById.value.get(next)?.text ?? '';
+    const target = textEditors.get(id);
+    if (target?.appendMarkdown) target.appendMarkdown(markdown);
+    else updateText(id, `${blockById.value.get(id)?.text || ''}${markdown}`);
+    removeBlock(next);
+    return true;
+  }
+
+  function registerTextEditor(id, api) {
+    if (id && api) textEditors.set(id, api);
+  }
+
+  function unregisterTextEditor(id) {
+    textEditors.delete(id);
+  }
+
+  function pruneEmptyTextBlocks() {
+    if (!dirty.value) return;
+    const emptyIds = draftOrder.value.filter(key => {
+      const block = blockById.value.get(key);
+      return block?.kind === 'text' && !String(block.text || '').trim();
+    });
+    if (!emptyIds.length) return;
+    const empty = new Set(emptyIds);
+    draftBlocks.value = draftBlocks.value.filter(block => !empty.has(block.id));
+    draftOrder.value = draftOrder.value.filter(key => !empty.has(key));
+    if (empty.has(editingBlockId.value)) {
+      editingBlockId.value = null;
+      editingInitialBlock.value = '';
+    }
+    if (empty.has(activeBlockId.value)) activeBlockId.value = null;
+  }
+
+  function releaseFocus(id) {
+    if (activeBlockId.value === id) activeBlockId.value = null;
+    if (editingBlockId.value === id) {
+      editingBlockId.value = null;
+      editingInitialBlock.value = '';
+    }
+    nextTick(() => {
+      if (activeBlockId.value || editingBlockId.value) return;
+      pruneEmptyTextBlocks();
+    });
   }
 
   // Arrow keys at a text block's visual edge continue in the adjacent
@@ -260,6 +347,12 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
     moveCaret,
     removeBlock,
     removeEmptyBlock,
+    splitBlock,
+    mergeWithPrevious,
+    mergeNext,
+    registerTextEditor,
+    unregisterTextEditor,
+    releaseFocus,
     resumeLastTextBlock,
     updateText,
     editBlock: id => {
@@ -274,6 +367,7 @@ export function useRecordOverlaySession({ typeId, instanceId, entity, active, ta
       editingInitialBlock.value = '';
       const block = draftBlocks.value.find(candidate => candidate.id === id);
       if (block?.kind === 'text' && !String(block.text || '').trim()) removeBlock(id);
+      nextTick(pruneEmptyTextBlocks);
     },
     save
   });

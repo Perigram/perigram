@@ -146,10 +146,35 @@ editing state, the block pickers' open positions (view, link-to-record,
 graph result — each pick inserts at its opened position), autosave
 through `stores/pages.js`, and the workspace dirty registry. Text blocks mount
 `OverlayTextBlock` editors; collection blocks mount `ViewEmbed` as
-siblings, outside every editor. The seed drops trailing empty text
-blocks; the trailing line is the shared `TrailingTextBlock`
+siblings, outside every editor.
+
+Block boundaries are document seams: Enter splits the focused
+top-level textblock at the caret and inserts the tail as the next text
+block; Backspace at a block's start appends the block into the previous
+text block through that editor; Delete at a block's end appends the next
+text block into the current one. The seed drops every empty text block,
+and an empty text block drops when its editor releases focus. The
+trailing line is the shared `TrailingTextBlock`
 ([ui-mapping](../components/ui-mapping/README.md)), and `appendTextBlock`
-serves its commits.
+serves its commits. `releaseFocus` clears both focus markers and prunes
+empty text blocks once focus leaves every block; `openTextCollab` returns
+the block's collaborative document controller.
+
+## usePageCollab — the Page collaboration transport
+
+`usePageCollab({ docId })` owns the browser half of page co-editing:
+one Yjs document for block order and block metadata, one Yjs document per
+text block, and one awareness instance per text block. It syncs through
+the connections SSE topic `page:<pageId>` and the `POST
+/api/pages/:id/collab` operations (`claim`, `sync`, `update`,
+`awareness`). The first client to claim an uninitialized document seeds it
+from the stored page document and holds a short lease; later clients wait
+for the seed, then apply the server state. Text documents defer the seed
+to the mounted editor so the Milkdown parser seeds the fragment. The
+transport carries cursors through y-prosemirror awareness; `syncAll`
+pulls missed state before a page save serializes the block document. The
+server contract lives in
+[server/features/pages](../server/features/pages/README.md).
 
 ---
 
