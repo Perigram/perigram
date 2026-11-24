@@ -89,6 +89,21 @@ describe('process v4 data execution', () => {
     expect(keys.branches.map(branch => branch.items)).toEqual([['a'], ['b']]);
   });
 
+  it('joins lists by authored keys, refusing unmatched keys in inner mode and keeping them null in left mode', async () => {
+    const left = createDataPacket([{ type: 'A' }, { type: 'B' }], 'list');
+    const right = createDataPacket([{ name: 'A', id: 'a-1' }], 'list');
+    await expect(executeProcessDataNode(
+      { kind: 'collection.join', leftKey: 'type', rightKey: 'name' },
+      { left, right })).rejects.toThrow('unmatched left keys B');
+    const joined = await executeProcessDataNode(
+      { kind: 'collection.join', leftKey: 'type', rightKey: 'name', joinMode: 'left' },
+      { left, right });
+    expect(joined.branches[0].items).toEqual([
+      { left: { type: 'A' }, right: { name: 'A', id: 'a-1' } },
+      { left: { type: 'B' }, right: null }
+    ]);
+  });
+
   it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
     const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
     const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));

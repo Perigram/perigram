@@ -156,14 +156,15 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record), context.outputId);
   if (kind === 'collection.filter') return filterPackets(required(packets, 'items', record), required(packets, 'mask', record));
   if (kind === 'collection.join') {
-    // The relational brick: strict inner join of two value lists by
-    // authored key paths (readPath semantics — 'identity.name' walks the
-    // record). Left order is preserved; a left key with no right match
-    // fails the node listing every unmatched key — silent misalignment
-    // is worse than a loud stop.
+    // The relational brick: two value lists joined by authored key paths
+    // (readPath semantics — 'identity.name' walks the record). Left order
+    // is preserved. The inner mode (default) fails on an unmatched left
+    // key; the left mode keeps it with `right: null`, so callers branch on
+    // the absence instead of stopping the run.
     if (!String(record.leftKey || '').trim() || !String(record.rightKey || '').trim()) {
       throw new Error(`${record.id || kind} requires leftKey and rightKey paths`);
     }
+    const joinMode = record.joinMode === 'left' ? 'left' : 'inner';
     const left = packetValue(required(packets, 'left', record), 'list');
     const right = packetValue(required(packets, 'right', record), 'list');
     const rightByKey = new Map();
@@ -180,8 +181,9 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     for (const item of left) {
       const key = String(readPath(item, record.leftKey) ?? '');
       const matched = key ? rightByKey.get(key) : undefined;
-      if (!matched) unmatched.push(key || '(empty)');
-      else pairs.push({ left: item, right: matched });
+      if (matched) pairs.push({ left: item, right: matched });
+      else if (joinMode === 'left') pairs.push({ left: item, right: null });
+      else unmatched.push(key || '(empty)');
     }
     if (unmatched.length) {
       throw new Error(`${record.id || kind}: unmatched left keys ${unmatched.join(', ')}`);

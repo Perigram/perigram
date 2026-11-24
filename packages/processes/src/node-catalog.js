@@ -801,10 +801,10 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('items', configured, DATA, false, 'list')]
   };
   // The relational brick (SPEC §18 bounded iteration): two value lists
-  // joined by authored key paths — strict inner join, left order
-  // preserved, every left key must match exactly one right entry or the
-  // node fails listing the unmatched keys. The list ports are json-typed:
-  // the paired streams are heterogeneous (rows against entities, records
+  // joined by authored key paths, left order preserved. The inner mode
+  // fails listing every unmatched left key; the left mode keeps those
+  // pairs with a null right side. The list ports are json-typed: the
+  // paired streams are heterogeneous (rows against entities, records
   // against records), and the authored key paths carry the pairing —
   // narrowing the sockets to one element type would refuse the right
   // side the moment the left side's type propagates.
