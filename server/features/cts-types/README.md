@@ -99,9 +99,10 @@ installed plugins' records:
 A runtime binding's `nodeDefinitions` are derived from the install's managed
 service declarations through the SDK's `nodeDefinitionFromService` builder
 under the same palette gate the server resolver applies: managed mode,
-`palette.visible !== false`, a declared palette group, and browser execution
-support. Runtime-returned provider metadata keeps precedence; the served
-declaration set fills operations the runtime does not contribute.
+`palette.visible !== false`, a declared palette group, a wireable record
+signature input, and browser execution support. Runtime-returned provider
+metadata keeps precedence; the served declaration set fills operations the
+runtime does not contribute.
 
 Editor bindings are file-type contracts: editor surfaces belong to
 `file`-class (payload-bearing) types declared by the same plugin — the

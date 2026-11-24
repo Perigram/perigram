@@ -126,11 +126,13 @@ sdk's `nodeDefinitionFromService` builder and node-contract normalizer
 ([plugin-sdk](../../../packages/plugin-sdk/README.md#provider-neutral-node-contracts))
 — the same normalization and port projection the browser session applies to
 resolved definitions, including declared representations — with the
-server-side `packagePin` execution provenance carried on top. The browser
-editor receives the same normalized definitions for browser-targeted
-managed services on each `clientRuntime` binding (see
-[cts-types](../cts-types/README.md#client-bundle)); installed runtimes may
-add dynamic definitions, conversions, and preview renderers.
+server-side `packagePin` execution provenance carried on top. The gate also
+requires a wireable record-signature service, so bare-value implementation
+executors stay off the graph palette. The browser editor receives the same
+normalized definitions for browser-targeted managed services on each
+`clientRuntime` binding (see [cts-types](../cts-types/README.md#client-bundle));
+installed runtimes may add dynamic definitions, conversions, and preview
+renderers.
 
 `listInstalledGraphProviderConversions({ auth })` loads the caller's
 installed server-capable runtimes and returns their validated conversion
