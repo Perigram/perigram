@@ -12,6 +12,7 @@ import {
   childrenWireLegality,
   definitionToCanvas,
   isProcessDataHandle,
+  normalizeDesignerAccess,
   parseProcessSocketHandleId,
   registerProcessPortCompatibilityProfile,
   PROCESS_PORT_COMPATIBILITY_PROFILE,

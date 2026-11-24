@@ -39,4 +39,29 @@ describe('useProcessProfile', () => {
     expect(Array.isArray(session.paletteGroups.value)).toBe(true);
     expect(Array.isArray(session.contextPaletteGroups.value)).toBe(true);
   });
+
+  it('resolves the incoming entity access through the designer access normalizer', () => {
+    const session = createSession();
+    session.nodes.value = [
+      { id: 'target', type: 'processNode', data: { refId: 'consumer' } },
+      { id: 'source', type: 'processNode', data: { refId: 'producer' } }
+    ];
+    session.edges.value = [{ id: 'entity-edge', source: 'source', target: 'target', targetHandle: 'data:entity' }];
+    session.draft.value = {
+      data: {
+        processNodes: {
+          producer: {
+            id: 'producer',
+            kind: 'source.literalItem',
+            access: { level: 'read', roleIds: ['operator'] }
+          }
+        }
+      }
+    };
+    expect(session.incomingEntityContract('consumer').access).toEqual({
+      level: 'read',
+      roleIds: ['operator'],
+      grants: [{ roleId: 'operator', level: 'read' }]
+    });
+  });
 });
