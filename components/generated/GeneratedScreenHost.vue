@@ -98,8 +98,9 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
+import { scopedLineagePayload } from '~/components/generated/action-launch-context.js';
 import { useOutboxStore } from '~/stores/outbox';
-import { scopedLineagePayload, statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },

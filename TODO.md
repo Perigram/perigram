@@ -1071,8 +1071,8 @@ providers.
   unscoped blank editor, so the saved cassette carried no lineage and
   never appeared in that collection. `GeneratedScreenHost` now resolves
   the launch parent through the create dialog's own lineage row contract
-  (`scopedLineagePayload` in shared UI mapping), runs the construct with
-  that binding, and opens
+  (`scopedLineagePayload` in the generated-screen host helpers), runs the
+  construct with that binding, and opens
   the created record's editor. Regression:
   `e2e/cassette-scoped-create.spec.js` (the cassette exists under the
   library as the editor opens).
