@@ -45,6 +45,13 @@ describe('process v4 type algebra', () => {
     expect(normalizeProcessSocket({ id: 'entities', type, access: 'list' })).toMatchObject({ access: 'list', type });
   });
 
+  it('clones JSON socket defaults out of the source object', () => {
+    const point = new Proxy({ x: 0, y: 0, z: 0 }, {});
+    const socket = normalizeProcessSocket({ id: 'at', type: processType('json'), default: point });
+    expect(socket.default).toEqual({ x: 0, y: 0, z: 0 });
+    expect(socket.default).not.toBe(point);
+  });
+
   it('checks values without treating topology as compatibility', () => {
     expect(processTypesCompatible(processType('number'), processType('number'))).toMatchObject({ ok: true, implicit: true });
     expect(processTypesCompatible(processType('integer'), processType('number'))).toMatchObject({ ok: true, coercion: 'integerToNumber' });

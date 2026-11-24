@@ -140,6 +140,11 @@ export function normalizeProcessType(type = {}) {
   return normalized;
 }
 
+// Socket defaults are JSON contract data; JSON cloning reads through reactive proxies.
+function cloneSocketDefault(value) {
+  return value === null || typeof value !== 'object' ? value : JSON.parse(JSON.stringify(value));
+}
+
 export function normalizeProcessSocket(socket = {}, fallback = {}) {
   const source = socket && typeof socket === 'object' ? socket : {};
   const type = source.type || fallback.type;
@@ -161,7 +166,7 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
     ...(source.plane || fallback.plane ? { plane: source.plane || fallback.plane } : {}),
     multiple: source.multiple === true || fallback.multiple === true,
     ...((source.default !== undefined || fallback.default !== undefined)
-      ? { default: structuredClone(source.default !== undefined ? source.default : fallback.default) }
+      ? { default: cloneSocketDefault(source.default !== undefined ? source.default : fallback.default) }
       : {})
   };
 }
