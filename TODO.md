@@ -1047,6 +1047,22 @@ providers.
   surfaces, preview renderers, cross-plugin dependencies, data revisions,
   and every declared construction/service. Verify each workflow and close
   behavior/spec gaps.
+- [ ] WAITING — owner verification: Cassette create/save from the
+  collection's New button ends clean. The first Save creates the record,
+  reloads the stored template, and clears the dirty marker; opening a
+  stored cassette also opens clean.
+
+  ### Agent Notes (2026-11-24, cassette save dirty marker)
+
+  `applyTemplate` assigned the name before awaiting the payload tree, so the
+  deep history watcher consumed the suppression on the name change and
+  marked the tree edit dirty; the save therefore left an unsaved marker and
+  the tab asked to discard. The template apply now reads the tree first,
+  suppresses history and autosave around both assignments, waits for the
+  watcher, resets history, and clears both flags. Callers await the apply.
+  Facade listing v51 carries the surface. Regression:
+  `e2e/cassette-save.spec.js`.
+
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
   hosting. Current inventory: all 34 declared Documents services run behind
   managed runtimes or the synchronous managed projection boundary; the

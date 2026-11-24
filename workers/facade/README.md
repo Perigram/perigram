@@ -35,6 +35,8 @@ mount releases the container claim so the next attachment retries it.
 
 Preview surfaces are checked as installed plugin modules: the cassette preview resolves OCCS payloads or baked geometry through the drawing normalizer, and the profile preview resolves the saved sketch through the same geometry-preview path. Their module import graphs and surface factory contracts are covered by the facade preview-surface test.
 
+Cassette save is a template apply: the first save creates the record, the payload, geometry fields, and name follow, and the editor reloads the saved template before clearing its dirty marker. Opening a stored cassette applies its payload under the same clean marker.
+
 ## Graph operation palette
 
 The graph palette exposes user-invokable operations by workflow rather than

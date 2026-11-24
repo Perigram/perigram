@@ -238,7 +238,7 @@ export function parametersOf(text = '') {
 }
 
 export default function createSurface({ vue, components, locale, queries, records, notify, access }) {
-  const { h, ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
+  const { h, ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
 
   if (!queries || !records || !notify || !access) {
@@ -1112,9 +1112,11 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const applyTemplate = async (template) => {
+        const tree = await templateTreeOf(template);
         suppressAutosave = true;
+        suppressHistory = true;
         cassetteNameDraft.value = templateName(template);
-        cassetteTree.value = await templateTreeOf(template);
+        cassetteTree.value = tree;
         selectedNodeId.value = cassetteTree.value.rootId;
         selectedWorkpieceOverrideId.value = '';
         selectedRelationId.value = '';
@@ -1122,6 +1124,9 @@ export default function createSurface({ vue, components, locale, queries, record
         foldedPreviewWorkpieceId.value = '';
         previewError.value = '';
         loadedTemplateId.value = template?._id || '';
+        await nextTick();
+        suppressHistory = false;
+        suppressAutosave = false;
         resetDesignerHistory();
         refreshSessionDraftState();
       };
@@ -1143,7 +1148,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const hydrated = await hydrateDefinition(dto);
         persistedTemplateIdOverride.value = hydrated._id?.toString() || '';
         loadedDocument.value = hydrated;
-        applyTemplate(hydrated);
+        await applyTemplate(hydrated);
       };
 
       // A blank tab has no record yet: its draft name rides the first save.
@@ -1211,7 +1216,7 @@ export default function createSurface({ vue, components, locale, queries, record
           }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
           loadedDocument.value = { ...target, definition };
-          applyTemplate(loadedDocument.value);
+          await applyTemplate(loadedDocument.value);
           notify({ severity: 'success', summary: t('common.success'), detail: t('common.save'), life: 2000 });
         } catch (error) {
           notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || t('cassette.errors.saveFailed') });
@@ -1324,13 +1329,13 @@ export default function createSurface({ vue, components, locale, queries, record
       watch(() => props.record?._id || '', async (recordId) => {
         persistedTemplateIdOverride.value = '';
         if (!recordId) {
-          applyTemplate(null);
+          await applyTemplate(null);
           return;
         }
         if (recordId === loadedTemplateId.value) return;
         const hydrated = await hydrateDefinition(props.record);
         loadedDocument.value = hydrated;
-        applyTemplate(hydrated);
+        await applyTemplate(hydrated);
       }, { immediate: true });
 
       // A chip's draft dies with the workpiece selection that owns it.
