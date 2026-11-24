@@ -78,6 +78,24 @@ describe('headless authoring draft overlay', () => {
             .toThrow(/Unknown port nodeMake:data:fields\.organization/);
     });
 
+    it('keeps a draft ref field to a served plugin type', () => {
+        const domain = {
+            entities: [{ type: 'cassette-design', label: 'Cassette design', collection: 'files', blocks: ['fields'], meta: false }],
+            workflows: {}, fieldSchemas: {}, relations: [], construction: {}, commands: {}
+        };
+        const authoring = createDefinitionAuthoring(domain);
+        authoring.declareClass({ id: 'clsTask', typeId: 'task', name: 'Task' });
+        authoring.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
+        authoring.declareField({
+            id: 'fldDesign', ownerClassId: 'clsTask', name: 'design',
+            descriptor: { base: 'ref', accepts: ['cassette-design'], nullable: true }
+        });
+        authoring.wireDeclaration('designRef', 'fldDesign', 'targets');
+        const overlay = declarationOverlayDomain(authoring.definition(), domain);
+        expect(overlay.fieldSchemas.task.some(field => field.path === 'relations.design')).toBe(true);
+        expect(overlay.construction.task.inputs.some(input => input.id === 'relations.design')).toBe(true);
+    });
+
     it('a stored draft with unapplied declarations resolves them from the first step (the edit path)', () => {
         // A stored draft whose organization field was declared and wired
         // but never applied — the exact live session's stored state.

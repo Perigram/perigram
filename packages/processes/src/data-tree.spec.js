@@ -3,6 +3,7 @@ import {
   createDataTree,
   flattenDataPacket,
   graftDataPacket,
+  packetValue,
   simplifyDataPacket,
   solveDataTrees,
   transposeDataPacket
@@ -31,6 +32,10 @@ describe('process v4 data-tree solver', () => {
     ] }, 'tree');
     expect(solveDataTrees([{ tree, access: 'list' }], ([items]) => items.reduce((sum, item) => sum + item, 0)))
       .toEqual({ branches: [{ path: [0], items: [6] }, { path: [1], items: [9] }] });
+  });
+
+  it('reads an empty tree as an empty list', () => {
+    expect(packetValue({ branches: [] }, 'list')).toEqual([]);
   });
 
   it('supports shortest and cross matching', () => {

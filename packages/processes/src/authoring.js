@@ -958,7 +958,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
       source: sourceId,
       target: targetId,
       sourceHandle: mintProcessSocketHandle(sourcePort),
-      targetHandle: mintProcessSocketHandle(targetPort)
+      targetHandle: mintProcessSocketHandle(targetPort),
+      ...(sourcePort.role === 'data' ? {} : { role: 'control' })
     };
     data.graph.edges.push(edge);
     // Wires are live binding channels here too: the same interpretation

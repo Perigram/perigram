@@ -165,8 +165,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       throw new Error(`${record.id || kind} requires leftKey and rightKey paths`);
     }
     const joinMode = record.joinMode === 'left' ? 'left' : 'inner';
-    const left = packetValue(required(packets, 'left', record), 'list');
-    const right = packetValue(required(packets, 'right', record), 'list');
+    const listValue = (side, packet) => {
+      const branches = normalizeDataTree(packet).branches.length;
+      if (branches > 1) throw new Error(`${record.id || kind} ${side} input has ${branches} data branches`);
+      return packetValue(packet, 'list');
+    };
+    const left = listValue('left', required(packets, 'left', record));
+    const right = listValue('right', required(packets, 'right', record));
     const rightByKey = new Map();
     for (const item of right) {
       const key = String(readPath(item, record.rightKey) ?? '');
@@ -236,7 +241,7 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke,
     id,
     transformDataTree(normalizeDataPacket(tree), record.inputTransforms?.[id])
   ]);
-  assertMutationInputsAlign(record.kind, entries.map(([, tree]) => tree));
+  assertMutationInputsAlign(record.id || record.kind, entries.map(([, tree]) => tree));
 
   // A list-valued input (a construction typeList — the parts of one fill)
   // enters each invocation as ONE value: the whole list. Every other

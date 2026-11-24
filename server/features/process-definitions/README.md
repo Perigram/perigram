@@ -595,7 +595,10 @@ step (`declareClass`/`declareTypeRef`/`declareField`/`wireDeclaration`)
 re-seats the session onto `declarationOverlayDomain` over the projected
 domain, and `editDefinition` seats the stored draft's own unapplied
 declarations before the first step — the tree's declarations are ports
-immediately, so a field declares and wires in one session. A
+immediately, so a field declares and wires in one session. Served
+system and plugin types stub into the overlay as relation targets, so a
+draft ref field or children edge may address them; only the draft's own
+declarations override the served schemas. A
 declaration the registry refuses, or field records
 whose `typeId` matches no class, ride the very `Unknown port` step error
 as a named cause (`draft overlay: <type> skipped: <reason>` / `… field

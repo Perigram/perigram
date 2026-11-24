@@ -153,6 +153,18 @@ describe('headless definition authoring', () => {
     expect(context.configure('params', { fields: ['A', 'B'] }).fields).toEqual(['A', 'B']);
   });
 
+  it('marks a control wire with the control role', () => {
+    const context = authoring();
+    context.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
+    context.drop('construct', { id: 'first' });
+    context.wireDeclaration('ref_sheet', 'first', 'binds');
+    context.drop('construct', { id: 'second' });
+    context.wireDeclaration('ref_sheet', 'second', 'binds');
+    context.connect('first', 'control:completed', 'second', 'control:in');
+    const edge = context.definition().graph.edges.find(item => item.id.includes('first-control:completed-second'));
+    expect(edge.role).toBe('control');
+  });
+
   it('authors scheduled and event-subscribed entries that survive later gestures', () => {
     const context = authoring();
     context.drop('emitEvent', { id: 'tick' });

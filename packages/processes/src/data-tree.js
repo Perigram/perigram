@@ -44,6 +44,7 @@ export function packetValue(tree, access = 'item') {
   const normalized = normalizeDataTree(tree);
   if (access === 'tree') return structuredClone(normalized);
   if (access === 'list') {
+    if (!normalized.branches.length) return [];
     if (normalized.branches.length !== 1) throw new Error('Expected one data branch');
     return structuredClone(normalized.branches[0].items);
   }

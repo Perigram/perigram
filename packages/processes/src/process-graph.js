@@ -84,11 +84,14 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
     }
     const sourcePort = declaredSourcePort || '$declaration';
     const targetPort = declaredTargetPort || '$declaration';
+    const controlEdge = !declarationEdge && (
+      String(sourcePort).startsWith('control:') || String(targetPort).startsWith('control:')
+    );
     return {
       id: edge.id,
       source: { node: edge.source, port: String(sourcePort) },
       target: { node: edge.target, port: String(targetPort) },
-      kind: declarationEdge ? 'type' : (edge.role || 'data'),
+      kind: declarationEdge ? 'type' : (controlEdge ? 'control' : (edge.role || 'data')),
       metadata: {
         ...(edge.label ? { label: edge.label } : {}),
         ...(Object.prototype.hasOwnProperty.call(sourceEdge, 'type') ? { type: edge.type } : {}),
