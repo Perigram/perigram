@@ -1216,6 +1216,8 @@ a registered runtime `processDelete` adapter. Archive and delete retain
 the same Item/List/Tree topology and per-slot failure contract as the
 other mutations; manual hard deletion compiles as an admin action, rendered
 only from the current user's action manifest and requiring confirmation.
+The action's authored access compiles into the admin-level `delete` grant
+on its target feature that the runtime gate checks.
 Each successful Create call publishes one typed `created` invalidation
 after construction, authored block application, and initial-status
 persistence have all succeeded; publication leaves the shape-preserving

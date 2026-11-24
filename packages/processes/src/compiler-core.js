@@ -807,6 +807,21 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
     }
   }
 
+  // Hard deletion needs an admin delete grant on the target feature; the
+  // action's authored access is that grant.
+  if (kind === 'deleteEntity' && feature && typeId) {
+    grants.push(...windowGrants({
+      id: actionId,
+      typeId,
+      feature,
+      level,
+      roleIds,
+      roleGrants,
+      scope,
+      sourcePath: [incoming?.sourcePath, actionId].filter(Boolean).join('>')
+    }, action, access));
+  }
+
   return {
     actionId,
     kind,
