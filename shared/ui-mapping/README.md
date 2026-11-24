@@ -406,9 +406,10 @@ any generated label without touching the resolvers.
 `resolveSurface(typeRecord, { variant })` → `{ archetype, component, slots,
 budgets }`. Class presets pick the archetype family (`file` → payload
 surface, `item` → record card/row, `group` → collection, `process` →
-status-forward detail); the class obligations in
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md) §5 guarantee which slots
-are fillable. Unknown classes fall back to the generic record surface.
+status-forward detail); every record-class surface carries `identity`,
+`fields`, and `relations`, with `children` on group surfaces and
+`status`/`actions` on process surfaces. Unknown classes fall back to the
+generic record surface.
 Fields carrying `display: 'hidden'` stay out of derived detail groups and
 card fact counts; their stored values remain available to logic and transports.
 `resolvePreview(typeRecord)` keys on the declared payload `preview` mode
