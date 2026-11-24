@@ -98,9 +98,8 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
-import { scopedLineageData } from '~/utils/action-launch-context.js';
 import { useOutboxStore } from '~/stores/outbox';
-import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { scopedLineagePayload, statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   screen: { type: Object, required: true },
@@ -373,7 +372,7 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   // defers to the blank page (SPEC §UI).
   const actionData = isEditorProtocolCreate(action)
     ? {
-        ...scopedLineageData(action, {
+        ...scopedLineagePayload(action, {
           scopeTypeId: props.screen?.typeId,
           scopeId: scope.instanceId,
           type: (processBundle.value?.types || []).find(candidate => candidate.id === action.typeId) || null,
