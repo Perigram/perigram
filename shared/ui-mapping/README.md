@@ -495,7 +495,11 @@ merely because it was granted at admin. A lineage axis the graph
 supplies without an authored default always counts as a dialog row —
 its wire source is the launch context, and the dialog's launch-context
 channel seeds and hides it inside the parent's surface (auto-running
-when the context supplied every row).
+when the context supplied every row). `scopedLineagePayload(action,
+{ scopeTypeId, scopeId, type, bundle })` returns that parent binding as
+the create-dialog draft (`{ [rowId]: parentId }`) for the lineage row
+accepting the launch parent; the dialog and the screen host's direct
+editor creates read the same row contract.
 
 `resolveInstanceActions(actions, typeId)` selects the per-instance quick
 actions a collection surface may offer without a form context: manual
