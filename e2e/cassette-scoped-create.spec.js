@@ -12,7 +12,12 @@ test('cassette create from a library collection keeps its parent', async ({ app 
     id: 'e2e-library',
     name: 'Library',
     class: 'group',
-    fields: { name: { base: 'string', identifier: true } }
+    fields: { name: { base: 'string', identifier: true } },
+    edges: {
+      children: {
+        cassettes: { types: ['cassette-template'], lineageKey: 'libraryId', onRemove: 'restrict' }
+      }
+    }
   });
   const { manifest } = await app.seedSpeciesProcess({
     types: ['e2e-library', 'cassette-template'],
