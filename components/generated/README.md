@@ -150,7 +150,10 @@ neither opens its registered entity-bound page; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
 fallback is a success toast with the created name). Unscoped editor creates
 never reach this path — the create button opens the blank editor page and
-the first save creates the record (`openBlankFileEditor`, SPEC §4). The
+the first save creates the record (`openBlankFileEditor`, SPEC §4). A
+context-bound editor create submits the launch parent's lineage with the
+compiled construct, opens the created record's editor, and lands the child
+under that parent. The
 created entity resolves as the run's created item **of the action's own
 type**: a process chaining further constructs returns their entities too,
 and the last step must never bind a foreign record to the action's
