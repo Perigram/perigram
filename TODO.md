@@ -2405,8 +2405,12 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
   browser capability allowlist so the existing host adapter serves preview
   calls. `migrate-nesting-browser-runtime.js` moves existing pins to v2.
   Focused vitest: cts-types 30, usePluginRuntime 14, plugin capabilities 11,
-  Nesting runtime 5. Listing validation, docs, architecture, framework, and
-  plugin-dependency guards pass. Browser acceptance on the dev stack remains.
+  Nesting runtime 5; plugin feature 117; graph session 36; SSR smoke 31.
+  Listing validation, docs, architecture, framework, and plugin-dependency
+  guards pass. Live dev stack: `/api/admin/cts/types` serves
+  `plugin.facade/match-sheet` and `plugin.nesting/nesting-solve`; the module
+  proxy serves the Nesting v2 runtime; the browser capability route returns
+  a solver result. Owner browser-palette acceptance remains.
 
 - [ ] WAITING — owner verification: G1 resource creation, payload revision
   behavior, record/pane editor mounts, and read-grant presentation.
