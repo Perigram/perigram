@@ -407,8 +407,10 @@ type wires, process records).
 
 Declaration wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`) connect declaration partners:
-field nodes declare on a class; class/type-reference nodes target a ref
-field's accepted targets; class/reference nodes bind an origin species
+field nodes declare on a class — the field's value type types its value
+socket, and the class declare input accepts every field descriptor;
+class/type-reference nodes target a ref field's accepted targets;
+class/reference nodes bind an origin species
 Type pin; state→state wires declare one parent relationship (`nested`);
 state→operation wires (`entry`) author a construct's initial state and a
 transition's target — the wire is the value (SPEC §7: states wire into
