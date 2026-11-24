@@ -36,7 +36,7 @@ test('cassette create from a library collection keeps its parent', async ({ app 
     JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
   ));
   await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(libraryId)}`);
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await page.getByRole('button', { name: /^New Cassette template/ }).click();
 
   const save = page.getByRole('button', { name: 'Save', exact: true }).first();
   await save.waitFor({ timeout: 60_000 });
