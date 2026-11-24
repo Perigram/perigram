@@ -1430,18 +1430,6 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }
 
-// The launch parent's binding on the create-dialog lineage row that
-// accepts it: the draft shape the dialog seeds and a direct editor create
-// submits to the compiled construct. A contextless launch binds nothing.
-export function scopedLineagePayload(action = {}, { scopeTypeId = '', scopeId = '', type = null, bundle = null } = {}) {
-  const parentTypeId = String(scopeTypeId || '');
-  const parentId = String(scopeId || '');
-  if (!parentTypeId || !parentId) return {};
-  const row = resolveCreateDialogInputs(action, type, bundle)
-    .find(candidate => candidate.lineage?.accepts?.includes(parentTypeId));
-  return row ? { [row.id]: parentId } : {};
-}
-
 // A required create-dialog row counts as unfilled when its draft value is
 // nullish, an empty string or list, or a cleared quantity; picker and file
 // models are objects and count as filled. The create never runs with its
