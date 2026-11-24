@@ -318,7 +318,7 @@ the inspector:
 | Item | Configuration |
 |---|---|
 | `source.literalList` | An authored list literal is a value; lives in the values group. |
-| `collection.join` | Keys `leftKey`/`rightKey`. |
+| `collection.join` | Keys `leftKey`/`rightKey`; `joinMode` `inner` (default, unmatched left keys fail) or `left` (unmatched keys keep `right: null`). |
 | `value.recordField` | `path` plus authored output type. |
 | `value.cast` | Authored output base over the re-base vocabulary (json, record, list, string, number, boolean); the input is the universal json acceptor, so every source wires in and the node asserts the value already matches the target base. |
 | `value.required` / `value.validate` | Authored `sourceType` and `outputType` bases plus required/min/max/pattern/message constraints. |
@@ -1348,6 +1348,7 @@ aligned key list produced by Get Field:
 | Distinct | `items` plus optional `keys`: with keys, keeps the first item per aligned key value; keyless, dedups the items themselves by structural equality. |
 | Group By | `items` + `keys`, grouped by the aligned key, appending a group index to each source branch path; the `keys` output emits the grouping key of each branch, tree-aligned with `groups`. |
 | Slice / Item At | Authorable integer fallbacks (`start`/`end`, `index`) with native negative-index and empty-list semantics; Item At resolves an absent, out-of-range, or empty index to null. |
+| Join | Inner mode requires every left key to match one right entry; left mode emits `{ left, right: null }` for unmatched keys. |
 
 Sort, Distinct, and Group By reuse the strict `alignSelectorPackets`
 alignment shared with Filter/Dispatch, rejecting any branch-path or
