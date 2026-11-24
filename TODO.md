@@ -1061,8 +1061,10 @@ providers.
   suppresses history and autosave around both assignments, waits for the
   watcher, resets history, and applies the call's dirty state (blank
   editors arm Save; stored/saved templates open clean). Callers await the
-  apply. Facade listing v51 carries the surface. Regression:
-  `e2e/cassette-save.spec.js`.
+  apply. Facade listing v51 carries the surface; compatible v48–v50 pins
+  adopt it through `server/scripts/migrate-facade-cassette-surface.js`.
+  Regression: `e2e/cassette-save.spec.js` (first save persists, Save
+  returns to clean, and the collection lists the record).
 
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
   hosting. Current inventory: all 34 declared Documents services run behind
