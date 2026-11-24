@@ -1236,11 +1236,9 @@ export function useProcessProfile({
           if (!sourcePort || !targetPort) {
             return { ok: false, reason: t('processDesigner.connectReasons.declareSocket') };
           }
-          return {
-            ...sharedPortCompatibility(sourcePort, targetPort),
-            source: sourcePort,
-            target: targetPort
-          };
+          // The declare input sinks declarations of any field type; the
+          // field's value type types its value socket, not its declaration.
+          return { ok: true, source: sourcePort, target: targetPort };
         }
         if (legality === 'binds') {
           const sourcePort = (source.data?.outputSpecs || [])[0];

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
+import { declarationNodePorts } from '@perigram/processes/designer';
 import { useProcessProfile } from './useProcessProfile.js';
 
 function createSession() {
@@ -38,6 +39,36 @@ describe('useProcessProfile', () => {
     expect(typeof session.addContextNode).toBe('function');
     expect(Array.isArray(session.paletteGroups.value)).toBe(true);
     expect(Array.isArray(session.contextPaletteGroups.value)).toBe(true);
+  });
+
+  it('connects every field descriptor to a class declare input', () => {
+    const session = createSession();
+    const classNode = {
+      id: 'class',
+      type: 'ctsClass',
+      data: { refId: 'class', typeId: 'panel', inputSpecs: declarationNodePorts({ type: 'ctsClass', data: { typeId: 'panel' } }).inputSpecs }
+    };
+    session.draft.value = { data: { processNodes: {} } };
+    for (const descriptor of [{ base: 'ref', accepts: ['panel'] }, { base: 'blob' }, { base: 'list', itemType: { base: 'ref', accepts: ['panel'] } }]) {
+      const fieldNode = {
+        id: 'field',
+        type: 'ctsField',
+        data: {
+          refId: 'field',
+          name: 'owner',
+          descriptor,
+          outputSpecs: declarationNodePorts({ type: 'ctsField', data: { name: 'owner', descriptor } }).outputSpecs
+        }
+      };
+      session.nodes.value = [fieldNode, classNode];
+      const result = session.connectionCompatibility({
+        source: 'field',
+        sourceHandle: 'output:field',
+        target: 'class',
+        targetHandle: 'input:declare'
+      });
+      expect(result.ok, descriptor.base).toBe(true);
+    }
   });
 
   it('resolves the incoming entity access through the designer access normalizer', () => {
