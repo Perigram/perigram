@@ -227,7 +227,8 @@ viewport live under `metadata['perigram.process-definition']`.
 `authoredProcessDataFromGraphDocument()` projects that envelope back into the
 authored process domain the compiler, validator, and designer read. The
 activation envelope fields (`migrations`, `history`, `activated`, `compiled`)
-stay top-level on the stored graph document. Process definitions persist this
+stay top-level on the stored graph document; `metadata` source data carries
+authored records alone. Process definitions persist this
 canonical envelope; `createProcessGraphDocument` also accepts an existing
 canonical graph unchanged for runtime and revision checks.
 
