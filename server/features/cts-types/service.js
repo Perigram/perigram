@@ -11,6 +11,7 @@ import {
 } from '#packages/cts';
 import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
 import { nodeDefinitionFromService, normalizeNodeDefinition } from '#packages/plugin-sdk/nodes';
+import { isWireableValueService } from '../plugins/service-contract.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';
@@ -230,7 +231,7 @@ export async function describeOrganizationTypes(organizationId) {
         const runtimeServices = (install.services || [])
           .filter(service => service.execution?.runtime === runtime.id && service.execution.targets?.includes('browser'));
         const nodeDefinitions = runtimeServices
-          .filter(service => service.palette?.visible !== false && service.palette?.group)
+          .filter(service => service.palette?.visible !== false && service.palette?.group && isWireableValueService(service))
           .map(service => normalizeNodeDefinition(nodeDefinitionFromService(service, {
             provider: `plugin.${install.pluginId}`,
             runtimeId: runtime.id

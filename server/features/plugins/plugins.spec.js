@@ -314,6 +314,12 @@ describe('managed plugin runtime package loading', () => {
           palette: { group: 'documents' },
           signature: { input: { base: 'json' }, output: { base: 'json' } },
           execution: { runtime: 'javascript', targets: ['browser'], kind: 'pure' }
+        },
+        {
+          id: 'bare-executor',
+          palette: { group: 'documents' },
+          signature: { input: { base: 'json' }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', targets: ['server'], kind: 'pure' }
         }
       ],
       declarations: { runtimes: [{ id: 'javascript', language: 'javascript', targets: ['browser', 'server'] }] }

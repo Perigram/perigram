@@ -21,6 +21,9 @@ import { parseListing, normalizeListing } from '#packages/plugin-sdk/listing';
 import { NODE_EXECUTION_KINDS, nodeDefinitionFromService, normalizeNodeDefinition, normalizeNodeProvider } from '#packages/plugin-sdk/nodes';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 import { executeSyncManagedOperation, loadSyncRuntimeProviders } from './sync-runtime.js';
+import { isWireableValueService, serviceModeOf } from './service-contract.js';
+
+export { serviceModeOf };
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
@@ -433,17 +436,6 @@ function mintConnectorToken() {
 // Plugin service execution modes: managed package runtime, remote endpoint/
 // claim adapters, and the transitional browser-local engine.
 
-export function serviceModeOf(service = {}) {
-  // An explicit transport mode is authoritative. Some listing compilers
-  // attach execution metadata for shared/browser-server implementations;
-  // that metadata must not hide a declared remote endpoint from plugin
-  // settings (or from the provider-level executor-origin configuration).
-  if (service.mode === 'endpoint') return 'endpoint';
-  if (service.mode === 'local') return 'local';
-  if (service.execution) return 'managed';
-  return 'claim';
-}
-
 // Declared runtime dependencies (owner decision 2026-10-17): the license
 // policy half of the gate — the GPL-stays-out law is a refusal, not a
 // review. The denylist is prefix-matched (case-insensitive), so
@@ -737,17 +729,12 @@ export async function updateSettings({ organizationId, pluginId, executorOrigin 
 // fields only), so its node could never be fed from a graph. Such
 // services are implementation executors (construction/conversion/export
 // bindings dispatch them by service ref) and stay off the palette.
-function wireableValueService(service = {}) {
-  const input = service.signature?.input;
-  return !input || input.base === 'record';
-}
-
 export async function servicesForOrganization(organizationId) {
   const installs = await repository.listInstallsByOrganization(organizationId);
   const services = [];
   for (const install of installs) {
     for (const service of install.services || []) {
-      if (!wireableValueService(service)) continue;
+      if (!isWireableValueService(service)) continue;
       const id = `plugin.${install.pluginId}.${service.id}`;
       services.push({
         id,
@@ -985,6 +972,7 @@ export async function resolveInstalledGraphNodeDefinition({
   const runtime = (install.declarations?.runtimes || []).find(item => String(item.id) === runtimeId);
   if (!service || serviceModeOf(service) !== 'managed'
     || service.palette?.visible === false || !service.palette?.group
+    || !isWireableValueService(service)
     || !runtime || runtime.language !== 'javascript'
     || !service.execution?.targets?.includes('server')
     || !runtime.targets?.includes('server')) {
