@@ -299,9 +299,8 @@ The value and list/tree groups are exhaustive over the catalog's
 author-facing basics (SPEC §8): every
 tree-algebra kind (flatten, graft, simplify, branch, zip, unzip, cross,
 transpose, clean, stats), the list reshapes (reverse, shift, partition,
-reduce), the keyed lookup, the value utilities (cast, select, convertUnit,
-coalesce, format, required, validate), and the current-time source are
-palette items. `value.string` owns parsing (`toNumber`, `toDateTime` — string in,
+reduce), the value utilities (cast, select, convertUnit, coalesce, format,
+required, validate), and the current-time source are palette items. `value.string` owns parsing (`toNumber`, `toDateTime` — string in,
 typed value out; `value.cast` asserts shape and converts nothing). The
 fixed-arity `collection.makeList` and the persisted-array boundary
 (`collection.packArray`/`unpackArray`) stay catalog-only: a graph reaches
@@ -1350,7 +1349,6 @@ aligned key list produced by Get Field:
 | Group By | `items` + `keys`, grouped by the aligned key, appending a group index to each source branch path; the `keys` output emits the grouping key of each branch, tree-aligned with `groups`. |
 | Slice / Item At | Authorable integer fallbacks (`start`/`end`, `index`) with native negative-index and empty-list semantics; Item At resolves an absent, out-of-range, or empty index to null. |
 | Join | Inner mode requires every left key to match one right entry; left mode emits `{ left, right: null }` for unmatched keys. An empty data tree reads as an empty list. |
-| Lookup | `keys` + `items` + authored `itemsKey`; each key finds the first candidate with the same structural value, emitting `{ key, found, item }` (`item: null` on a miss). Empty and missing keys miss. |
 
 Sort, Distinct, and Group By reuse the strict `alignSelectorPackets`
 alignment shared with Filter/Dispatch, rejecting any branch-path or
