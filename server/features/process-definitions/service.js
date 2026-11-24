@@ -23,6 +23,8 @@ import {
   normalizeProcessDefinition,
   migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
+  PROCESS_GRAPH_ACTIVATION_FIELDS,
+  PROCESS_GRAPH_METADATA_KEY,
   previewProcessDataflow,
   resolveConstructionMode,
   resumeProcessRun,
@@ -282,16 +284,48 @@ function authoredProcessData(data = {}) {
     : data;
 }
 
-function storedProcessData(authored, source, existingId = null) {
+function withoutActivationFields(data) {
+  const snapshot = structuredClone(data || {});
+  for (const key of PROCESS_GRAPH_ACTIVATION_FIELDS) delete snapshot[key];
+  return snapshot;
+}
+
+function compactAuthoredSnapshot(value) {
+  if (!value || typeof value !== 'object') return value;
+  return withoutActivationFields(
+    isCanonicalProcessGraph(value) ? (authoredProcessDataFromGraphDocument(value) || value) : value
+  );
+}
+
+function compactCanonicalSnapshot(value) {
+  if (!value || typeof value !== 'object') return value;
+  const snapshot = structuredClone(isCanonicalProcessGraph(value) ? value : createProcessGraphDocument(value));
+  const metadata = snapshot.metadata?.[PROCESS_GRAPH_METADATA_KEY];
+  if (metadata?.sourceData) {
+    for (const key of PROCESS_GRAPH_ACTIVATION_FIELDS) delete metadata.sourceData[key];
+  }
+  for (const key of PROCESS_GRAPH_ACTIVATION_FIELDS) delete snapshot[key];
+  return snapshot;
+}
+
+function compactHistory(history = []) {
+  return (Array.isArray(history) ? history : []).slice(-50).map(entry => ({
+    ...entry,
+    data: compactAuthoredSnapshot(entry?.data)
+  }));
+}
+
+function storedProcessData(authored, source, existingId = null, existing = null) {
   const sourceId = source?.id && source.id !== 'process' ? source.id : existingId;
   const graph = createProcessGraphDocument(authored, {
     ...(sourceId ? { id: sourceId } : {}),
     ...(source?.name && source.name !== 'Process graph' ? { name: source.name } : {})
   });
-  for (const key of ['migrations', 'history', 'activated', 'compiled']) {
-    const value = authored[key] !== undefined ? authored[key] : source[key];
-    if (value !== undefined) graph[key] = value;
-  }
+  const migrations = authored.migrations !== undefined ? authored.migrations : source.migrations;
+  if (migrations !== undefined) graph.migrations = migrations;
+  if (existing?.history !== undefined) graph.history = compactHistory(existing.history);
+  if (existing?.activated !== undefined) graph.activated = compactCanonicalSnapshot(existing.activated);
+  if (existing?.compiled !== undefined) graph.compiled = existing.compiled;
   return graph;
 }
 
@@ -345,7 +379,7 @@ export async function update(id, payload = {}, auth) {
   const authored = persistedRewrites(structuredClone(authoredProcessData(payload.data)), domain);
   assertEdgeSocketIntegrity(authored);
   const migrationState = process.data?.migrations?.state || null;
-  process.data = storedProcessData(authored, payload.data, process.data?.id);
+  process.data = storedProcessData(authored, payload.data, process.data?.id, process.data);
   process.data.compiled = null;
   if (process.data.migrations?.state || migrationState) {
     setMigrationState(process, process.data.migrations?.state || migrationState);
@@ -503,15 +537,15 @@ export async function activate(id, auth) {
     const history = [...(process.data.history || []), {
       at: new Date().toISOString(),
       actor: auth.userId || 'SYSTEM',
-      data: { ...process.data, history: undefined, compiled: undefined, activated: undefined }
+      data: compactAuthoredSnapshot(process.data)
     }];
-    process.data.history = history.slice(-50);
+    process.data.history = compactHistory(history);
   }
   applyPublicationState(process, 'activate', auth.userId, 'Process activated');
   // The runtime source for an active-set member is the snapshot that
   // activation published (feature README): edits accumulate as draft
   // data and go live only through activation.
-  process.data.activated = { ...process.data, history: undefined, compiled: undefined, activated: undefined };
+  process.data.activated = compactCanonicalSnapshot(process.data);
   let updated = await repository.updateById(id, process);
   // Activation can flip the org's registry view (APPLY posts in-tree
   // declarations before activate): re-derive the instance indexes.

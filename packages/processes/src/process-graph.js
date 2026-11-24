@@ -9,6 +9,7 @@ import { PROCESS_DATAFLOW_VERSION } from './ports.js';
 export const PROCESS_GRAPH_PROVIDER = 'perigram.processes';
 export const PROCESS_GRAPH_NODE_VERSION = '1';
 export const PROCESS_GRAPH_METADATA_KEY = 'perigram.process-definition';
+export const PROCESS_GRAPH_ACTIVATION_FIELDS = Object.freeze(['history', 'activated', 'compiled']);
 
 const NODE_RECORD_COLLECTIONS = Object.freeze({
   entity: 'producerOutputs',
@@ -32,7 +33,7 @@ export function createProcessGraphDocument(definition = {}, options = {}) {
   }
   const authoredGraph = normalizeGraph(source.graph || {});
   const sourceDataForRevision = cloneJson(Object.fromEntries(
-    Object.entries(source).filter(([key]) => key !== 'graph')
+    Object.entries(source).filter(([key]) => key !== 'graph' && !PROCESS_GRAPH_ACTIVATION_FIELDS.includes(key))
   ));
   const referencedRecords = Object.fromEntries(
     [...new Set(Object.values(NODE_RECORD_COLLECTIONS))].map(collection => [collection, new Set()])
@@ -135,6 +136,7 @@ export function authoredProcessDataFromGraphDocument(graphSource) {
   const metadata = graph.metadata?.[PROCESS_GRAPH_METADATA_KEY];
   if (!metadata) return null;
   const data = cloneJson(metadata.sourceData || {});
+  for (const key of PROCESS_GRAPH_ACTIVATION_FIELDS) delete data[key];
   data.schemaVersion = Number(metadata.schemaVersion || 1);
   data.dataflowVersion = Number(metadata.dataflowVersion || PROCESS_DATAFLOW_VERSION);
   for (const [type, collection] of Object.entries(NODE_RECORD_COLLECTIONS)) {

@@ -155,6 +155,7 @@ export {
   PROCESS_GRAPH_PROVIDER,
   PROCESS_GRAPH_NODE_VERSION,
   PROCESS_GRAPH_METADATA_KEY,
+  PROCESS_GRAPH_ACTIVATION_FIELDS,
   authoredProcessDataFromGraphDocument,
   createProcessGraphDocument
 } from './process-graph.js';
