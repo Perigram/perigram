@@ -134,6 +134,15 @@ from the submission payload instead of being coerced to `false` or the
 current time; once touched, the control submits a real boolean or an ISO
 string (`YYYY-MM-DD` for `date`, full ISO for `dateTime`).
 
+## Action launch context
+
+`action-launch-context.js` owns the launch parent binding for direct editor
+creates: `scopedLineagePayload(action, { scopeTypeId, scopeId, type, bundle })`
+returns the create-dialog lineage draft (`{ [rowId]: parentId }`) for the row
+accepting the launch parent. A context-bound editor create runs the compiled
+construct with that binding and opens the created record's editor; a
+contextless launch returns `{}` and takes the blank editor.
+
 ## Action Results
 
 The pool landing is the store's, not the hosts': `instances.runAction`
