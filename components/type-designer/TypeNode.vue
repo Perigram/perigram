@@ -34,11 +34,13 @@ const scope = computed(() => props.data.scope || 'org');
 const version = computed(() => props.data.version || 1);
 const editor = computed(() => props.data.editor || null);
 const fieldCount = computed(() => Number(props.data.fields) || 0);
+const payloadLabel = computed(() => [].concat(props.data.payload?.mime || []).join(', '));
 const metaTooltip = computed(() => ({
   value: [
     scope.value === 'system' ? `v${version.value}` : null,
     editor.value,
-    fieldCount.value ? `${fieldCount.value} fields` : null
+    fieldCount.value ? `${fieldCount.value} fields` : null,
+    payloadLabel.value
   ].filter(Boolean).join(' · ') || label.value
 }));
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});

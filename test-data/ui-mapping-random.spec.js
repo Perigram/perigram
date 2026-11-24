@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkValue } from '#packages/cts';
+import { checkValue, isRefDescriptor } from '#packages/cts';
 import { composeScreen, buildInstancePool, resolveFieldControl, VARIANTS } from '#shared/ui-mapping/index.js';
 import { generateUiMappingWorld } from './ui-mapping-random.js';
 
@@ -17,7 +17,8 @@ describe('random worlds', () => {
       for (const type of world.bundle.types) {
         for (const instance of world.instances[type.id]) {
           for (const [name, descriptor] of Object.entries(type.fields)) {
-            const errors = checkValue(descriptor, instance.fields[name]);
+            const value = isRefDescriptor(descriptor) ? instance.relations[name] : instance.fields[name];
+            const errors = checkValue(descriptor, value);
             expect(errors, `seed ${seed} ${type.id}.${name}`).toEqual([]);
           }
         }

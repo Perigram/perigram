@@ -37,7 +37,11 @@ const props = defineProps({
 defineEmits(['rename']);
 
 const name = computed(() => props.data.name || '');
-const isRef = computed(() => props.data.descriptor?.base === 'ref');
+const isRef = computed(() => {
+  const descriptor = props.data.descriptor || {};
+  return descriptor.base === 'ref'
+    || (descriptor.base === 'list' && descriptor.itemType?.base === 'ref');
+});
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
 const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
 const typeLabel = computed(() => fieldDescriptorSummary(props.data.descriptor || {}, props.data.fieldTypeLabelFor || null));

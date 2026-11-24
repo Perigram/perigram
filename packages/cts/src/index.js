@@ -2,7 +2,7 @@ export {
   UNITS, quantity, convert, unify
 } from './units.js';
 export {
-  describeType, checkValue, durationMs, FIELD_BASES
+  describeType, checkValue, durationMs, FIELD_BASES, isRefDescriptor, refAcceptsOf
 } from './values.js';
 export {
   DECLARABLE_CLASSES, classMayDeclareChildren

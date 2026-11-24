@@ -88,7 +88,7 @@ function fieldReadDefinition() {
     processNodes: {
       sheet: { id: 'sheet', kind: 'cts.read', select: 'current', typeId: 'sheet' },
       present: { id: 'present', kind: 'cts.field', typeId: 'sheet', path: 'fields.serial' },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', path: 'fields.material' }
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', path: 'relations.material' }
     }
   };
 }

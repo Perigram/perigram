@@ -235,12 +235,10 @@ function planDefinition(definition, types, adminRoleId) {
   }
 
   // The nesting-polygons projection returns one item per design (designId
-  // + all workpiece parts). The entry's stored design ref joins it: the
-  // construct boundary scalarizes a ref-field draft to its bare id under
-  // `fields.<name>` (instances README), so `fields.design` is the join
-  // key the demo fixture authors.
+  // + all workpiece parts). The entry's design ref lives under the
+  // relation slot; its id is the join key.
   if (definition.data.processNodes?.entryParts) {
-    authoring.configure('entryParts', { leftKey: 'fields.design', rightKey: 'designId' });
+    authoring.configure('entryParts', { leftKey: 'relations.design.id', rightKey: 'designId' });
   }
   if (definition.data.processNodes?.entryPolygons) {
     authoring.configure('entryPolygons', { path: 'right.polygonParts' });
@@ -290,13 +288,11 @@ function planDefinition(definition, types, adminRoleId) {
   return data;
 }
 
-// Queue entries store their design ref as the bare id under
-// `fields.design` (the construct scalarize law) and their count as a
-// plain number (the dialog scalarizes quantity drafts to `value`).
-// Older orgs may carry typed-ref rows from a previous re-authoring and
-// `{ value }` objects from the dialog's unscalarized number drafts;
-// normalize both back so the join key and the count read what creates
-// write.
+// Queue entries store their design ref under `relations.design` and their
+// count as a plain number (the dialog scalarizes quantity drafts to
+// `value`). Older orgs may carry the bare id under `fields.design` and
+// `{ value }` objects from unscalarized number drafts; normalize both so
+// the join key and the count read what creates write.
 async function normalizeQueueEntryDesignRefs() {
   const entries = await db.collection('items')
     .find({ organizationId: ORG, type: 'queue-entry' })
@@ -304,17 +300,22 @@ async function normalizeQueueEntryDesignRefs() {
   let changed = 0;
   for (const entry of entries) {
     const set = {};
-    const design = entry.fields?.design;
-    const designId = design && typeof design === 'object' ? String(design.id ?? '') : null;
-    if (designId) set['fields.design'] = designId;
+    const unset = {};
+    const design = entry.relations?.design ?? entry.fields?.design;
+    const designId = design && typeof design === 'object' ? String(design.id ?? '') : String(design ?? '');
+    if (designId) set['relations.design'] = { type: 'cassette-design', id: designId };
+    if (entry.fields?.design !== undefined) unset['fields.design'] = '';
     const count = entry.fields?.count;
     if (count && typeof count === 'object' && !Array.isArray(count) && count.value !== undefined) {
       set['fields.count'] = count.value;
     }
-    if (!Object.keys(set).length) continue;
+    if (!Object.keys(set).length && !Object.keys(unset).length) continue;
     changed += 1;
     if (!APPLY) continue;
-    await db.collection('items').updateOne({ _id: entry._id }, { $set: set });
+    await db.collection('items').updateOne(
+      { _id: entry._id },
+      { ...(Object.keys(set).length ? { $set: set } : {}), ...(Object.keys(unset).length ? { $unset: unset } : {}) }
+    );
   }
   return changed;
 }

@@ -136,9 +136,12 @@ export function declarationSubtreeOf(nodes = [], edges = [], records = {}, typeI
 // ref's accepted type ids onto display labels where a surface holds them.
 export function fieldDescriptorSummary(descriptor = {}, typeLabelFor = null) {
   if (descriptor.base === 'quantity') return `${descriptor.unit || '?'}`;
-  if (descriptor.base === 'ref') {
+  const refTarget = descriptor.base === 'ref'
+    ? descriptor
+    : descriptor.base === 'list' && descriptor.itemType?.base === 'ref' ? descriptor.itemType : null;
+  if (refTarget) {
     const labelOf = value => (typeLabelFor ? typeLabelFor(value) : value);
-    return `Ref(${(descriptor.accepts || []).map(labelOf).join('|')})`;
+    return `Ref(${(refTarget.accepts || []).map(labelOf).join('|')})`;
   }
   if (descriptor.nullable) return `${descriptor.base}?`;
   return descriptor.base || 'field';

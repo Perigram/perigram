@@ -49,7 +49,7 @@ describe('construction compilation', () => {
       ]
     }, 'project', domain);
 
-    expect(result.inputs.map(input => input.id)).toEqual(['name', 'lineage.organization']);
+    expect(result.inputs.map(input => input.id)).toEqual(['name', 'lineage.organization', 'relations.customer']);
     expect(result.inputs[0]).toMatchObject({ value: 'Acme', required: true });
   });
 
@@ -69,7 +69,7 @@ describe('construction compilation', () => {
       ]
     }, 'project', domain);
 
-    expect(result.fields.map(field => field.id)).toEqual(['lineage.organization']);
+    expect(result.fields.map(field => field.id)).toEqual(['lineage.organization', 'relations.customer']);
     expect(result.prompt).toBe(true);
   });
 

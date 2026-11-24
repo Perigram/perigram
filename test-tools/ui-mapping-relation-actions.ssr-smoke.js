@@ -55,7 +55,7 @@ const bundle = {
 const instances = {
   library: [{ id: 'lib-1', type: 'library', fields: { name: 'Main library' }, relations: {}, lineage: {} }],
   parent: [{
-    id: 'prj-1', type: 'parent', fields: { name: 'Alpha' },
+    id: 'prj-1', type: 'parent', fields: { name: 'Alpha', libraries: 'lib-1' },
     relations: { libraries: [{ type: 'library', id: 'lib-1' }] }, lineage: {}
   }],
   child: [
@@ -134,8 +134,9 @@ describe('relation action placement (SPEC §22.12, SSR)', () => {
   it('renders the link in the relation section toolbar and unlink on its rows', async () => {
     const html = await render('detail');
     expect(html).toContain('pi-link');
-    // The relation section renders the linked record row.
-    expect(html).toContain('Main library');
+    // The relation slot owns the reference: one rendered row, even when a
+    // stale field value names the same target.
+    expect((html.match(/Main library/g) || [])).toHaveLength(1);
     // The section's rows carry the row menu (unlink rides it).
     // The row menu trigger renders on the linked rows (the unlink
     // entries ride it; the popover's items render on open).

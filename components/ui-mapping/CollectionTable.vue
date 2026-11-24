@@ -308,11 +308,12 @@ const relationLabel = computed(() => {
 const relationTargetType = computed(() => {
   const edgeTypes = props.type?.edges?.relations?.[relationKey.value]?.types || [];
   if (edgeTypes.length === 1) return edgeTypes[0];
-  const accepts = props.type?.fields?.[relationKey.value]?.accepts || [];
+  const field = props.type?.fields?.[relationKey.value];
+  const accepts = field?.accepts || field?.itemType?.accepts || [];
   return accepts.length === 1 ? accepts[0] : null;
 });
 const relationRefsOf = instance => resolveInstanceRelationRefs(
-  instance?.relations?.[relationKey.value] ?? instance?.fields?.[relationKey.value],
+  instance?.relations?.[relationKey.value],
   { typeId: relationTargetType.value }
 );
 const budgetedRefs = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).visible;

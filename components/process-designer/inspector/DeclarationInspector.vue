@@ -28,55 +28,11 @@
             @update:model-value="setClass"
           />
         </div>
-        <template v-if="node.data.class === 'file'">
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.payloadMime') }}</label>
-            <AutoComplete
-              :model-value="node.data.payload?.mime || []"
-              :suggestions="mimeSuggestions"
-              :placeholder="$t('processDesigner.payloadMimePlaceholder')"
-              class="w-full"
-              multiple
-              typeahead
-              complete-on-focus
-              @complete="event => completeMime(event.query)"
-              @update:model-value="value => writePayload({ mime: value })"
-            />
-          </div>
-          <div v-if="hasPayload" class="flex flex-col gap-2">
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('processDesigner.payloadSize') }}</label>
-              <InputNumber
-                :model-value="payloadSizeMb"
-                :min="0"
-                show-buttons
-                button-layout="horizontal"
-                @update:model-value="value => writePayload({ maxSize: Number(value) > 0 ? Math.round(Number(value) * 1024 * 1024) : undefined })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('processDesigner.payloadPreview') }}</label>
-              <Select
-                :model-value="node.data.payload?.preview || ''"
-                :options="previewOptions"
-                option-label="label"
-                option-value="value"
-                @update:model-value="value => writePayload({ preview: value || undefined })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label>{{ $t('processDesigner.payloadCreation') }}</label>
-              <MultiSelect
-                :model-value="node.data.payload?.creation || []"
-                :options="creationOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-                @update:model-value="value => writePayload({ creation: value })"
-              />
-            </div>
-          </div>
-        </template>
+        <PayloadTraitsEditor
+          v-if="node.data.class === 'file'"
+          v-model="node.data.payload"
+          @update:model-value="$emit('sync')"
+        />
         <div v-if="identifierFieldOptions.length" class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.namesRecord') }}</label>
           <Select
@@ -163,19 +119,15 @@
 // write the canvas node's declaration data and emit `sync`; the
 // live-graph pass re-derives records, ports, and the tree overlay
 // from it.
-import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AutoComplete from 'primevue/autocomplete';
 import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
-import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import FieldDeclarationForm from '~/components/type-designer/FieldDeclarationForm.vue';
 import StateDeclarationForm from '~/components/type-designer/StateDeclarationForm.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
-import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '#packages/cts';
-import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
+import PayloadTraitsEditor from '~/components/type-designer/PayloadTraitsEditor.vue';
+import { DECLARABLE_CLASSES } from '#packages/cts';
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -194,56 +146,6 @@ const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
 const { t } = useI18n();
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
-
-const creationOptions = CREATION_PROTOCOLS.map(value => ({ label: value, value }));
-
-// Preview picks: the unset default renders as download (the projection's
-// fallback), the rest are the app's renderable and visual preview modes.
-const previewOptions = [
-  { label: 'download', value: '' },
-  ...[...new Set([...RENDERABLE_PREVIEW_MODES, 'attachment', 'none'])]
-    .map(value => ({ label: value, value }))
-];
-
-const hasPayload = computed(() => Boolean(props.node.data?.payload?.mime?.length));
-const payloadSizeMb = computed(() => {
-  const bytes = Number(props.node.data?.payload?.maxSize);
-  return Number.isFinite(bytes) && bytes > 0 ? bytes / (1024 * 1024) : null;
-});
-
-// Offered MIME families, wildcards first: picking "any image" is the
-// authoring gesture; vendor-specific strings stay typable beside them.
-const MIME_SUGGESTIONS = Object.freeze([
-  'image/*', 'video/*', 'audio/*', 'text/*',
-  'application/pdf', 'application/json', 'application/zip',
-  'text/plain', 'text/csv', 'text/markdown'
-]);
-const mimeSuggestions = ref(MIME_SUGGESTIONS);
-function completeMime(query = '') {
-  const needle = String(query).toLowerCase();
-  mimeSuggestions.value = MIME_SUGGESTIONS.filter(mime => mime.includes(needle));
-}
-
-// The payload facet (SPEC §4): an empty accepted-MIME list leaves the type
-// payload-less (fields alone satisfy the file class), any authored MIME
-// carries the trait set through compileTreeDeclarations to the registry.
-function writePayload(patch) {
-  const current = props.node.data?.payload || {};
-  const next = { ...current, ...patch };
-  const mime = (next.mime || []).map(entry => String(entry).trim()).filter(Boolean);
-  if (!mime.length) {
-    props.node.data.payload = null;
-  } else {
-    const maxSize = Number(next.maxSize);
-    props.node.data.payload = {
-      mime,
-      ...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize: Math.round(maxSize) } : {}),
-      ...(next.preview ? { preview: String(next.preview) } : {}),
-      creation: (next.creation || []).length ? [...new Set(next.creation.map(String))] : ['upload']
-    };
-  }
-  emit('sync');
-}
 
 function setClass(value) {
   props.node.data.class = value;

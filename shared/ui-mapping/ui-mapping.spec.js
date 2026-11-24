@@ -1112,27 +1112,20 @@ describe('instance-aware list controls', () => {
     ]).relationColumn).toEqual({ key: 'docs' });
   });
 
-  it('counts a declared ref field as the relation column — either stored block fills it', () => {
-    // SPEC §6 relation grammar: a declared ref field is a relation entry;
-    // its value stores scalarized under `fields` or as ref objects under
-    // `relations`.
+  it('counts a declared ref field as the relation column from its relation slot', () => {
+    // SPEC §6 relation grammar: a declared ref field is a relation entry
+    // stored under `relations.<key>`.
     const refField = { class: 'item', identifier: 'name', fields: {
       name: { base: 'string' },
       table: { base: 'ref', accepts: ['workbook'] }
     } };
-    const bare = [
-      { id: '1', fields: { name: 'A', table: 'wb-9' }, relations: {} },
-      { id: '2', fields: { name: 'B', table: null }, relations: {} }
-    ];
     const asRefs = [
-      { id: '1', fields: { name: 'A' }, relations: { table: [{ type: 'workbook', id: '9' }] } },
+      { id: '1', fields: { name: 'A' }, relations: { table: { type: 'workbook', id: '9' } } },
       { id: '2', fields: { name: 'B' }, relations: {} }
     ];
     expect(resolveListControls(refField, asRefs).relationColumn).toEqual({ key: 'table' });
-    expect(resolveListControls(refField, bare).relationColumn).toEqual({ key: 'table' });
     expect(resolveListControls(refField, asRefs.map(row => ({ ...row, relations: {} }))).relationColumn).toBeNull();
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs })).toBe('table');
-    expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: bare })).toBe('table');
     // SPEC §22.15: an unfilled pool keeps the table — no projection
     // degrades on empty data.
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs.map(row => ({ ...row, relations: {} })) })).toBe('table');

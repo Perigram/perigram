@@ -132,6 +132,7 @@
     "deleteAnyway": "Delete anyway",
     "deleteFailed": "Could not delete the class.",
     "fields": "Fields",
+    "payload": "Payload",
     "children": "Children",
     "addChild": "Add child class",
     "addExistingChild": "Add existing class",

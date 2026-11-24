@@ -135,7 +135,8 @@ docker run --rm --network host \
     node server/scripts/migrate-facade-pack-to-plugin.js &&
     node server/scripts/migrate-nesting-browser-runtime.js &&
     node server/scripts/migrate-tech-drawing-pack-to-plugin.js &&
-    node server/scripts/migrate-documents-pack-to-plugin.js
+    node server/scripts/migrate-documents-pack-to-plugin.js &&
+    node server/scripts/migrate-ref-fields-to-relations.js --apply
   '
 
 echo "Replacing application container..."

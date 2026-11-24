@@ -118,6 +118,9 @@
             {{ $t('classes.fields') }}
             <Tag :value="String(draft.fields.length)" severity="secondary" />
           </Tab>
+          <Tab v-if="draft.class === 'file'" value="payload" class="px-2.5 sm:px-4">
+            {{ $t('classes.payload') }}
+          </Tab>
           <Tab value="states" class="px-2.5 sm:px-4">
             {{ $t('classes.states') }}
             <Tag :value="String(draft.states.length)" severity="secondary" />
@@ -172,6 +175,12 @@
                 @update:descriptor="value => updateDescriptor(field, value)"
                 @remove="removeField(field)"
               />
+            </div>
+          </TabPanel>
+
+          <TabPanel v-if="draft.class === 'file'" value="payload" class="p-0">
+            <div class="py-3">
+              <PayloadTraitsEditor v-model="draft.payload" />
             </div>
           </TabPanel>
 
@@ -318,6 +327,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ClassFieldRow from '~/components/type-designer/ClassFieldRow.vue';
 import ClassStateRow from '~/components/type-designer/ClassStateRow.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
+import PayloadTraitsEditor from '~/components/type-designer/PayloadTraitsEditor.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
@@ -509,6 +519,9 @@ function setClass(value) {
   if (value === 'file') {
     draft.value.children = [];
     if (activeTab.value === 'children') activeTab.value = 'fields';
+  } else {
+    draft.value.payload = null;
+    if (activeTab.value === 'payload') activeTab.value = 'fields';
   }
 }
 
@@ -637,7 +650,11 @@ function declarationFor(draftValue, record = {}) {
   };
   if (draftValue.glyph) declaration.glyph = draftValue.glyph;
   else delete declaration.glyph;
-  if (declaration.class !== 'file') delete declaration.payload;
+  if (declaration.class === 'file' && draftValue.payload?.mime?.length) {
+    declaration.payload = { ...draftValue.payload };
+  } else {
+    delete declaration.payload;
+  }
 
   const states = {};
   for (const state of draftValue.states || []) {

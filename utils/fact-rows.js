@@ -44,7 +44,8 @@ export function instanceFactRows({
       // it; ref fields render through relation surfaces, prose and
       // structures through the detail body.
       if (isIdentifierField(typeRecord, field.name)) continue;
-      if (field.descriptor?.base === 'ref') continue;
+      if (field.descriptor?.base === 'ref'
+        || (field.descriptor?.base === 'list' && field.descriptor?.itemType?.base === 'ref')) continue;
       if (!SCALAR_BASES.includes(field.descriptor?.base)) continue;
       if (isLongText(field.descriptor)) continue;
       const value = entity.fields?.[field.name];

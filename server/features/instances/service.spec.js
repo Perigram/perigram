@@ -541,9 +541,9 @@ describe('generic instance service stored shape (SPEC §3)', () => {
           type: 'constrained-account',
           typeVersion: 1,
           organizationId: 'org-1',
-          fields: { code: 'A-1', invoices: ['invoice-1'] },
+          fields: { code: 'A-1' },
           lineage: {},
-          relations: {},
+          relations: { invoices: [{ type: 'invoice', id: 'invoice-1' }] },
           createdAt: '2026-11-16T10:00:00Z',
           updatedAt: '2026-11-16T10:00:00Z'
         };
@@ -552,8 +552,9 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     });
     const service = instanceServiceResolver('constrained-account');
     await expect(service.create({
-      fields: { code: 'A-2', invoices: ['invoice-1'] },
-      lineage: {}
+      fields: { code: 'A-2' },
+      lineage: {},
+      relations: { invoices: [{ type: 'invoice', id: 'invoice-1' }] }
     }, 'user-1', 'org-1')).rejects.toMatchObject({ statusCode: 400 });
     expect(coll.insertOne).not.toHaveBeenCalled();
 
@@ -570,9 +571,9 @@ describe('generic instance service stored shape (SPEC §3)', () => {
       type: 'constrained-account',
       typeVersion: 1,
       organizationId: 'org-1',
-      fields: { code: 'A-1', invoices: ['invoice-1'] },
+      fields: { code: 'A-1' },
       lineage: {},
-      relations: {},
+      relations: { invoices: [{ type: 'invoice', id: 'invoice-1' }] },
       createdAt: '2026-11-16T10:00:00Z',
       updatedAt: '2026-11-16T10:00:00Z'
     };
@@ -1621,14 +1622,16 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       .mockResolvedValue(referrer ? [referrer] : []);
   }
 
-  it('rewrites both storage blocks on every referrer and publishes the event', async () => {
+  it('rewrites relation slots on every referrer and publishes the event', async () => {
     const coll = stubPanel();
     const referrer = {
       _id: 'project-1',
       type: 'project',
       organizationId: 'org-1',
-      relations: { panels: [{ type: 'panel', id: PANEL_ID }, { type: 'panel', id: 'panel-8' }] },
-      fields: { library: PANEL_ID }
+      relations: {
+        panels: [{ type: 'panel', id: PANEL_ID }, { type: 'panel', id: 'panel-8' }],
+        library: { type: 'panel', id: PANEL_ID }
+      }
     };
     const find = stubReferrers(referrer);
     const service = instanceServiceResolver('panel');
@@ -1642,12 +1645,11 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
     expect(scans).toHaveLength(2);
     expect(scans[0][1].$or).toEqual([
       { 'relations.panels.id': { $in: [PANEL_ID] } },
-      { 'relations.panels': { $in: [PANEL_ID] } },
-      { 'fields.panels': { $in: [PANEL_ID] } }
+      { 'relations.panels': { $in: [PANEL_ID] } }
     ]);
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['relations.panels']).toEqual([{ type: 'panel', id: 'panel-8' }]);
-    expect(coll.findOneAndUpdate.mock.calls[1][1].$set['fields.library']).toBeNull();
+    expect(coll.findOneAndUpdate.mock.calls[1][1].$set['relations.library']).toBeNull();
 
     const { publishEntityChanged } = await import('../instance-events/service.js');
     expect(publishEntityChanged).toHaveBeenCalledWith(
@@ -1664,7 +1666,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       _id: 'project-5',
       type: 'project',
       organizationId: 'org-1',
-      fields: { library: PANEL_ID }
+      relations: { library: { type: 'panel', id: PANEL_ID } }
     });
     const { runOrganizationChange } = await import('./organization-sequence.js');
     const service = instanceServiceResolver('panel');
@@ -1697,8 +1699,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       _id: 'project-2',
       type: 'project',
       organizationId: 'org-1',
-      relations: { library: { type: 'panel', id: PANEL_ID } },
-      fields: { library: { type: 'panel', id: PANEL_ID } }
+      relations: { library: { type: 'panel', id: PANEL_ID } }
     };
     const find = stubReferrers(referrer);
     const service = instanceServiceResolver('panel');
@@ -1707,7 +1708,6 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
 
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['relations.library']).toBeNull();
-    expect(set['fields.library']).toBeNull();
     find.mockRestore();
   });
 
@@ -1787,7 +1787,7 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       _id: 'project-6',
       type: 'project',
       organizationId: 'org-1',
-      fields: { library: PANEL_ID }
+      relations: { library: { type: 'panel', id: PANEL_ID } }
     });
     const events = await import('../instance-events/service.js');
     const service = instanceServiceResolver('panel');
@@ -1832,14 +1832,14 @@ describe('remove sweeps relation refs (SPEC §22.12)', () => {
       _id: 'project-4',
       type: 'project',
       organizationId: 'org-1',
-      fields: { library: PANEL_ID }
+      relations: { library: { type: 'panel', id: PANEL_ID } }
     });
     const service = instanceServiceResolver('panel');
 
     await service.removeForHttp(PANEL_ID, { auth: { userId: 'user-1' }, organizationId: 'org-1' });
 
     expect(coll.deleteOne).toHaveBeenCalledWith(expect.any(Object), { session: transactionSession });
-    expect(coll.findOneAndUpdate.mock.calls[0][1].$set['fields.library']).toBeNull();
+    expect(coll.findOneAndUpdate.mock.calls[0][1].$set['relations.library']).toBeNull();
     find.mockRestore();
   });
 });

@@ -56,7 +56,7 @@ describe('order process authoring', () => {
     // domain carries the signatures, so only that binding reports here.
     expect(validation.errors.filter(error => !/must select a command/.test(error))).toEqual([]);
     expect(composed.processNodes.mkEntry.typeId).toBe('queue-entry');
-    expect(composed.processNodes.entryParts.leftKey).toBe('fields.design');
+    expect(composed.processNodes.entryParts.leftKey).toBe('relations.design.id');
     expect(composed.processNodes.entryParts.rightKey).toBe('sourceId');
     expect(composed.processNodes.jobItems.fields).toEqual(['sourceId', 'sourceKey', 'parts', 'count']);
   });

@@ -3,7 +3,7 @@
 // a hand-mirrored list. Unique constraints compile to scoped Mongo indexes.
 import { createHash } from 'node:crypto';
 import { connectDB } from '~/server/db/mongo';
-import { CLASS_COLLECTIONS } from '#packages/cts';
+import { CLASS_COLLECTIONS, isRefDescriptor } from '#packages/cts';
 
 function indexEntry(collection, keys, options = { background: true }) {
   return { collection, keys, options };
@@ -48,8 +48,13 @@ export function deriveInstanceIndexes(view = new Map(), { organizationId = null 
     for (const axis of Object.keys(type.states || {})) axes.add(axis);
     stateAxesByCollection.set(collection, axes);
 
-    // Declared relation edges: reverse lookups on the owner's collection.
-    for (const key of Object.keys(type.edges?.relations || {})) {
+    // Declared relations: reverse lookups on the owner's collection. Ref
+    // fields share the relation slot with explicit edge entries.
+    const relationKeys = new Set(Object.keys(type.edges?.relations || {}));
+    for (const [name, descriptor] of Object.entries(type.fields || {})) {
+      if (isRefDescriptor(descriptor)) relationKeys.add(name);
+    }
+    for (const key of relationKeys) {
       indexes.push(indexEntry(collection, { type: 1, organizationId: 1, ['relations.' + key]: 1 }));
     }
 
