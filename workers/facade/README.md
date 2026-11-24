@@ -40,15 +40,9 @@ Cassette save is a template apply: the first save creates the record, the payloa
 ## Graph operation palette
 
 The graph palette exposes user-invokable operations by workflow rather than
-by executor implementation. The `facade-server` runtime declares
-`match-sheet` as a palette-grouped managed service with browser and server
-targets; the graph editor registers it from the installed declaration layer.
-The declared groups are:
-
-- **Sheet planning** (`sheet-planning`) — find a reusable sheet design by
-  composition key (`match-sheet`, the one wireable record-signature service)
-- **Facade geometry** (`facade`) — the `nesting-polygons` extraction
-  projection feeding the Nesting plugin's `nesting-solve`
+by executor implementation. The declared group is **Facade geometry**
+(`facade`) — the `nesting-polygons` extraction projection feeding the
+Nesting plugin's `nesting-solve`.
 
 `construct-sheet` and `generate-sheet-dxf` are bare-value executors
 (`json` signatures project no data sockets, so the platform's palette law
@@ -62,7 +56,7 @@ Every payload-bearing Facade file type declares a revision scope. The cassette t
 
 ## Services
 
-The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `match-sheet`, `construct-sheet`, and `generate-sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary. The separate Nesting plugin owns server-only solver execution and contributes its own `nesting-solve` graph operation.
+The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `construct-sheet`, and `generate-sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary. The separate Nesting plugin owns server-only solver execution and contributes its own `nesting-solve` graph operation.
 
 Service compute is value→value (SPEC §8): payload values in, computed
 values and files out, free of service imports, persistence, and auth.
@@ -74,7 +68,6 @@ values and files out, free of service imports, persistence, and auth.
 | `nesting-parts` | the cassette-design `nesting-polygons` projection | one baked design in → one generic Nesting source item out: `sourceId`/`sourceKey`, polygon `parts` (coordinates, handles, and workpiece layers joined by `workpieceId`), and quantity; the Nesting plugin remains unaware of cassette types while Facade resolves its returned source IDs back to cassette-design refs |
 | `generate-sheet-dxf` | the `sheet-dxf` `fromSheet` construction and the sheet-design `dxf` export binding | the sheet's stored values in — the construction's `sheet` ref value or the export's `fields` — → the layered DXF `payload` out (executor payload contract): production layer names with each layer's standard pen (truecolor, lineweight, DASHED/DOT linetype), mm units, extents, and a Standard text style; the construct stores it as the sheet-dxf record's payload, named after the sheet |
 | `construct-sheet` | the managed `facade-server` runtime operation (browser Worker or server task) | a solved layout value (or a blank) plus the resolved `designs` refs in → `{ data: { compositionKey, geometry }, relations: { parts } }` out (every placement resolves to a declared cassette-design ref carrying its id and geometry revision; unresolved or unpinned refs refuse; the parts edge is the sheet-design type's declared relation) |
-| `match-sheet` | the managed `facade-server` runtime operation (browser Worker or server task) | a layout's composition key plus the org's sheet designs in → `{ found, design }` out; exact composition matching is a pure operation available in browser and server runtimes, and the flow reuses the matched design or constructs only when `found` is false |
 
 ## Vendored engines
 
