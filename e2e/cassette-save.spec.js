@@ -21,7 +21,13 @@ test('cassette first save leaves a clean record', async ({ app }) => {
   await page.locator('main').getByRole('button', { name: /^New( Cassette template( from [A-Za-z]+)?)?$/ }).click();
   const save = page.getByRole('button', { name: 'Save', exact: true }).first();
   await save.waitFor({ timeout: 60_000 });
+  const savedPayload = page.waitForResponse(response => (
+    response.request().method() === 'PUT'
+    && /\/api\/instances\/cassette-template\/[^/]+\/payload$/.test(response.url())
+  ));
   await save.click();
+  await savedPayload;
+  await expect(save).toBeDisabled({ timeout: 30_000 });
 
   await expect.poll(async () => {
     const rows = await (await app.request.get('/api/instances/cassette-template')).json();
