@@ -1111,7 +1111,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       };
 
-      const applyTemplate = async (template) => {
+      const applyTemplate = async (template, { dirty = false } = {}) => {
         const tree = await templateTreeOf(template);
         suppressAutosave = true;
         suppressHistory = true;
@@ -1128,6 +1128,7 @@ export default function createSurface({ vue, components, locale, queries, record
         suppressHistory = false;
         suppressAutosave = false;
         resetDesignerHistory();
+        fileDirty.value = dirty;
         refreshSessionDraftState();
       };
 
@@ -1329,7 +1330,7 @@ export default function createSurface({ vue, components, locale, queries, record
       watch(() => props.record?._id || '', async (recordId) => {
         persistedTemplateIdOverride.value = '';
         if (!recordId) {
-          await applyTemplate(null);
+          await applyTemplate(null, { dirty: true });
           return;
         }
         if (recordId === loadedTemplateId.value) return;
