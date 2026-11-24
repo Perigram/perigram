@@ -58,6 +58,29 @@ export function declarationOverlayDomain(data = {}, domain = {}, { report = null
       report?.push({ typeId: declaration.id, skipped: error?.message || String(error) });
     }
   }
+  // Draft ref fields and children edges may target system or plugin types:
+  // stub every other served type so the overlay's relation derivation sees
+  // its declared targets. The stubs never override the served domain —
+  // only the draft's own declarations do.
+  const classByCollection = Object.fromEntries(
+    Object.entries(CLASS_COLLECTIONS).map(([classKind, collection]) => [collection, classKind])
+  );
+  for (const entity of domain.entities || []) {
+    if (declared.has(entity.type)) continue;
+    try {
+      registry.defineType({
+        id: entity.type,
+        class: entity.party ? 'party' : (classByCollection[entity.collection] || 'file'),
+        name: entity.label || entity.type,
+        fields: {},
+        scope: 'org',
+        organizationId: DRAFT_OVERLAY_ORG
+      });
+    } catch {
+      // The served domain already owns an incompatible declaration; the
+      // overlay only needs the id to exist as a relation target.
+    }
+  }
   if (report) {
     const fieldRecords = Object.values(healed?.ctsTypes || {}).filter(record => record?.kind === 'field' && record?.name);
     const matchedFields = declarations.reduce((sum, declaration) => sum + Object.keys(declaration.fields || {}).length, 0);
@@ -66,6 +89,9 @@ export function declarationOverlayDomain(data = {}, domain = {}, { report = null
     }
   }
   const overlay = projectDomainFromView(registry, DRAFT_OVERLAY_ORG, {});
+  const overlayDeclared = entries => Object.fromEntries(
+    Object.entries(entries || {}).filter(([typeId]) => declared.has(typeId))
+  );
   const known = new Set((domain.entities || []).map(entity => entity.type));
   const stubs = invalid
     .filter(declaration => !known.has(declaration.id))
@@ -83,9 +109,9 @@ export function declarationOverlayDomain(data = {}, domain = {}, { report = null
       ...(overlay.entities || []).filter(entity => !known.has(entity.type)),
       ...stubs
     ],
-    fieldSchemas: { ...(domain.fieldSchemas || {}), ...(overlay.fieldSchemas || {}) },
-    workflows: { ...(domain.workflows || {}), ...(overlay.workflows || {}) },
-    construction: { ...(domain.construction || {}), ...(overlay.construction || {}) },
+    fieldSchemas: { ...(domain.fieldSchemas || {}), ...overlayDeclared(overlay.fieldSchemas) },
+    workflows: { ...(domain.workflows || {}), ...overlayDeclared(overlay.workflows) },
+    construction: { ...(domain.construction || {}), ...overlayDeclared(overlay.construction) },
     relations: [
       ...(domain.relations || []),
       ...overlayOwn(overlay.relations).filter(relation => !(domain.relations || [])

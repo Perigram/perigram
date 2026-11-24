@@ -57,6 +57,20 @@ describe('canonical process graph document', () => {
     expect(createProcessGraphDocument(source).revision).not.toBe(first.revision);
   });
 
+  it('canonicalizes control-socket wires as control edges', () => {
+    const source = definition();
+    source.graph.edges.push({
+      id: 'control-wire', source: 'effect-node', target: 'source-node',
+      sourceHandle: 'control:completed', targetHandle: 'control:in'
+    });
+    const graph = createProcessGraphDocument(source);
+    expect(graph.edges.find(edge => edge.id === 'control-wire')).toMatchObject({
+      kind: 'control',
+      source: { node: 'effect-node', port: 'control:completed' },
+      target: { node: 'source-node', port: 'control:in' }
+    });
+  });
+
   it('represents declaration relations without inventing process sockets', () => {
     const source = definition();
     source.graph.edges[1] = {

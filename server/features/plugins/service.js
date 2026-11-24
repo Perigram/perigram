@@ -888,7 +888,11 @@ export async function resolveProjectionValue({ organizationId, commandId, typeId
     typeId: String(typeId),
     instanceId: String(instanceId),
     fields: instance.fields || {},
-    ...(buffer ? { payloadBase64: Buffer.from(buffer).toString('base64') } : {})
+    ...(buffer ? {
+      payloadBase64: Buffer.from(buffer).toString('base64'),
+      ...(payloadRef?.mime ? { mime: String(payloadRef.mime) } : {}),
+      ...(payloadRef?.name ? { name: String(payloadRef.name) } : {})
+    } : {})
   };
   if (mode === 'managed') {
     const runtime = (install.declarations?.runtimes || []).find(item => item.id === service?.execution?.runtime);

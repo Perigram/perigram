@@ -2251,7 +2251,7 @@ describe('starter constructs and service-resolved projections', () => {
     repository.findOrganizationPluginAssetMeta.mockResolvedValue({ id: 'asset-1', contentType: 'text/javascript' });
     repository.readOrganizationPluginAsset.mockResolvedValue(Buffer.from(projectionRuntimeSource));
     instanceServiceResolver.mockReturnValue({
-      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1' } }))
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1', mime: 'text/csv', name: 'sheet.csv' } }))
     });
     try {
       const value = await resolveProjectionValue({
@@ -2266,7 +2266,9 @@ describe('starter constructs and service-resolved projections', () => {
           typeId: 'csv-table',
           instanceId: 'inst-1',
           fields: { name: 'Sheet 1' },
-          payloadBase64: Buffer.from('payload').toString('base64')
+          payloadBase64: Buffer.from('payload').toString('base64'),
+          mime: 'text/csv',
+          name: 'sheet.csv'
         }
       });
       expect(repository.findOrganizationPluginAssetMeta).toHaveBeenCalledWith(ORG, 'coatings', '3', 'runtime/shared-bundle.mjs');
@@ -2413,7 +2415,7 @@ describe('starter constructs and service-resolved projections', () => {
   it('dispatches an endpoint-resolved projection with the instance fields and payload', async () => {
     repository.findInstall.mockResolvedValue(projectionInstall);
     instanceServiceResolver.mockReturnValue({
-      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1' } }))
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1', mime: 'text/csv', name: 'sheet.csv' } }))
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ A: '1' }]), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -2431,7 +2433,9 @@ describe('starter constructs and service-resolved projections', () => {
           typeId: 'csv-table',
           instanceId: 'inst-1',
           fields: { name: 'Sheet 1' },
-          payloadBase64: Buffer.from('payload').toString('base64')
+          payloadBase64: Buffer.from('payload').toString('base64'),
+          mime: 'text/csv',
+          name: 'sheet.csv'
         } })
       }));
     } finally {
