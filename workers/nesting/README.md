@@ -1,8 +1,8 @@
 # PLUGIN: Nesting
 
-Nesting is an independently installable plugin exposing a generic polygon-nesting graph operation. Its managed server runtime owns input validation, quantity handling, source-metadata preservation, layout grouping, and result summaries. The Rust/Python solver is an implementation detail behind the platform-owned `nesting.solve` capability; the plugin contract has no Facade types or Facade executor dependency.
+Nesting is an independently installable plugin exposing a generic polygon-nesting graph operation. Its managed runtime owns input validation, quantity handling, source-metadata preservation, layout grouping, and result summaries, and declares browser and server execution. The Rust/Python solver is an implementation detail behind the platform-owned `nesting.solve` capability; the plugin contract has no Facade types or Facade executor dependency. A browser preview reaches that capability through the authenticated organization route; saved graph execution runs it through the managed worker.
 
-The isolated HTTP worker entry point is `worker_service.py` (`POST /nest`); its live import path touches only `worker_service.py`, `core/nesting_input_builder.py`, and `core/geometry_utils.py` (pure algorithm, no DB access). The installable contract is [`listing.json`](./listing.json), and its managed runtime is [`runtime/server.mjs`](./runtime/server.mjs).
+The isolated HTTP worker entry point is `worker_service.py` (`POST /nest`); its live import path touches only `worker_service.py`, `core/nesting_input_builder.py`, and `core/geometry_utils.py` (pure algorithm, no DB access). The installable contract is [`listing.json`](./listing.json), and its managed runtime is [`runtime/server.mjs`](./runtime/server.mjs). The listing's `nesting-solve` service carries the `nesting` palette group, so the graph editor registers it from the installed declaration layer.
 
 Parent: [workers README](../README.md).
 
@@ -62,6 +62,10 @@ the Nesting managed runtime converts `status === "error"` into a 502 operation f
 as a legacy outer ring list, or provided as `{ outer, inner }`. Inner rings are
 passed to jagua-rs as container holes, which are fixed non-placeable zones used
 for remnant material with already-cut openings.
+
+## Install and upgrade
+
+Publish the listing through the plugin catalog (`server/scripts/seed-plugin-catalog.js`) and install or upgrade it per organization through the plugin routes. Deployments upgrade existing pins with `server/scripts/migrate-nesting-browser-runtime.js` (see the [scripts README](../../server/scripts/README.md)).
 
 ## Building & Running Locally
 

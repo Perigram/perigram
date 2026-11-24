@@ -318,7 +318,11 @@ qualified unique capability ids, determinism, idempotency, and optional preview 
   the server preview policy derives its dispatchable subset from it.
 
 The package root remains Node-bound. Browser consumers import the dedicated
-`./nodes` entry for graph authoring and provider discovery.
+`./nodes` entry for graph authoring and provider discovery. The platform
+also derives normalized definitions from an installed listing's managed
+service declarations through `nodeDefinitionFromService`; runtime-returned
+provider metadata supplies dynamic definitions, conversions, and preview
+renderers beside that declaration set.
 
 ## Executor harnesses
 

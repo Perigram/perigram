@@ -1999,6 +1999,10 @@ The unified registry combines platform and plugin-contributed definitions.
 Stable operation and port identifiers are independent of labels, component
 names, and palette placement. Discovery may use static declarations or
 provider introspection; its normalized result is validated and versioned.
+The platform derives managed node contracts from each installed listing's
+service declarations through the shared SDK builder; runtime-returned
+provider metadata takes precedence for its definitions and adds conversions
+and preview renderers.
 
 The editor derives cards, sockets, inspectors, defaults, parameter
 controls, structured editors, and diagnostics from normalized contracts

@@ -38,7 +38,10 @@ Preview surfaces are checked as installed plugin modules: the cassette preview r
 ## Graph operation palette
 
 The graph palette exposes user-invokable operations by workflow rather than
-by executor implementation. The declared groups are:
+by executor implementation. The `facade-server` runtime declares
+`match-sheet` as a palette-grouped managed service with browser and server
+targets; the graph editor registers it from the installed declaration layer.
+The declared groups are:
 
 - **Sheet planning** (`sheet-planning`) — find a reusable sheet design by
   composition key (`match-sheet`, the one wireable record-signature service)

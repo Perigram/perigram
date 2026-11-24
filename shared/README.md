@@ -28,7 +28,8 @@ imported through server modules that Nitro externalizes.
   [`@perigram/core`](../packages/core/README.md); access evaluation does not
   maintain a parallel status projection.
 - `plugin-runtime.js`: Shared worker type, resource budgets, and the
-  platform capability allowlist for managed plugin execution. Owns the
+  platform capability allowlists for managed plugin execution and browser
+  preview. Owns the
   worker-RPC buffer-transfer law: `collectTransferableBuffers(value,
   { exclude, minBytes })` collects the owned backing buffers a
   `postMessage` transfer list may carry (typed arrays and raw
