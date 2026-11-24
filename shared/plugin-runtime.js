@@ -19,7 +19,8 @@ export const PLUGIN_RUNTIME_CAPABILITIES = Object.freeze([
 export const PLUGIN_RUNTIME_BROWSER_CAPABILITIES = Object.freeze([
   'organization.instances.query',
   'organization.instances.read',
-  'files.read'
+  'files.read',
+  'nesting.solve'
 ]);
 
 export function pluginExecutionAbortError(reason = 'Plugin operation was cancelled') {

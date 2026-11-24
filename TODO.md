@@ -2390,6 +2390,24 @@ is proven. Package ownership and migration sequence are in root SPEC §28.
 
 G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation) are complete; see the archive for the landed scope. The remaining G1 verification and G3–G10 migration/acceptance gates stay active.
 
+- [ ] WAITING — owner verification: Facade and Nesting graph operations
+  register in the editor from their installed listing declarations.
+  Facade's `match-sheet` and Nesting's dual-target `nesting-solve` are
+  authorable; a browser preview of the Nesting operation dispatches the
+  solver through the authenticated capability route.
+
+  ### Agent Notes (2026-11-24, facade and nesting graph nodes)
+
+  `clientRuntimes` now carries `nodeDefinitions` normalized from each
+  runtime's browser-targeted managed services through the SDK builder;
+  `usePluginRuntime` merges them behind runtime-returned providers. Nesting
+  v2 declares browser and server targets, and `nesting.solve` joins the
+  browser capability allowlist so the existing host adapter serves preview
+  calls. `migrate-nesting-browser-runtime.js` moves existing pins to v2.
+  Focused vitest: cts-types 30, usePluginRuntime 14, plugin capabilities 11,
+  Nesting runtime 5. Listing validation, docs, architecture, framework, and
+  plugin-dependency guards pass. Browser acceptance on the dev stack remains.
+
 - [ ] WAITING — owner verification: G1 resource creation, payload revision
   behavior, record/pane editor mounts, and read-grant presentation.
 - [x] G3 Canonical graph editor — direct `perigram.graph` load/edit/save

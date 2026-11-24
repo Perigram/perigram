@@ -10,6 +10,7 @@ import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
 } from '#packages/cts';
 import { pluginModuleUrl } from '#shared/plugin-surfaces.js';
+import { nodeDefinitionFromService, normalizeNodeDefinition } from '#packages/plugin-sdk/nodes';
 import * as pluginInstalls from '../plugins/repository.js';
 
 import { invalidateInstanceDeclarations } from '../instances/service.js';
@@ -226,15 +227,25 @@ export async function describeOrganizationTypes(organizationId) {
             url: pluginModuleUrl(install, surface.module),
             surfaceContract: surface.surfaceContract
           }));
+        const runtimeServices = (install.services || [])
+          .filter(service => service.execution?.runtime === runtime.id && service.execution.targets?.includes('browser'));
+        const nodeDefinitions = runtimeServices
+          .filter(service => service.palette?.visible !== false && service.palette?.group)
+          .map(service => normalizeNodeDefinition(nodeDefinitionFromService(service, {
+            provider: `plugin.${install.pluginId}`,
+            runtimeId: runtime.id
+          })));
         clientRuntimes.push(Object.freeze({
           organizationId: String(organizationId),
           pluginId: install.pluginId,
           name: install.name,
           version: String(install.version || ''),
           runtime: Object.freeze({ ...runtime, entryUrl }),
-          services: Object.freeze((install.services || [])
-            .filter(service => service.execution?.runtime === runtime.id && service.execution.targets?.includes('browser'))
-            .map(service => Object.freeze({ id: service.id, execution: service.execution }))),
+          services: Object.freeze(runtimeServices.map(service => Object.freeze({
+            id: service.id,
+            execution: service.execution
+          }))),
+          nodeDefinitions: Object.freeze(nodeDefinitions),
           previewRenderers: Object.freeze(previewRenderers)
         }));
       }

@@ -215,9 +215,17 @@ function transferableInvocation(input) {
     const instance = runtimeFor(binding, runtime);
     const contributions = await instance.providers();
     if (!Array.isArray(contributions)) throw new Error(`Runtime ${runtime.id} providers must be an array`);
+    const contributed = new Set(contributions.flatMap(contribution => (
+      Array.isArray(contribution?.definitions) ? contribution.definitions : []
+    ).map(definition => `${definition?.provider}/${definition?.id}@${String(definition?.version)}`)));
+    const served = (Array.isArray(binding.nodeDefinitions) ? binding.nodeDefinitions : [])
+      .filter(definition => !contributed.has(`${definition?.provider}/${definition?.id}@${String(definition?.version)}`));
+    const contributionsWithServed = served.length
+      ? [...contributions, { provider: `plugin.${binding.pluginId}`, definitions: served }]
+      : contributions;
     const providers = [];
     const errors = [];
-    for (const contribution of contributions) {
+    for (const contribution of contributionsWithServed) {
       const operations = Array.isArray(contribution?.definitions)
         ? contribution.definitions.map(definition => String(definition?.id || '')).filter(Boolean)
         : [];

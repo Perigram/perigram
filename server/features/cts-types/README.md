@@ -94,7 +94,14 @@ installed plugins' records:
 | Surface declarations | `{ id, url, surfaceContract, kind?, ownsChrome? }` per installed plugin module; `ownsChrome` marks editors whose dock renders the document identity, so record hosts mount them without a page header |
 | Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
 | Preview channels | `previewChannels: [{ id, label, surface, url, surfaceContract }]` per plugin-declared designer preview tab (SPEC §28); channel ids are global across installs — a collision is a composition error |
-| Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services, previewRenderers }]` for browser-capable JavaScript runtimes, operations, and the install's declared preview surfaces resolved to module URLs |
+| Client runtimes | `clientRuntimes: [{ organizationId, pluginId, version, runtime, services, nodeDefinitions, previewRenderers }]` for browser-capable JavaScript runtimes, operations, the normalized graph-node contracts of its browser-targeted managed services, and the install's declared preview surfaces resolved to module URLs |
+
+A runtime binding's `nodeDefinitions` are derived from the install's managed
+service declarations through the SDK's `nodeDefinitionFromService` builder
+under the same palette gate the server resolver applies: managed mode,
+`palette.visible !== false`, a declared palette group, and browser execution
+support. Runtime-returned provider metadata keeps precedence; the served
+declaration set fills operations the runtime does not contribute.
 
 Editor bindings are file-type contracts: editor surfaces belong to
 `file`-class (payload-bearing) types declared by the same plugin — the

@@ -2,7 +2,7 @@
   "pluginId": "nesting",
   "name": "Nesting",
   "description": "Reusable 2D polygon nesting over generic source parts and stock-sheet geometry",
-  "version": "1",
+  "version": "2",
   "requires": [],
   "declarations": {
     "types": [
@@ -117,6 +117,7 @@
           "runtime": "nesting-server",
           "kind": "read",
           "targets": [
+            "browser",
             "server"
           ],
           "capabilities": [
@@ -137,6 +138,7 @@
         "version": "1",
         "entry": "/runtime/server.mjs",
         "targets": [
+          "browser",
           "server"
         ]
       }

@@ -126,7 +126,11 @@ sdk's `nodeDefinitionFromService` builder and node-contract normalizer
 ([plugin-sdk](../../../packages/plugin-sdk/README.md#provider-neutral-node-contracts))
 — the same normalization and port projection the browser session applies to
 resolved definitions, including declared representations — with the
-server-side `packagePin` execution provenance carried on top.
+server-side `packagePin` execution provenance carried on top. The browser
+editor receives the same normalized definitions for browser-targeted
+managed services on each `clientRuntime` binding (see
+[cts-types](../cts-types/README.md#client-bundle)); installed runtimes may
+add dynamic definitions, conversions, and preview renderers.
 
 `listInstalledGraphProviderConversions({ auth })` loads the caller's
 installed server-capable runtimes and returns their validated conversion
@@ -159,8 +163,8 @@ runtime target, operation declaration, and capability allowlist
 the browser capability route, and the graph evaluator's unverified-capability
 tracking). It uses
 authorized instance and file services. Browser calls use the authenticated
-organization capability route and expose query, read, and file-read
-capabilities. Server calls use the claimed task route and may invoke declared
+organization capability route and expose query, read, file-read, and the
+restricted Nesting solver capability. Server calls use the claimed task route and may invoke declared
 writes; each claim-bound execution journals a host-verified evidence record
 onto the task run (`hostCapabilityEvidence`), which the graph host treats as
 the authority over worker-reported claims. The server rehydrates the run

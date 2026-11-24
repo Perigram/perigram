@@ -103,7 +103,10 @@ input, options)` dispatches only operations declaring browser support.
 metadata returned by the Worker and wraps provider execution with Worker RPC;
 provider-level `conversions` ride the same metadata, validated through the
 SDK node-provider contract (`normalizeNodeProvider`) so invalid
-declarations land in `loadProvidersDetailed`'s per-provider errors. A
+declarations land in `loadProvidersDetailed`'s per-provider errors. The
+binding's served `nodeDefinitions` fill every browser-targeted managed
+operation the runtime does not contribute; runtime definitions keep
+precedence by provider, operation, and version. A
 provider's `previewRenderers` map binds renderer ids to the install's
 declared preview surface ids; the composable resolves them against the
 organization runtime binding and returns the host-owned module descriptors

@@ -159,6 +159,38 @@ describe('managed plugin host capabilities', () => {
     }
   });
 
+  it('routes browser previews of the declared Nesting capability through the platform endpoint', async () => {
+    findInstall.mockResolvedValue({
+      ...install,
+      pluginId: 'nesting',
+      services: [{
+        id: 'nesting-solve',
+        execution: { runtime: 'javascript', targets: ['browser', 'server'], kind: 'read', capabilities: ['nesting.solve'] }
+      }]
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'ok', layouts: [] })
+    });
+    vi.stubEnv('NESTING_WORKER_URL', 'https://nesting.internal/nest');
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await expect(invokePluginCapability({
+        organizationId: 'org-1', pluginId: 'nesting', version: '4', runtimeId: 'javascript',
+        operationId: 'nesting-solve', name: 'nesting.solve',
+        input: { items: [{ id: 1 }] },
+        target: 'browser', auth
+      })).resolves.toEqual({ status: 'ok', layouts: [] });
+      expect(fetchMock).toHaveBeenCalledWith(new URL('https://nesting.internal/nest'), expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ items: [{ id: 1 }] })
+      }));
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('does not let another plugin invoke the Nesting-specific adapter', async () => {
     await expect(invokePluginCapability({
       organizationId: 'org-1', pluginId: 'demo', version: '4', runtimeId: 'javascript',
