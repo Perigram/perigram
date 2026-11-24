@@ -1786,7 +1786,8 @@ unified header carries the class dialog action and the dirty-gated save.
 The panel context menu opens the class dialog.
 Every record header type label is clickable: editable for organization
 classes to capability holders, read-only otherwise. The sidebar's New class action creates a class, and the dialog
-edits name, class kind, glyph, fields, states, and CTS children. A
+edits name, class kind, glyph, fields, states, CTS children, and — for
+file classes — payload traits. A
 child class added in the dialog stays a draft until the parent saves; it
 never lands in the registry on the click. The dialog writes directly
 through the registry write gate; a compatible declaration reaches

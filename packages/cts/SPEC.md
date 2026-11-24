@@ -120,7 +120,7 @@ entity := {
   revision:       Number            -- monotonic per-instance data revision
   fields:         T.row             -- the type's product, instantiated
   lineage:        { key -> Ref }    -- tree edges (containment), from child
-  relations:      { key -> Ref | [Ref] }   -- peer edges
+  relations:      { key -> Ref | [Ref] }   -- peer edges; ref fields store here
   provenance:     { op, sources: [Ref], effective: Record }
                                    -- causal edges; `effective` records params
                                    -- AND input versions (§8 purity)
@@ -153,6 +153,10 @@ The ten canonical blocks reduce to slots: `data`/`specs` -> fields (specs
 become `Quantity` fields), `identity/origin/status` -> id/states/history,
 `attachments` -> payload, `summary` -> derived cache (§9), `lineage/
 relations/provenance` -> the three edge kinds.
+
+A ref field is relation authoring: `FieldType`'s `Ref` production declares a
+relation entry whose value lives under `relations.<key>` beside explicit
+edge entries. `fields` carries row values alone.
 
 ## 4. Declarations
 
@@ -318,7 +322,7 @@ Every edge declaration carries integrity semantics:
 onRemove ::= restrict | cascade | detach
 ```
 
-A relation declaration normalizes `cardinality` to `one | many`; an omitted explicit relation-edge cardinality defaults to `many`. Ref fields are one-valued and list-of-ref fields are many-valued in the domain projection.
+A relation declaration normalizes `cardinality` to `one | many`; an omitted explicit relation-edge cardinality defaults to `many`. Ref fields are one-valued and list-of-ref fields are many-valued; both store under `relations.<key>`.
 
 A children declaration also names its storage key: `lineageKey` is the
 property children store under `lineage.<lineageKey>`. Normalization stamps

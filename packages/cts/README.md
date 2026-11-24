@@ -15,9 +15,11 @@ modules onto its sections.
 - `units.js` — closed unit set, declared conversions, unification (R3,
   SPEC §2/§12).
 - `values.js` — the value universe V (SPEC §2): descriptor normalization,
-  instance checking, ref-free detection for services (R5), `durationMs`
-  (the one ISO-8601 duration parser), and `FIELD_BASES` — V minus `id`,
-  the single home of the authorable field-base list.
+  instance checking, ref-free detection for services (R5), the ref-field
+  predicate and accepted-target reader (`isRefDescriptor`,
+  `refAcceptsOf`), `durationMs` (the one ISO-8601 duration parser), and
+  `FIELD_BASES` — V minus `id`, the single home of the authorable
+  field-base list.
 - `rows.js` — closed field rows (SPEC §2), compiled to JSON Schema
   2020-12 with `x-quantity`/`x-ref` keywords (the substrate for standard
   validators and designer form generation).
@@ -100,7 +102,9 @@ adapter delegates flat CTS transition candidates to that same validator.
   (SPEC §13), synthesis-only: every authorable type in the view
   synthesizes its entities entry (per-class collection, §13),
   `fieldSchemas` (the §3 stored shape plus row fields as flat
-  `fields.*` paths — lineage schemas carry the full ancestor chain,
+  `fields.*` paths and relations as `relations.*` — ref and list-of-ref
+  fields join explicit edges with their declared `one`/`many`
+  cardinality; lineage schemas carry the full ancestor chain,
   read-model vocabulary for filters and access facts), `fieldAccess`,
   `containment`, `construction` (`genericCreate` plus declared
   construct operators as `via` modes with signature-derived mode
