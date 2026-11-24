@@ -1059,8 +1059,9 @@ providers.
   marked the tree edit dirty; the save therefore left an unsaved marker and
   the tab asked to discard. The template apply now reads the tree first,
   suppresses history and autosave around both assignments, waits for the
-  watcher, resets history, and clears both flags. Callers await the apply.
-  Facade listing v51 carries the surface. Regression:
+  watcher, resets history, and applies the call's dirty state (blank
+  editors arm Save; stored/saved templates open clean). Callers await the
+  apply. Facade listing v51 carries the surface. Regression:
   `e2e/cassette-save.spec.js`.
 
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
