@@ -107,10 +107,47 @@ describe('usePageDocumentSession pickers', () => {
     vi.useRealTimers();
   });
 
-  it('drops trailing empty text blocks on the seed', () => {
+  it('drops every empty text block on the seed', () => {
     const doc = session('page2');
     expect(kinds(doc.order, doc.blockByKey)).toEqual(['text']);
     expect(doc.order).toEqual(['a1']);
+  });
+
+  it('splits a block into a new text block holding the text after the caret', () => {
+    const doc = session();
+    doc.splitBlock('t1', 'after');
+    expect(kinds(doc.order, doc.blockByKey)).toEqual(['text', 'text', 'text']);
+    expect(doc.blockByKey(doc.order[1]).text).toBe('after');
+    expect(doc.editingBlockId).toBe(doc.order[1]);
+  });
+
+  it('joins a block into the previous text block through its editor', () => {
+    const doc = session();
+    const appendMarkdown = vi.fn();
+    doc.registerTextEditor('t1', { getMarkdown: () => 'first', appendMarkdown });
+    doc.registerTextEditor('t2', { getMarkdown: () => 'second', appendMarkdown: vi.fn() });
+    expect(doc.mergeWithPrevious('t2')).toBe(true);
+    expect(appendMarkdown).toHaveBeenCalledWith('second');
+    expect(doc.order).toEqual(['t1']);
+  });
+
+  it('joins the next text block into the current block through its editor', () => {
+    const doc = session();
+    const appendMarkdown = vi.fn();
+    doc.registerTextEditor('t1', { getMarkdown: () => 'first', appendMarkdown });
+    doc.registerTextEditor('t2', { getMarkdown: () => 'second', appendMarkdown: vi.fn() });
+    expect(doc.mergeNext('t1')).toBe(true);
+    expect(appendMarkdown).toHaveBeenCalledWith('second');
+    expect(doc.order).toEqual(['t1']);
+  });
+
+  it('drops an empty block when its editor releases focus', async () => {
+    const doc = session();
+    doc.insertText(1, '', '');
+    const emptyId = doc.order[1];
+    doc.releaseFocus(emptyId);
+    await nextTick();
+    expect(doc.order).toEqual(['t1', 't2']);
   });
 
   it('inserts a live reference block at the opened position', () => {

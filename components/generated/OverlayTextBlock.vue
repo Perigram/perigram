@@ -9,17 +9,21 @@
     @keydown.ctrl.enter.stop.prevent="closeEditor"
   >
     <CrepeEditor
-      v-if="session?.writable && mounted"
+      v-if="session?.writable && mounted && collabReady && session.collabReady !== false"
       ref="editor"
       class="ck-inline-editor"
       :default-value="block.text"
       :initial-block="initialBlock"
       :placeholder="placeholder"
+      :collab="collab"
+      :scroll="false"
       split-on-enter
       delete-on-empty-backspace
       @ready="onEditorReady"
       @update="text => session.updateText(block.id, text)"
-      @enter="insertAfter"
+      @split="splitBlock"
+      @merge-backward="mergeBackward"
+      @merge-forward="mergeForward"
       @delete-empty="deleteBlock"
       @caret-boundary="moveCaret"
       @request-view="requestView"
@@ -32,7 +36,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CrepeEditor from './CrepeEditor.vue';
 import MarkdownBlocks from './MarkdownBlocks.vue';
 
@@ -50,8 +54,25 @@ const editor = ref(null);
 // The Crepe engine mounts only in a browser; the server render shows the
 // markdown read face until hydration.
 const mounted = ref(false);
-onMounted(() => { mounted.value = true; });
+const collab = props.session?.openTextCollab?.(props.block.id) || null;
+const collabReady = ref(!collab);
 const initialBlock = computed(() => (props.session?.initialBlockFor?.(props.block.id) || ''));
+const editorApi = {
+  getMarkdown: () => editor.value?.getMarkdown?.() ?? props.block.text,
+  appendMarkdown: markdown => editor.value?.appendMarkdown?.(markdown)
+};
+
+onMounted(async () => {
+  props.session?.registerTextEditor?.(props.block.id, editorApi);
+  mounted.value = true;
+  if (collab) {
+    await collab.ready;
+    collabReady.value = true;
+  }
+});
+onBeforeUnmount(() => {
+  props.session?.unregisterTextEditor?.(props.block.id);
+});
 
 function focusEditor() {
   nextTick(() => {
@@ -73,11 +94,20 @@ watch(
 
 function onFocusOut(event) {
   if (root.value?.contains?.(event.relatedTarget)) return;
-  props.session?.deactivateBlock?.(props.block.id);
+  if (props.session?.releaseFocus) props.session.releaseFocus(props.block.id);
+  else props.session?.deactivateBlock?.(props.block.id);
 }
 
-function insertAfter() {
-  props.session?.insertTextAfter?.(props.block.id);
+function splitBlock(after) {
+  props.session?.splitBlock?.(props.block.id, after);
+}
+
+function mergeBackward() {
+  props.session?.mergeWithPrevious?.(props.block.id);
+}
+
+function mergeForward() {
+  props.session?.mergeNext?.(props.block.id);
 }
 
 function moveCaret(direction) {

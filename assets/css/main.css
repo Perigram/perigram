@@ -637,6 +637,32 @@ body {
     padding: 0;
 }
 
+/* Remote collaborators' carets (y-prosemirror's yCursorPlugin): the
+   plugin owns each caret's colour; this carries the caret and name flag
+   geometry around it. */
+.ProseMirror-yjs-cursor {
+    position: relative;
+    margin-left: -1px;
+    margin-right: -1px;
+    border-left: 2px solid;
+    border-right: 1px solid transparent;
+    word-break: normal;
+    pointer-events: none;
+}
+
+.ProseMirror-yjs-cursor > div {
+    position: absolute;
+    top: -1.5em;
+    left: -1px;
+    padding: 0 0.25rem;
+    border-radius: var(--p-border-radius-sm);
+    color: var(--p-primary-contrast-color);
+    font-family: var(--ck-font-ui);
+    font-size: 0.75rem;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
 /* The markdown read recipe: the markdown editor's reading typography
    (crepe's document metrics on the app tokens), worn by every host of
    the pipeline's sanitized HTML — chat answers and file previews read

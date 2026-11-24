@@ -78,9 +78,11 @@ const props = defineProps({
   initialBlock: { type: String, default: '' },
   // The click point the caret lands on when an in-place block opens.
   initialPoint: { type: Object, default: null },
-  // Enter at the end of the block emits `enter`; the host starts the
-  // next document block (the Notion block break).
+  // Enter splits the block at the caret; the host starts the next
+  // document block (the Notion block break).
   splitOnEnter: { type: Boolean, default: false },
+  // Enter emits `enter`; the host commits this line as a document block.
+  commitOnEnter: { type: Boolean, default: false },
   // The live-source markers are page-editor signage; in-place document
   // blocks render their content without marker glyphs.
   showSourceMarkers: { type: Boolean, default: false },
@@ -88,10 +90,13 @@ const props = defineProps({
   deleteOnEmptyBackspace: { type: Boolean, default: false },
   // The engine owns the scroll column; embedded document hosts provide
   // the page scroll and mount the engine flush.
-  scroll: { type: Boolean, default: true }
+  scroll: { type: Boolean, default: true },
+  // The block's collaborative document session: `{ doc, awareness, owner,
+  // markSeeded }` from composables/usePageCollab.
+  collab: { type: Object, default: null }
 });
 
-const emit = defineEmits(['update', 'ready', 'enter', 'delete-empty', 'caret-boundary', 'request-view', 'request-reference', 'request-graph-output', 'request-file-reference']);
+const emit = defineEmits(['update', 'ready', 'enter', 'split', 'merge-backward', 'merge-forward', 'delete-empty', 'caret-boundary', 'request-view', 'request-reference', 'request-graph-output', 'request-file-reference']);
 
 const { t } = useI18n();
 const instance = getCurrentInstance();
@@ -114,6 +119,8 @@ let disposed = false;
 let applyBlockAt = () => null;
 let editorViewCtx = null;
 let TextSelection = null;
+let parser = null;
+let serializer = null;
 let pendingRange = null;
 
 function markdownValue() {
@@ -174,6 +181,75 @@ function focusStart() {
     view.focus();
     if (!TextSelection) return;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(0), 1)));
+  });
+}
+
+function markdownOf(node) {
+  if (!node || !serializer) return '';
+  return stripSerializerTail(serializer(node));
+}
+
+// The Notion block break: split a top-level textblock at the caret into
+// the current block's markdown and the new block's markdown.
+function splitAtSelection() {
+  if (!crepe || !TextSelection) return null;
+  return withView(view => {
+    const { state } = view;
+    const { selection } = state;
+    if (!selection.empty) return null;
+    const { $from } = selection;
+    if ($from.depth !== 1 || !$from.parent.isTextblock) return null;
+    if ($from.parent.type.name === 'code_block') return null;
+    if ($from.parent.content.size === 0) return null;
+    const node = $from.parent;
+    const index = $from.index(0);
+    const offset = $from.parentOffset;
+    const beforeNodes = [];
+    for (let i = 0; i < index; i += 1) beforeNodes.push(state.doc.child(i));
+    const beforeContent = node.content.cut(0, offset);
+    if (beforeContent.size) beforeNodes.push(node.copy(beforeContent));
+    const afterNodes = [];
+    const afterContent = node.content.cut(offset);
+    if (afterContent.size) afterNodes.push(node.copy(afterContent));
+    for (let i = index + 1; i < state.doc.childCount; i += 1) afterNodes.push(state.doc.child(i));
+    if (!beforeNodes.length) beforeNodes.push(state.schema.nodes.paragraph.create());
+    const beforeDoc = state.schema.nodes.doc.create(null, beforeNodes);
+    const afterDoc = state.schema.nodes.doc.create(null, afterNodes);
+    const tr = state.tr.replaceWith(0, state.doc.content.size, beforeDoc.content);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(tr.doc.content.size), -1));
+    view.dispatch(tr);
+    return { before: markdownOf(beforeDoc), after: markdownOf(afterDoc) };
+  });
+}
+
+// Backspace at a block's start joins the block into its predecessor. The
+// two leading textblocks append inline; later nodes append as siblings.
+function appendMarkdown(markdown) {
+  if (!crepe || !parser) return false;
+  const value = String(markdown || '');
+  if (!value.trim()) return false;
+  const source = parser(value);
+  if (!source?.childCount) return false;
+  return withView(view => {
+    const { state } = view;
+    const last = state.doc.lastChild;
+    const first = source.firstChild;
+    let tr = state.tr;
+    let joinPos;
+    if (last?.isTextblock && first?.isTextblock) {
+      joinPos = state.doc.content.size - 1;
+      tr = tr.replaceWith(joinPos, joinPos, first.content);
+      if (source.childCount > 1) {
+        tr = tr.insert(tr.doc.content.size, source.content.cut(first.nodeSize));
+      }
+    } else {
+      joinPos = state.doc.content.size;
+      tr = tr.insert(joinPos, source.content);
+    }
+    tr.setSelection(TextSelection.near(tr.doc.resolve(joinPos), 1));
+    view.dispatch(tr);
+    view.focus();
+    return true;
   });
 }
 
@@ -307,7 +383,7 @@ function runSlashPick(id, view) {
 
 onMounted(async () => {
   if (!editorHost.value) return;
-  const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }, { editorViewCtx: viewCtx }, { TextSelection: selectionType }] = await Promise.all([
+  const [{ Crepe: CrepeEditor }, { $prose }, { languages: codeLanguages }, { editorViewCtx: viewCtx, parserCtx, serializerCtx }, { TextSelection: selectionType }] = await Promise.all([
     import('@milkdown/crepe'),
     import('@milkdown/utils'),
     import('@codemirror/language-data'),
@@ -316,6 +392,7 @@ onMounted(async () => {
   ]);
   editorViewCtx = viewCtx;
   TextSelection = selectionType;
+  const collabModule = props.collab ? await import('@milkdown/plugin-collab') : null;
   const [{ createSourceMarkersPlugin }, { createSlashMenu }, vocabulary, { codeMirrorTheme }] = await Promise.all([
     import('#workers/documents/surfaces/lib/source-markers-plugin.js'),
     import('#workers/documents/surfaces/lib/slash-menu.js'),
@@ -389,6 +466,7 @@ onMounted(async () => {
     onPick: runSlashPick
   });
   crepe.editor.use($prose(() => slashMenu.plugin));
+  if (collabModule) crepe.editor.use(collabModule.collab);
   crepe.on(api => api.markdownUpdated(() => {
     if (loaded) emit('update', markdownValue());
   }));
@@ -398,12 +476,26 @@ onMounted(async () => {
     crepe = null;
     return;
   }
+  parser = crepe.editor.ctx.get(parserCtx);
+  serializer = crepe.editor.ctx.get(serializerCtx);
+  if (collabModule && props.collab) {
+    const service = crepe.editor.ctx.get(collabModule.collabServiceCtx);
+    service.bindDoc(props.collab.doc).setAwareness(props.collab.awareness);
+    if (props.collab.owner) {
+      service.applyTemplate(props.defaultValue);
+      service.connect();
+      props.collab.markSeeded?.();
+    } else {
+      service.connect();
+    }
+  }
   loaded = true;
   if (props.initialBlock && props.initialBlock !== 'paragraph') {
     withView(view => applyBlockAt(props.initialBlock, view));
     emit('update', markdownValue());
   }
-  emit('ready');  editorDiagramClick = event => {
+  emit('ready');
+  editorDiagramClick = event => {
     const instanceRef = event.target?.closest?.('[data-instance-ref]');
     if (instanceRef) return;
     const block = event.target?.closest?.('.milkdown-code-block');
@@ -414,22 +506,42 @@ onMounted(async () => {
   editorHost.value.addEventListener('click', editorDiagramClick);
   editorEnterKey = event => {
     if (document.querySelector('.md-slash-menu[data-show="true"]')) return;
-    if (event.key === 'Backspace' && props.deleteOnEmptyBackspace
-      && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    const plain = !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey;
+    if (['Backspace', 'Delete'].includes(event.key) && plain) {
       if (!crepe || !editorViewCtx) return;
       let empty = false;
+      let atStart = false;
+      let atEnd = false;
       withView(view => {
-        const { doc } = view.state;
+        const { doc, selection } = view.state;
+        if (!selection.empty) return;
+        const { $to } = selection;
         empty = doc.childCount === 1 && doc.firstChild?.isTextblock && doc.firstChild.content.size === 0;
+        atStart = $to.depth === 1 && $to.index(0) === 0 && $to.parentOffset === 0;
+        atEnd = $to.depth === 1
+          && $to.index(0) === doc.childCount - 1
+          && $to.parentOffset === $to.parent.content.size;
       });
-      if (!empty) return;
-      event.preventDefault();
-      event.stopPropagation();
-      emit('delete-empty');
-      return;
+      if (event.key === 'Backspace' && empty && props.deleteOnEmptyBackspace) {
+        event.preventDefault();
+        event.stopPropagation();
+        emit('delete-empty');
+        return;
+      }
+      if (props.splitOnEnter && event.key === 'Backspace' && atStart) {
+        event.preventDefault();
+        event.stopPropagation();
+        emit('merge-backward');
+        return;
+      }
+      if (props.splitOnEnter && event.key === 'Delete' && atEnd) {
+        event.preventDefault();
+        event.stopPropagation();
+        emit('merge-forward');
+        return;
+      }
     }
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)
-      && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key) && plain) {
       const direction = event.key.slice('Arrow'.length).toLowerCase();
       let boundary = false;
       withView(view => {
@@ -443,45 +555,33 @@ onMounted(async () => {
         return;
       }
     }
-    if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
-      let emptyParagraph = false;
-      withView(view => {
-        const { selection } = view.state;
-        if (!selection.empty) return;
-        const { $to } = selection;
-        emptyParagraph = $to.depth === 1
-          && $to.parent.type.name === 'paragraph'
-          && $to.parent.content.size === 0;
-      });
-      if (emptyParagraph) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-    }
-    if (!props.splitOnEnter || event.key !== 'Enter'
-      || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (!crepe || !editorViewCtx) return;
-    let split = false;
+    if (event.key !== 'Enter' || !plain) return;
+    let emptyParagraph = false;
     withView(view => {
       const { selection } = view.state;
       if (!selection.empty) return;
       const { $to } = selection;
-      if ($to.parent.type.name === 'code_block') return;
-      // An empty paragraph keeps its Enter inside the same document
-      // block: sequential empty lines are one block, not a stack.
-      if ($to.parent.content.size === 0) return;
-      const atBlockEnd = $to.parentOffset === $to.parent.content.size;
-      const index = $to.depth === 1 ? $to.index(0) : -1;
-      const trailingEmpty = index >= 0 && index === view.state.doc.childCount - 2
-        && view.state.doc.child(index + 1).content.size === 0;
-      const lastBlock = index >= 0 && (index === view.state.doc.childCount - 1 || trailingEmpty);
-      split = atBlockEnd && lastBlock;
+      emptyParagraph = $to.depth === 1
+        && $to.parent.type.name === 'paragraph'
+        && $to.parent.content.size === 0;
     });
+    if (emptyParagraph) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (props.commitOnEnter) {
+      event.preventDefault();
+      event.stopPropagation();
+      emit('enter');
+      return;
+    }
+    if (!props.splitOnEnter) return;
+    const split = splitAtSelection();
     if (!split) return;
     event.preventDefault();
     event.stopPropagation();
-    emit('enter');
+    emit('split', split.after);
   };
   editorHost.value.addEventListener('keydown', editorEnterKey, true);
 });
@@ -507,5 +607,5 @@ function getMarkdown() {
   return markdownValue();
 }
 
-defineExpose({ focus, focusStart, focusEnd, getMarkdown });
+defineExpose({ focus, focusStart, focusEnd, appendMarkdown, getMarkdown });
 </script>
