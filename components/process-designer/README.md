@@ -431,8 +431,9 @@ class or type reference into the field node's targets socket derives the
 descriptor's `accepts` live from the tree; the socket carries the target's
 registry id verbatim (kebab), so ref field inputs typecheck against real
 entity outputs; the inspector multiselect over registry types remains the
-fallback for types with no canvas node. A row-carried reference pins
-`slot: 'data'` in its descriptor. Transition operations are process nodes
+fallback for types with no canvas node. A ref field declares a relation:
+wiring the field node into an effect authors `relations.<fieldId>`, and
+the stored value lives in that slot. Transition operations are process nodes
 (`cts.transition`) selecting one declared transition and an optional
 intent against their bound type.
 

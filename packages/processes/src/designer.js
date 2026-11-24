@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '@perigram/core';
 import { PRODUCER_ORIGIN_SPECIES_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, rowFieldId } from '@perigram/cts';
+import { operationKindOf, describeType, normalizeOperator, normalizeType, typeIdOf, ctsFieldToProcessType, declarationsFromCtsRecords, rowFieldId, isRefDescriptor, refAcceptsOf } from '@perigram/cts';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
@@ -522,7 +522,7 @@ function referencedTypeIds(declaration = {}) {
     ids.push(...(edge.types || []));
   }
   for (const descriptor of Object.values(declaration.fields || {})) {
-    if (descriptor?.base === 'ref') ids.push(...(descriptor.accepts || []));
+    if (isRefDescriptor(descriptor)) ids.push(...refAcceptsOf(descriptor));
   }
   return ids;
 }
@@ -572,7 +572,7 @@ export function declarationNodePorts(node = {}, types = []) {
     };
   }
   if (node.type === 'ctsField') {
-    const isRef = node.data?.descriptor?.base === 'ref';
+    const isRef = isRefDescriptor(node.data?.descriptor || {});
     return {
       inputSpecs: isRef
         ? [{ id: 'targets', label: 'targets', role: 'data', type: processType('entityRef'), access: 'item', multiple: true }]
@@ -666,7 +666,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     if (record?.kind !== 'cts.field') continue;
     const fieldId = rowFieldId(String(fieldNode.data?.name || '').trim());
     if (!fieldId) continue;
-    const path = `fields.${fieldId}`;
+    const path = `${isRefDescriptor(fieldNode.data?.descriptor || {}) ? 'relations' : 'fields'}.${fieldId}`;
     if (record.path !== path) {
       mutations.push({ scope: 'record', recordId: targetNode.data.refId, key: 'path', value: path });
     }
@@ -698,15 +698,18 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       // any exist (the tree is the source); the multiselect fallback only
       // covers types with no canvas node.
       const wired = refTargetsByField.get(node.id);
-      if (wired && (node.data?.descriptor?.base === 'ref')) {
+      if (wired && isRefDescriptor(node.data?.descriptor || {})) {
         const accepts = wired.filter(typeId => Boolean(typeId));
-        const current = node.data.descriptor.accepts || [];
+        const descriptor = node.data.descriptor;
+        const current = refAcceptsOf(descriptor);
         if (JSON.stringify(current) !== JSON.stringify(accepts)) {
           mutations.push({
             scope: 'node',
             nodeId: node.id,
             key: 'descriptor',
-            value: { ...node.data.descriptor, accepts }
+            value: descriptor.base === 'ref'
+              ? { ...descriptor, accepts }
+              : { ...descriptor, itemType: { ...descriptor.itemType, accepts } }
           });
         }
       }

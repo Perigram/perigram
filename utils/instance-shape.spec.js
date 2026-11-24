@@ -29,14 +29,15 @@ describe('dtoToScreenInstance', () => {
     const instance = dtoToScreenInstance({
       _id: 'ent-1',
       name: 'Bracket',
-      fields: { name: 'Bracket', owner: { type: 'keeper', id: 'k-1' }, margins: { leftMm: 4, note: 'tight' }, thicknessMm: 3.2 }
+      fields: { name: 'Bracket', margins: { leftMm: 4, note: 'tight' }, thicknessMm: 3.2 },
+      relations: { owner: { type: 'keeper', id: 'k-1' } }
     }, typeRecord);
 
     expect(instance.id).toBe('ent-1');
     expect(instance.type).toBe('part');
     expect(instance.fields.name).toBe('Bracket');
     expect(instance.fields.thicknessMm).toEqual({ value: 3.2, unit: 'mm' });
-    expect(instance.fields.owner).toEqual({ type: 'keeper', id: 'k-1' });
+    expect(instance.relations.owner).toEqual({ type: 'keeper', id: 'k-1' });
     expect(instance.fields.margins).toEqual({ leftMm: { value: 4, unit: 'mm' }, note: 'tight' });
   });
 

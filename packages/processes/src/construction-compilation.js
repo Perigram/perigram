@@ -21,18 +21,8 @@ export function normalizeConstruction(construction = {}, typeId = '', domain = {
   const contractLineage = new Set(contractInputsRaw
     .map(input => String(input.id || input.path || ''))
     .filter(path => path.startsWith('lineage.')));
-  // An authored row input owns its ref field: the contract's relation
-  // twin (`relations.<key>`) would render the same reference twice, so
-  // the authored `fields.<key>` input wins.
-  const authoredFieldPaths = new Set(declaredInputs
-    .map(input => String(input.path || input.id || ''))
-    .filter(path => path.startsWith('fields.')));
   const contractInputs = contractInputsRaw
-    .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path))
-    .filter(input => {
-      const path = String(input.path || input.id || '');
-      return !(path.startsWith('relations.') && authoredFieldPaths.has(`fields.${path.slice('relations.'.length)}`));
-    });
+    .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path));
   // A declared mode (creation protocols, construct operators) addresses
   // exactly its mode inputs plus edges, and every authored input
   // addresses the current contract (a block-composed construct keeps

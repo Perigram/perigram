@@ -34,7 +34,7 @@ Addresses read the CTS §3 instance shape (the screen instance projection of
 | `states.main` | the primary status |
 | `lineage.<key>` | the lineage ref's id (object ref or raw scalar) |
 | any other name | `fields.<name>`; quantity values compare by `.value` |
-| `relations.<key>.<field>` | any target of the relation whose field matches |
+| `relations.<key>` / `relations.<key>.<field>` | the relation slot; traversal reads any target of the relation whose field matches |
 | `lineage.<key>.<field>` | the ancestor stored under the lineage key |
 | `children.<type>.<field>` | any pool instance of the type whose lineage points back |
 

@@ -10,6 +10,7 @@ const view = new Map([
   ['project', {
     id: 'project',
     class: 'group',
+    fields: { library: { base: 'ref', accepts: ['facade'] } },
     edges: { children: { members: { types: ['queue', 'facade'], onRemove: 'restrict' } }, relations: { linked: { types: ['facade'], cardinality: 'many' } } }
   }],
   ['queue', {
@@ -51,8 +52,9 @@ describe('derived instance indexes (SPEC §13)', () => {
     // members edge: queue (process) and facade (item) both store lineage.members
     expect(keySet(indexes, 'processes')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.members': 1 }));
     expect(keySet(indexes, 'items')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.members': 1 }));
-    // relations edge on the owner (group collection)
+    // relations edge and ref field on the owner (group collection)
     expect(keySet(indexes, 'groups')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'relations.linked': 1 }));
+    expect(keySet(indexes, 'groups')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'relations.library': 1 }));
   });
 
   it('keys the children index by the edge\'s declared lineageKey, not its map key', () => {

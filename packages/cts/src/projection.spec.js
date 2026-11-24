@@ -316,6 +316,33 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(placedOn.where).toEqual({ op: 'gte', args: [{ op: 'field', path: ['value', 'width'] }, { op: 'lit', value: 500 }] });
   });
 
+  it('projects ref and list-of-ref fields into the relation slot with their cardinality', () => {
+    const registryWithRefs = orgRegistry();
+    registryWithRefs.defineType({
+      id: 'ref-holder',
+      name: 'Ref holder',
+      class: 'item',
+      scope: 'org',
+      organizationId: 'org-1',
+      version: 1,
+      fields: {
+        name: { base: 'string', identifier: true },
+        owner: { base: 'ref', accepts: ['panel'] },
+        parts: { base: 'list', itemType: { base: 'ref', accepts: ['panel'] } }
+      }
+    });
+    const projected = projectDomainFromView(registryWithRefs, 'org-1');
+    const owner = projected.relations.find(relation => relation.ownerType === 'ref-holder' && relation.key === 'owner');
+    const parts = projected.relations.find(relation => relation.ownerType === 'ref-holder' && relation.key === 'parts');
+    expect(owner).toMatchObject({ targetType: 'panel', cardinality: 'one' });
+    expect(parts).toMatchObject({ targetType: 'panel', cardinality: 'many' });
+    expect(projected.fieldSchemas['ref-holder'].map(schema => schema.path)).not.toContain('fields.owner');
+    expect(projected.fieldSchemas['ref-holder'].map(schema => schema.path)).not.toContain('fields.parts');
+    const inputs = projected.construction['ref-holder'].inputs;
+    expect(inputs.find(input => input.id === 'relations.owner')).toMatchObject({ type: 'entity', typeId: 'panel' });
+    expect(inputs.find(input => input.id === 'relations.parts')).toMatchObject({ type: 'typeList', typeId: 'panel' });
+  });
+
   it('synthesizes attachment kinds from payload traits', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
     expect(projected.attachmentKinds['spec-sheet']).toMatchObject({

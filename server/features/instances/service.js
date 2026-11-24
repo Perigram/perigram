@@ -12,7 +12,7 @@ import { createError } from 'h3';
 import { withMongoSnapshotTransaction } from '~/server/db/transactions.js';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, MAX_COLLECTION_ITEMS, MAX_STEPS } from '#packages/cts';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, mimeMatches, validateConstraints, evaluateAsync, isRefDescriptor, refAcceptsOf, MAX_COLLECTION_ITEMS, MAX_STEPS } from '#packages/cts';
 import * as typeStore from '../cts-types/repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
@@ -77,6 +77,21 @@ function instanceSortOf(sortBy, sortDirection, declaration, lineageKeys) {
     throw createError({ statusCode: 400, message: `Query sort field ${requested} is not declared for ${declaration.id}` });
   }
   return { [path]: direction, _id: direction };
+}
+
+function refFieldIdsOf(declaration = {}) {
+  return Object.entries(declaration.fields || {})
+    .filter(([, descriptor]) => isRefDescriptor(descriptor))
+    .map(([fieldId]) => fieldId);
+}
+
+function assertRefFieldsUseRelationSlot(values, declaration, block = 'Instance') {
+  const offenders = refFieldIdsOf(declaration).filter(fieldId => Object.hasOwn(values || {}, fieldId));
+  if (!offenders.length) return;
+  throw createError({
+    statusCode: 400,
+    message: `${block} ref fields ${offenders.join(', ')} store under relations.<key>`
+  });
 }
 
 function fieldChangesFromPatch(patch = {}, current = {}) {
@@ -153,8 +168,8 @@ function declaredRelationEdgesOf(declarations = []) {
       for (const target of declaration?.types || []) push(target, { ownerTypeId: owner.id, key });
     }
     for (const [name, descriptor] of Object.entries(owner?.fields || {})) {
-      if (descriptor?.base !== 'ref' || seen.has(name)) continue;
-      const accepts = descriptor?.accepts || [];
+      if (!isRefDescriptor(descriptor) || seen.has(name)) continue;
+      const accepts = refAcceptsOf(descriptor);
       if (accepts.includes('*')) wildcardEdges.push({ ownerTypeId: owner.id, key: name });
       for (const target of accepts) if (target !== '*') push(target, { ownerTypeId: owner.id, key: name });
     }
@@ -435,8 +450,8 @@ async function constraintResolversFor(organizationId, { session = null } = {}) {
     const declaration = view.get(owner?.type) || await declarationFor(owner?.type, organizationId);
     const field = declaration?.fields?.[key];
     const edge = declaration?.edges?.relations?.[key];
-    const accepted = edge?.types || field?.accepts || field?.itemType?.accepts || [];
-    const slot = owner?.relations?.[key] ?? owner?.fields?.[key];
+    const accepted = edge?.types || refAcceptsOf(field);
+    const slot = owner?.relations?.[key];
     if (slot == null) return [];
     const cardinality = edge?.cardinality || (field?.base === 'list' ? 'many' : 'one');
     if (cardinality === 'many' && !Array.isArray(slot)) {
@@ -543,12 +558,10 @@ async function constraintResolversFor(organizationId, { session = null } = {}) {
 
 async function assertDeclaredRelationSlots(declaration, instance, organizationId, keys = [], { session = null } = {}) {
   if (!keys.length) return;
-  const declared = new Set(Object.keys(declaration?.edges?.relations || {}));
-  for (const [fieldId, field] of Object.entries(declaration?.fields || {})) {
-    if (field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref')) {
-      declared.add(fieldId);
-    }
-  }
+  const declared = new Set([
+    ...Object.keys(declaration?.edges?.relations || {}),
+    ...refFieldIdsOf(declaration)
+  ]);
   const resolvers = await constraintResolversFor(organizationId, { session });
   for (const key of keys) {
     if (!declared.has(key)) {
@@ -860,6 +873,7 @@ function instanceService(typeId) {
     if (draft.lineage != null && (typeof draft.lineage !== 'object' || Array.isArray(draft.lineage))) {
       throw createError({ statusCode: 400, message: 'Instance lineage must be an object' });
     }
+    assertRefFieldsUseRelationSlot(draft.fields, declaration);
     const trustedExecutorFields = new Set(executorFieldIds);
     const unsafeExecutorFields = executorFieldIds.filter(fieldId =>
       !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(fieldId)
@@ -892,12 +906,7 @@ function instanceService(typeId) {
       createdAt: now,
       updatedAt: now
     };
-    const relationKeys = new Set(Object.keys(doc.relations || {}));
-    for (const [fieldId, field] of Object.entries(declaration.fields || {})) {
-      if ((field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref'))
-        && Object.hasOwn(doc.fields || {}, fieldId)) relationKeys.add(fieldId);
-    }
-    await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, [...relationKeys], { session });
+    await assertDeclaredRelationSlots(declaration, doc, effectiveOrganizationId, Object.keys(doc.relations || {}), { session });
     await assertPermanentConstraints(declaration, toDto(doc), effectiveOrganizationId, { session });
     const validationSequence = await assertGraphValidated(declaration, toDto(doc), effectiveOrganizationId, { auth, userId });
     if (validationSequence != null) expectedSequence = validationSequence;
@@ -987,6 +996,7 @@ function instanceService(typeId) {
       if (patch.fields != null && (typeof patch.fields !== 'object' || Array.isArray(patch.fields))) {
         throw createError({ statusCode: 400, message: 'Instance fields patch must be an object' });
       }
+      assertRefFieldsUseRelationSlot(patch.fields, declaration, 'Update');
       const unknownFields = Object.keys(patch.fields || {}).filter(fieldId =>
         !Object.hasOwn(declaration.fields || {}, fieldId)
       );
@@ -1000,19 +1010,15 @@ function instanceService(typeId) {
         throw createError({ statusCode: 400, message: 'Instance relations patch must be an object' });
       }
       const collection = repository.collectionForClass(declaration.class);
-      const relationKeys = new Set(Object.keys(patch.relations || {}));
-      for (const [fieldId, field] of Object.entries(declaration.fields || {})) {
-        if ((field?.base === 'ref' || (field?.base === 'list' && field?.itemType?.base === 'ref'))
-          && Object.hasOwn(patch.fields || {}, fieldId)) relationKeys.add(fieldId);
-      }
-      if (relationKeys.size) {
+      const relationKeys = Object.keys(patch.relations || {});
+      if (relationKeys.length) {
         const candidate = {
           type: typeId,
           organizationId,
           fields: patch.fields || {},
           relations: patch.relations || {}
         };
-        await assertDeclaredRelationSlots(declaration, candidate, organizationId, [...relationKeys], { session });
+        await assertDeclaredRelationSlots(declaration, candidate, organizationId, relationKeys, { session });
       }
       await assertDeclaredLineageSlots(typeId, patch.lineage, organizationId, { session });
       // Wire patches speak the stored shape. Lifecycle is deliberately
@@ -1199,15 +1205,13 @@ function instanceService(typeId) {
 
       const edge = declaration.edges?.relations?.[key] || null;
       const field = declaration.fields?.[key] || null;
-      const fieldRef = field?.base === 'ref';
-      const fieldRefList = field?.base === 'list' && field?.itemType?.base === 'ref';
-      if (!edge && !fieldRef && !fieldRefList) {
+      if (!edge && !isRefDescriptor(field)) {
         throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${typeId}` });
       }
-      const relationValue = edge ? current.relations?.[key] : current.fields?.[key];
-      const many = edge ? edge.cardinality !== 'one' : fieldRefList;
+      const relationValue = current.relations?.[key];
+      const many = edge ? edge.cardinality !== 'one' : field?.base === 'list';
       const nextRef = { type: String(targetRef.type), id: String(targetRef.id) };
-      const acceptedTypes = edge?.types || field?.accepts || field?.itemType?.accepts || [];
+      const acceptedTypes = edge?.types || refAcceptsOf(field);
       const matchesTarget = value => {
         const valueType = value && typeof value === 'object'
           ? String(value.type || (acceptedTypes.length === 1 ? acceptedTypes[0] : ''))
@@ -1223,18 +1227,13 @@ function instanceService(typeId) {
         throw createError({ statusCode: 409, message: `Relation ${key} already has a target` });
       }
       const nextValue = many ? [...existing, nextRef] : nextRef;
-      const patch = edge
-        ? { relations: { [key]: nextValue } }
-        : { fields: { [key]: nextValue } };
+      const patch = { relations: { [key]: nextValue } };
       const candidate = {
         ...current,
-        [edge ? 'relations' : 'fields']: {
-          ...(edge ? current.relations : current.fields),
-          [key]: nextValue
-        }
+        relations: { ...current.relations, [key]: nextValue }
       };
       await assertDeclaredRelationSlots(declaration, candidate, organizationId, [key], { session });
-      const updated = await instanceService(typeId).processUpdate(id, patch, {
+      return await instanceService(typeId).processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
         auth,
@@ -1243,16 +1242,6 @@ function instanceService(typeId) {
         expectedOrganizationSequence: expectedSequence,
         session
       });
-      if (!edge) {
-        await appendFieldChangeEvent(typeId, id, {
-          changes: fieldChangesFromPatch(patch, current),
-          actorId: auth?.userId || null,
-          auth: auth || {},
-          state: typeof current.state === 'string' && current.state ? current.state : null,
-          session
-        });
-      }
-      return updated;
     },
 
     async unlinkRelationForHttp(id, relationKey, targetRef, {
@@ -1296,13 +1285,11 @@ function instanceService(typeId) {
 
       const edge = declaration.edges?.relations?.[key] || null;
       const field = declaration.fields?.[key] || null;
-      const fieldRef = field?.base === 'ref';
-      const fieldRefList = field?.base === 'list' && field?.itemType?.base === 'ref';
-      if (!edge && !fieldRef && !fieldRefList) {
+      if (!edge && !isRefDescriptor(field)) {
         throw createError({ statusCode: 400, message: `Relation ${key} is not declared for ${typeId}` });
       }
-      const relationValue = edge ? current.relations?.[key] : current.fields?.[key];
-      const acceptedTypes = edge?.types || field?.accepts || field?.itemType?.accepts || [];
+      const relationValue = current.relations?.[key];
+      const acceptedTypes = edge?.types || refAcceptsOf(field);
       const existing = relationValue == null ? [] : Array.isArray(relationValue) ? relationValue : [relationValue];
       const matches = value => {
         const valueType = value && typeof value === 'object'
@@ -1314,23 +1301,18 @@ function instanceService(typeId) {
       if (!existing.some(matches)) {
         throw createError({ statusCode: 409, message: 'The relation does not contain this target' });
       }
-      const many = edge ? edge.cardinality !== 'one' : fieldRefList;
-      if (!many && fieldRef && field.nullable !== true) {
+      const many = edge ? edge.cardinality !== 'one' : field?.base === 'list';
+      if (!many && field?.base === 'ref' && field.nullable !== true) {
         throw createError({ statusCode: 409, message: `Relation field ${key} is not nullable and cannot be unlinked` });
       }
       const nextValue = many ? existing.filter(value => !matches(value)) : null;
-      const patch = edge
-        ? { relations: { [key]: nextValue } }
-        : { fields: { [key]: nextValue } };
+      const patch = { relations: { [key]: nextValue } };
       const candidate = {
         ...current,
-        [edge ? 'relations' : 'fields']: {
-          ...(edge ? current.relations : current.fields),
-          [key]: nextValue
-        }
+        relations: { ...current.relations, [key]: nextValue }
       };
       await assertDeclaredRelationSlots(declaration, candidate, organizationId, [key], { session });
-      const updated = await instanceService(typeId).processUpdate(id, patch, {
+      return await instanceService(typeId).processUpdate(id, patch, {
         organizationId,
         userId: auth?.userId || null,
         auth,
@@ -1339,16 +1321,6 @@ function instanceService(typeId) {
         expectedOrganizationSequence: expectedSequence,
         session
       });
-      if (!edge) {
-        await appendFieldChangeEvent(typeId, id, {
-          changes: fieldChangesFromPatch(patch, current),
-          actorId: auth?.userId || null,
-          auth: auth || {},
-          state: typeof current.state === 'string' && current.state ? current.state : null,
-          session
-        });
-      }
-      return updated;
     },
 
     // HTTP create transport (`POST /api/instances/:type`): the create
@@ -1801,24 +1773,17 @@ async function sweepRelationRefs({ typeId, id, organizationId }, actor = null, {
       type: ownerTypeId,
       $or: [
         { [`relations.${key}.id`]: { $in: idForms } },
-        { [`relations.${key}`]: { $in: idForms } },
-        { [`fields.${key}`]: { $in: idForms } }
+        { [`relations.${key}`]: { $in: idForms } }
       ],
       // An org-scoped target is referenced from its own org alone; a
       // system target (organizationId null) is referenced from any org.
       ...(organizationId ? { organizationId: toFlexibleId(organizationId) } : {})
     };
     for (const referrer of await repository.findInstancesByFilter(collection, filter, { session })) {
-      const set = {};
-      if (referrer.relations && referrer.relations[key] !== undefined) {
-        const next = sweptRefSlot(referrer.relations[key], deletedId, typeId);
-        if (next !== referrer.relations[key]) set[`relations.${key}`] = next;
-      }
-      if (referrer.fields && referrer.fields[key] !== undefined) {
-        const next = sweptRefSlot(referrer.fields[key], deletedId, typeId);
-        if (next !== referrer.fields[key]) set[`fields.${key}`] = next;
-      }
-      if (!Object.keys(set).length) continue;
+      if (!referrer.relations || referrer.relations[key] === undefined) continue;
+      const next = sweptRefSlot(referrer.relations[key], deletedId, typeId);
+      if (next === referrer.relations[key]) continue;
+      const set = { [`relations.${key}`]: next };
       await repository.updateInstanceFields(collection, referrer._id, set, { session });
       const event = {
         auth: { userId: actor || 'SYSTEM', organizationId: referrer.organizationId ?? organizationId },

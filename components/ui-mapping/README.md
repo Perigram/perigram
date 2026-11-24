@@ -446,11 +446,11 @@ Drop targets resolve the drag through their in-memory state (the session's
   SPEC §22.15), status, budgeted scalar descriptor
   columns, the first declared relation as budgeted chips when any
   loaded instance carries its refs (the contract's `relationColumn` —
-  an explicit edge or a declared ref field, whose stored value is the
-  scalarized id under `fields` or ref objects under `relations`, both
-  read through the one resolver; a typeless stored shape adopts the
-  edge's single declared target or the ref field's first accepted
-  type; an unfilled relation renders no column), and the first filled
+  an explicit edge or a declared ref field, whose value lives under
+  `relations.<key>` and reads through the one resolver; a typeless
+  stored shape adopts the edge's single declared target or the ref
+  field's first accepted type; an unfilled relation renders no column),
+  and the first filled
   structural field
   (json/record/map, the contract's `summaryColumn`) as a bounded inline
   summary cell — a narrow host sheds it with the compact column scale —

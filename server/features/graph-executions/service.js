@@ -679,7 +679,7 @@ async function assertPreviewReadSetCurrent(readSet = {}, organizationId, auth, s
         && (target.revision == null || String(target.revision) !== String(relation.revision))) {
         throw stalePreviewError('A graph relationship target changed after preview');
       }
-      const currentRelation = source.relations?.[relation.key] ?? source.fields?.[relation.key];
+      const currentRelation = source.relations?.[relation.key];
       if (!relationContains(currentRelation, String(relation.targetTypeId), String(relation.targetId))) {
         throw stalePreviewError('A graph relationship changed after preview');
       }

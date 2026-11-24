@@ -434,8 +434,8 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       provenance: { op: 'cts.construct:n1:place', sources: [{ type: 'drawing', id: 't1' }] }
     }, CONTEXT);
 
-    expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-9' });
-    expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
+    expect(merged.relations.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-9' });
+    expect(merged.relations.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
     expect(merged.provenance.sources).toEqual([
       { type: 'drawing', id: 't1' },
       { type: 'dxftpl', id: 't1', revision: 'rev-9' },
@@ -459,8 +459,8 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
       data: { template: 't1', parts: ['p1'] }
     }, CONTEXT);
 
-    expect(merged.fields.template).toBeUndefined();
-    expect(merged.fields.parts).toBeUndefined();
+    expect(merged.relations?.template).toBeUndefined();
+    expect(merged.relations?.parts).toBeUndefined();
     expect(merged.provenance).toBeUndefined();
     expect(revisionService.getCurrentForEntity).not.toHaveBeenCalled();
   });
@@ -477,7 +477,7 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
 
     const [, call] = invokeConstructionValueService.mock.calls[0];
     expect(call.refs.parts[0]).toMatchObject({ id: 'p1', spot: 'Marker', revision: 'rev-9' });
-    expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
+    expect(merged.relations.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
   });
 
   it('reads a stored pin against the frozen revision bytes only when it belongs to the authorized source', async () => {
@@ -497,7 +497,7 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     const [, call] = invokeConstructionValueService.mock.calls[0];
     expect(call.refs.template.payloadBase64).toBe(b64('frozen'));
     expect(call.refs.template.revision).toBe('rev-3');
-    expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-3' });
+    expect(merged.relations.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-3' });
   });
 
   it('refuses a revision pin from a different source before reading its frozen bytes', async () => {
@@ -532,7 +532,8 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     const record = {
       type: 'sheetd',
       name: 'Site plan',
-      fields: { template: { type: 'dxftpl', id: 't1', revision: 'rev-3' } },
+      fields: {},
+      relations: { template: { type: 'dxftpl', id: 't1', revision: 'rev-3' } },
       provenance: {
         op: 'cts.construct:n1:place',
         sources: [{ type: 'dxftpl', id: 't1', revision: 'rev-3' }, { type: 'dxftpl', id: 'p1', revision: 'rev-4' }],

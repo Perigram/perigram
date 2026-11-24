@@ -139,7 +139,7 @@ describe('process v4 node catalog', () => {
         inputs: [
           { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
           { id: 'fields.width', label: 'fields.width', path: 'fields.width', type: 'number', required: false, prompt: true },
-          { id: 'fields.owner', label: 'fields.owner', path: 'fields.owner', type: 'entity', typeId: 'project', required: true, prompt: true }
+          { id: 'relations.owner', label: 'relations.owner', path: 'relations.owner', type: 'entity', typeId: 'project', required: true, prompt: true }
         ]
       }
     }, context);
@@ -148,10 +148,10 @@ describe('process v4 node catalog', () => {
       'type',
       'name',
       'fields.width',
-      'fields.owner',
+      'relations.owner',
       'state'
     ]);
-    const owner = rowCreate.inputs.find(input => input.id === 'fields.owner');
+    const owner = rowCreate.inputs.find(input => input.id === 'relations.owner');
     expect(owner.type).toMatchObject({ base: 'entityRef', typeId: 'project' });
     expect(owner.required).toBe(true);
     const width = rowCreate.inputs.find(input => input.id === 'fields.width');

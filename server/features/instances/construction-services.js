@@ -11,6 +11,7 @@
 // cycle-breaking precedent (the instance machinery imports this module at
 // module scope; the resolver is only called at construction time).
 import { createError } from 'h3';
+import { isRefDescriptor, refAcceptsOf } from '#packages/cts';
 import * as filesService from '../files/service.js';
 import { invokeConstructionValueService, constructionsForOrganization } from '../plugins/service.js';
 import { executorPayload } from '../plugins/executor-payload.js';
@@ -128,7 +129,7 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   // resolved ref pins in provenance.sources, where the causal refs live.
   const declaredRefFields = new Set(parameters.declaredRefFields || []);
   for (const [field, pin] of Object.entries(parameters.pins || {})) {
-    if (declaredRefFields.has(field)) merged.fields[field] = pin;
+    if (declaredRefFields.has(field)) merged.relations = { ...(merged.relations || {}), [field]: pin };
   }
   const pins = Object.values(parameters.pins || {}).flatMap(pin => (Array.isArray(pin) ? pin : [pin]));
   if (pins.length) {
@@ -214,15 +215,13 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   const pins = {};
   const declaredRefFields = [];
   for (const [field, fieldDef] of Object.entries(declaration?.fields || {})) {
-    if (fieldDef?.base === 'ref' || (fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref')) {
-      declaredRefFields.push(field);
-    }
+    if (isRefDescriptor(fieldDef)) declaredRefFields.push(field);
   }
   for (const [field, fieldDef] of Object.entries(operator?.input?.fields || {})) {
     if (fieldDef?.base === 'ref') {
       const input = refInputOf(draftData[field]);
       if (input) {
-        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId, sourceReadAuth(context));
+        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, refAcceptsOf(fieldDef), field, organizationId, sourceReadAuth(context));
         refs[field] = resolved.value;
         if (resolved.pin) pins[field] = resolved.pin;
       }
@@ -237,7 +236,7 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
         refs[field] = [];
         pins[field] = [];
         for (const input of inputs) {
-          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId, sourceReadAuth(context));
+          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, refAcceptsOf(fieldDef), field, organizationId, sourceReadAuth(context));
           refs[field].push(resolved.value);
           if (resolved.pin) pins[field].push(resolved.pin);
         }
@@ -294,10 +293,6 @@ function refInputOf(value) {
     return { id, ...input };
   }
   return null;
-}
-
-function acceptedTypesOf(fieldDef) {
-  return Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
 }
 
 async function resolveRefValue(instanceServiceResolver, declarationForType, input, accepted, field, organizationId, auth = {}) {
@@ -412,7 +407,7 @@ export function storedConstructionDraft(record = {}, declaration = null, mode = 
   for (const [field, fieldDef] of Object.entries(operator.input?.fields || {})) {
     const isRef = fieldDef?.base === 'ref';
     const isRefList = fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref';
-    const stored = fields[field];
+    const stored = isRef || isRefList ? record.relations?.[field] : fields[field];
     if (isRef && stored && typeof stored === 'object' && stored.id != null) {
       data[field] = stored;
       continue;
@@ -420,13 +415,13 @@ export function storedConstructionDraft(record = {}, declaration = null, mode = 
     const authored = effective[field] ?? undefined;
     if (authored === undefined) continue;
     if (isRef && typeof authored === 'string') {
-      const accepts = acceptedTypesOf(fieldDef);
+      const accepts = refAcceptsOf(fieldDef);
       const revision = pinnedSource(accepts[0], authored);
       data[field] = revision ? { type: accepts[0], id: authored, revision } : authored;
       continue;
     }
     if (isRefList && Array.isArray(authored)) {
-      const accepts = acceptedTypesOf(fieldDef.itemType);
+      const accepts = refAcceptsOf(fieldDef);
       data[field] = authored.map(id => (
         typeof id === 'object' && id?.id != null ? id
           : (() => {

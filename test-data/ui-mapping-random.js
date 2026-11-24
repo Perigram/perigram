@@ -13,7 +13,7 @@
 // Bundle records derive their display policy exactly the way
 // `compileClientBundle()` does (`renderPolicyFor` over the authored
 // declaration).
-import { renderPolicyFor } from '#packages/cts';
+import { renderPolicyFor, isRefDescriptor } from '#packages/cts';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -301,16 +301,21 @@ export function generateUiMappingWorld(seed = 7) {
   types.forEach(type => {
     instancesByType[type.id].forEach(instance => {
       instance.typeVersion = 1;
-      instance.fields = Object.fromEntries(Object.entries(type.fields).map(([name, descriptor]) => [
-        name, randomValue(rnd, descriptor, refTargets)
-      ]));
+      instance.fields = Object.fromEntries(Object.entries(type.fields)
+        .filter(([, descriptor]) => !isRefDescriptor(descriptor))
+        .map(([name, descriptor]) => [name, randomValue(rnd, descriptor, refTargets)]));
       instance.lineage = {};
-      instance.relations = Object.fromEntries(Object.entries(type.edges.relations).map(([key, edge]) => {
-        const options = refTargets[edge.types[0]] || [];
-        if (!options.length) return [key, edge.cardinality === 'single' ? null : []];
-        if (edge.cardinality === 'single') return [key, rnd.chance(0.6) ? rnd.pick(options) : null];
-        return [key, Array.from({ length: rnd.rand(0, 3) }, () => rnd.pick(options))];
-      }));
+      instance.relations = {
+        ...Object.fromEntries(Object.entries(type.fields)
+          .filter(([, descriptor]) => isRefDescriptor(descriptor))
+          .map(([name, descriptor]) => [name, randomValue(rnd, descriptor, refTargets)])),
+        ...Object.fromEntries(Object.entries(type.edges.relations).map(([key, edge]) => {
+          const options = refTargets[edge.types[0]] || [];
+          if (!options.length) return [key, edge.cardinality === 'single' ? null : []];
+          if (edge.cardinality === 'single') return [key, rnd.chance(0.6) ? rnd.pick(options) : null];
+          return [key, Array.from({ length: rnd.rand(0, 3) }, () => rnd.pick(options))];
+        }))
+      };
       instance.state = stateVocabularies[type.id] ? rnd.pick(stateVocabularies[type.id]) : null;
       instance.payload = type.payload
         ? { fileId: `gridfs-${instance.id}`, mime: type.payload.mime[0], size: rnd.rand(1, 8000) * 1000 }

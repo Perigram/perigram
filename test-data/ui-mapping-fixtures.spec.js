@@ -40,12 +40,12 @@ describe('hydration four breaks the previous skeleton', () => {
   });
 
   it('chains documents through a self-type supersedes ref', () => {
-    expect(instances.documents[0].fields.supersedes).toBeNull();
-    expect(instances.documents[2].fields.supersedes).toEqual({ type: 'document', id: 'document-2' });
+    expect(instances.documents[0].relations.supersedes).toBeNull();
+    expect(instances.documents[2].relations.supersedes).toEqual({ type: 'document', id: 'document-2' });
     let chain = 1;
     let cursor = instances.documents[10];
-    while (cursor.fields.supersedes) {
-      cursor = instances.documents.find(document => document.id === cursor.fields.supersedes.id);
+    while (cursor.relations.supersedes) {
+      cursor = instances.documents.find(document => document.id === cursor.relations.supersedes.id);
       chain += 1;
     }
     expect(chain).toBeGreaterThanOrEqual(4);

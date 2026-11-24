@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { resolveInstanceRelationRefs } from './instance-relations.js';
 
-// SPEC §6 relation grammar: a declared ref field stores scalarized under
-// `fields.<name>` (the construct boundary's bare id) or as ref objects
-// under `relations.<name>` — readers take both, and a stored shape
-// without its own type adopts the declared target (the caller's
-// fallback).
+// SPEC §6 relation grammar: a declared ref field stores under
+// `relations.<name>`; a stored shape without its own type adopts the
+// declared target (the caller's fallback).
 describe('resolveInstanceRelationRefs', () => {
   it('resolves a bare stored id against the declared target type', () => {
     expect(resolveInstanceRelationRefs('6ada6902', { typeId: 'cassette-design' }))

@@ -193,6 +193,7 @@
 import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, RENDERABLE_PREVIEW_MODES, ASPECT_PREVIEW_MODES, resolveFieldGroups, resolvePreview, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField, typeIsQuantitative, composeDocumentSections } from '#shared/ui-mapping/index.js';
+import { isRefDescriptor, refAcceptsOf } from '#packages/cts';
 import InlineField from './InlineField.vue';
 import PropertyRows from './PropertyRows.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
@@ -318,6 +319,7 @@ function beginBandResize(event) {
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
 const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
+const isRelationField = field => isRefDescriptor(field.descriptor);
 const { te, t } = useI18n();
 const fieldLabelKeyOf = name => fieldLabelKey(props.type?.id, name);
 // Fact labels resolve through the stable generated keys first (see the
@@ -361,7 +363,7 @@ const visibleGroups = computed(() => (peekPresentation.value
   : groups.value));
 const factRowsOf = group => scalarsOf(group);
 const openSectionCount = group => structuralOf(group).length + inlineMapsOf(group).length;
-const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
+const structuralOf = group => group.fields.filter(field => !isRelationField(field) && !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const rows = factRowsOf(group);
   if (expandedFacts.value[group.id]) return rows;
@@ -389,7 +391,7 @@ const relationViews = computed(() => {
     .map(([key, refs]) => {
     // Stored relation shapes normalize through the one app resolver: a
     // typeless ref adopts the relation's single declared target.
-    const edgeTypes = props.type?.edges?.relations?.[key]?.types || [];
+    const edgeTypes = props.type?.edges?.relations?.[key]?.types || refAcceptsOf(props.type?.fields?.[key]);
     const list = resolveInstanceRelationRefs(refs, { typeId: edgeTypes.length === 1 ? edgeTypes[0] : null });
     const outcome = applyBudget(list, budget);
     const isOpen = budget?.overflow === 'more' && props.expanded[key];

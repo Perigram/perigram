@@ -12,6 +12,18 @@ const BASES = Object.freeze([
 // canvas consumes; no page keeps its own base list.
 export const FIELD_BASES = Object.freeze(BASES.filter(base => base !== 'id'));
 
+// A ref field is relation authoring in either cardinality: `ref` is one,
+// list-of-ref is many. Both store under `relations.<key>` (SPEC §3/§6).
+export function isRefDescriptor(descriptor = {}) {
+  return descriptor?.base === 'ref'
+    || (descriptor?.base === 'list' && descriptor?.itemType?.base === 'ref');
+}
+
+export function refAcceptsOf(descriptor = {}) {
+  const target = descriptor?.base === 'ref' ? descriptor : descriptor?.itemType;
+  return Array.isArray(target?.accepts) ? target.accepts : [];
+}
+
 export function describeType(descriptor = {}) {
   const base = descriptor.base;
   if (!BASES.includes(base)) throw new Error(`Unknown base type ${JSON.stringify(base)}`);

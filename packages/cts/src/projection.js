@@ -13,6 +13,7 @@
 // process grammar — the designer and the compiler consume only this.
 import { rowToFieldSchemas } from './field-schema-rows.js';
 import { ctsFieldToConstructionInput, legacyTypeToConstructionInput } from './process-grammar.js';
+import { isRefDescriptor, refAcceptsOf } from './values.js';
 import { lineageKeyForParent } from './edges.js';
 import { renderPolicyFor } from './render.js';
 
@@ -134,8 +135,11 @@ function relationEntriesFor(type, view) {
     }
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
-    if (descriptor?.base !== 'ref') continue;
-    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null, descriptor.unlink || null, descriptor.constructible);
+    if (!isRefDescriptor(descriptor)) continue;
+    const cardinality = descriptor.base === 'list' ? 'many' : 'one';
+    for (const target of refAcceptsOf(descriptor)) {
+      push(name, target, descriptor.where || null, descriptor.unlink || null, descriptor.constructible, cardinality);
+    }
   }
   return entries;
 }
@@ -197,9 +201,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   // exclusively; the colliding row entry is dropped so field schemas and
   // construction inputs expose ONE typed input per relation.
   const rowEntriesByType = new Map(types.map(type => {
-    const relationPaths = new Set(relationEntriesFor(type, view).map(({ key }) => `relations.${key}`));
+    const relationRowPaths = new Set(relationEntriesFor(type, view).map(({ key }) => `fields.${key}`));
     const entries = rowToFieldSchemas(type.fields, type.class)
-      .filter(entry => !relationPaths.has(entry.path));
+      .filter(entry => !relationRowPaths.has(entry.path));
     return [type.id, entries];
   }));
   const fieldAccess = {};
@@ -221,27 +225,38 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     };
     const lineageFields = orgLineageFieldsDeep(type, view);
 
-    // Declared relation edges are addressable fields (SPEC §6): each key
-    // projects as ONE `relations.<key>` schema so constructs receive them as
-    // construction inputs and mutates as leaf sockets — a declared edge is
-    // the only legal place a ref may be stored. A relation accepting
-    // several target types stays one edge: the item reference carries the
-    // declared targets as `accepts` (an entityRef expresses one type; the
-    // declaration remains the acceptance authority).
+    // Declared relations — explicit edges and ref fields — are addressable
+    // fields (SPEC §6): each key projects as ONE `relations.<key>` schema
+    // so constructs receive them as construction inputs and mutates as
+    // leaf sockets. A relation accepting several target types stays one
+    // edge: the item reference carries the declared targets as `accepts`
+    // (an entityRef expresses one type; the declaration remains the
+    // acceptance authority).
     const relationFields = [];
-    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      const targets = (declaration.types || []).filter(target => view.has(target));
-      if (!targets.length) continue;
+    const relationByKey = new Map();
+    for (const entry of relationEntriesFor(type, view)) {
+      const relation = relationByKey.get(entry.key) || {
+        targets: [],
+        cardinality: entry.cardinality,
+        constructible: true
+      };
+      relation.targets.push(entry.target);
+      if (entry.cardinality === 'many') relation.cardinality = 'many';
+      if (entry.constructible === false) relation.constructible = false;
+      relationByKey.set(entry.key, relation);
+    }
+    for (const [key, relation] of relationByKey) {
+      const targets = [...new Set(relation.targets)];
       const targetType = targets.length === 1 ? { typeId: targets[0] } : { accepts: targets };
       relationFields.push({
         path: `relations.${key}`,
         block: 'relations',
         label: targets.length === 1 ? (view.get(targets[0])?.name || key) : key,
-        type: declaration.cardinality === 'one'
+        type: relation.cardinality === 'one'
           ? { base: 'entityRef', nullable: true, ...targetType }
           : { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...targetType } },
         writable: true,
-        constructible: true
+        constructible: relation.constructible
       });
     }
     fieldSchemas[type.id] = [
@@ -464,7 +479,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         ownerType: type.id,
         key: entry.key,
         targetType: entry.target,
-        cardinality: 'many',
+        cardinality: entry.cardinality,
         ...(entry.where ? { where: entry.where } : {}),
         ...(entry.unlink ? { unlink: entry.unlink } : {})
       });

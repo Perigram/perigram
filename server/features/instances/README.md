@@ -18,9 +18,9 @@ Parent: [server/features](../README.md).
   `organizationId` tenancy slot, `payload` (iff the type declares payload
   traits), and `provenance` (set by the construct boundary, never
   patched). Declared ref fields follow SPEC §6's one relation grammar
-  and store in either block: the construct boundary scalarizes a ref
-  draft to its bare id under `fields.<name>`, relation operations write
-  ref objects under `relations.<name>`; readers accept both shapes. **The wire DTO is this stored document verbatim** (owner
+  and store under `relations.<name>`, the same slot explicit relation
+  edges use; `fields` carries row values alone. The create and update
+  boundaries refuse ref values under `fields`. **The wire DTO is this stored document verbatim** (owner
   decision 2026-10-11: ids JSON-safe). `organizationId: null` marks a
   system instance
   (pack-seeded reference catalogs): read-admitted beside org rows in
@@ -200,9 +200,8 @@ Parent: [server/features](../README.md).
   relation refs (SPEC §22.12: a dangling ref is a defect): every
   declared relation edge targeting the type — explicit `edges.relations`
   entries and ref fields alike, derived over the same per-org view the
-  lineage keys use — has its referrers' slots rewritten in both storage
-  blocks; a single ref nulls, an array drops its matching entries
-  (`relations.<key>` ref objects, `fields.<key>` bare ids). A system
+  lineage keys use — has its referrers' `relations.<key>` slots
+  rewritten; a single ref nulls, an array drops its matching entries. A system
   target (`organizationId: null`) sweeps every org over the static
   view's edges; each swept referrer publishes the shared entity event
   with reason `ref-sweep`.
@@ -217,7 +216,7 @@ Parent: [server/features](../README.md).
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 
-`linkRelationForHttp` and `unlinkRelationForHttp` are the authorized structural relation-write boundaries, exposed as `POST` and `DELETE /api/instances/:type/:id/relations/:key`. They validate the declared edge/ref field, accepted target type, one/many cardinality, duplicate/missing targets, target-domain predicates, organization scope, and expected owner revision. An optional non-negative `expectedOrganizationSequence` fences the write against a preview read set. The routes pass one snapshot-transaction session through target reads, relation writes, field-change audit events, and the organization sequence update.
+`linkRelationForHttp` and `unlinkRelationForHttp` are the authorized structural relation-write boundaries, exposed as `POST` and `DELETE /api/instances/:type/:id/relations/:key`. They validate the declared edge/ref field, accepted target type, one/many cardinality, duplicate/missing targets, target-domain predicates, organization scope, and expected owner revision. An optional non-negative `expectedOrganizationSequence` fences the write against a preview read set. The routes pass one snapshot-transaction session through target reads, relation writes, and the organization sequence update.
 
 ## Organization change sequence (SPEC §28)
 
@@ -236,8 +235,9 @@ idempotently (`createIndex`):
 - per declared children edge, on each child type's class collection:
   `{ type, organizationId, 'lineage.<lineageKey>' }` — the edge's declared
   storage key (see `packages/cts/SPEC.md` §6), not the entry's map key;
-- per declared relation edge, on the owner's class collection:
-  `{ type, organizationId, 'relations.<key>' }`.
+- per declared relation — an explicit edge or a ref/list-of-ref field — on
+  the owner's class collection: `{ type, organizationId,
+  'relations.<key>' }`.
 - per declared unique constraint, on `fields.<path>`: an exact, simple-collation
   unique index scoped globally or to the owning organization. Missing values
   are excluded by a scalar-type partial filter; duplicate writes return 409.
@@ -290,10 +290,11 @@ executor.
 
 Ref resolution stamps the version fabric (SPEC §24): every resolved ref
 of a revision-scoped source type pins the revision it read — a declared
-ref field on the constructed record stores `{ type, id, revision }`,
-and the causal refs in `provenance.sources` carry the same `revision`
-slot. A source type without a revision scope (a payload-less geometry
-record) stores `{ type, id }`; the ref field is written either way. A
+ref field on the constructed record stores `{ type, id, revision }`
+under `relations.<key>`, and the causal refs in `provenance.sources`
+carry the same `revision` slot. A source type without a revision scope
+(a payload-less geometry record) stores `{ type, id }`; the ref field is
+written either way. A
 stored pin re-reads the frozen revision bytes (a missing pin refuses); a
 ref with no pin follows the source's current payload.
 

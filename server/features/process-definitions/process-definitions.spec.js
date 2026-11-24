@@ -1005,7 +1005,7 @@ describe('current process-definition service contract', () => {
 
     expect(result.nodes.present.outputs.value.branches[0].items).toEqual([null]);
     expect(result.nodes.absent.outputs.value.branches[0].items).toEqual([
-      { missing: true, path: 'fields.design' }
+      { missing: true, path: 'relations.placedOn' }
     ]);
     // The response is already the JSON contract: no undefined property or
     // array item degrades to null on the wire.
@@ -1879,7 +1879,7 @@ function previewProcessData() {
     processNodes: {
       entity: { id: 'entity', kind: 'source.literalItem', value: { fields: { serial: null } } },
       present: { id: 'present', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'fields.serial' } },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'fields.design' } }
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', inputDefaults: { field: 'relations.placedOn' } }
     }
   };
 }

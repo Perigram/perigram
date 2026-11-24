@@ -2,6 +2,7 @@
 // concern, total and deterministic. Pure functions over CTS descriptors,
 // client-bundle type records, and compiled action records.
 import { normalizeFilter, instanceMatchesFilter } from '#shared/instance-filters/index.js';
+import { isRefDescriptor, refAcceptsOf } from '#packages/cts';
 import {
   FIELD_EDIT_ENTRIES,
   FIELD_DISPLAY_ENTRIES,
@@ -571,14 +572,11 @@ export function resolveListControls(typeRecord = {}, instances = [], { pool = nu
     .filter(([, values]) => values.length > 0)
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
   // The relation chip column: the first declared relation — an explicit
-  // edge or a declared ref field (SPEC §6: one relation grammar; ref
-  // field values store scalarized under `fields.<name>` at the construct
-  // boundary or as ref objects under `relations.<name>` through relation
-  // operations — readers take both) — a column only when any loaded
-  // instance carries its refs, the same filledness law as scalar
-  // columns.
+  // edge or a declared ref field (SPEC §6: one relation grammar, stored
+  // under `relations.<name>`) — a column only when any loaded instance
+  // carries its refs, the same filledness law as scalar columns.
   const refFieldNames = Object.entries(descriptors)
-    .filter(([, descriptor]) => descriptor?.base === 'ref')
+    .filter(([, descriptor]) => isRefDescriptor(descriptor))
     .map(([name]) => name);
   const firstRelationKey = [
     ...Object.keys(typeRecord.edges?.relations || {}),
@@ -586,8 +584,7 @@ export function resolveListControls(typeRecord = {}, instances = [], { pool = nu
   ][0] || null;
   const relationColumn = firstRelationKey && instances.some(instance => {
     const refs = instance?.relations?.[firstRelationKey];
-    if (Array.isArray(refs) ? refs.length > 0 : Boolean(refs)) return true;
-    return refFieldNames.includes(firstRelationKey) && isFilled(instance?.fields?.[firstRelationKey]);
+    return Array.isArray(refs) ? refs.length > 0 : Boolean(refs);
   })
     ? Object.freeze({ key: firstRelationKey })
     : null;
@@ -674,8 +671,16 @@ export function builderFieldsForType(typeRecord = {}, { bundle = null } = {}) {
   const typesById = new Map((bundle?.types || []).map(type => [type.id, type]));
   const target = typesById.get(typeRecord.id) || typeRecord;
   const fields = [...builderFieldsOfRecord(target)];
+  const relationTargets = new Map();
   for (const [key, edge] of Object.entries(target.edges?.relations || {})) {
-    const related = typesById.get((edge?.types || [])[0]);
+    relationTargets.set(key, edge?.types || []);
+  }
+  for (const [name, descriptor] of Object.entries(target.fields || {})) {
+    if (!isRefDescriptor(descriptor) || relationTargets.has(name)) continue;
+    relationTargets.set(name, refAcceptsOf(descriptor));
+  }
+  for (const [key, targets] of relationTargets) {
+    const related = typesById.get(targets[0]);
     if (!related) continue;
     fields.push(...builderFieldsOfRecord(related, `relations.${key}.`, startCaseKey(key)));
   }
@@ -1033,7 +1038,7 @@ export function estimateRegionWeight(node = {}) {
     const groups = node.groups || resolveFieldGroups(node.type || {});
     const facts = groups.reduce((sum, group) => sum + group.fields.length, 0);
     const structural = groups.reduce((sum, group) => sum
-      + group.fields.filter(field => !SCALAR_BASES.includes(field.descriptor.base)).length, 0);
+      + group.fields.filter(field => !isRefDescriptor(field.descriptor) && !SCALAR_BASES.includes(field.descriptor.base)).length, 0);
     const relationRefs = Object.values(node.instances?.[0]?.relations || {})
       .reduce((sum, refs) => sum + (Array.isArray(refs) ? refs.length : refs ? 1 : 0), 0);
     return facts + structural * 2 + Math.ceil(relationRefs / 4);
@@ -1045,7 +1050,12 @@ export function estimateRegionWeight(node = {}) {
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
   // Rows grow with budgeted relation chips: the first declared relation's
   // refs across the loaded instances add wrapped chip rows to the weight.
-  const relationKey = Object.keys(node.type?.edges?.relations || {})[0] || null;
+  const relationKey = [
+    ...Object.keys(node.type?.edges?.relations || {}),
+    ...Object.entries(node.type?.fields || {})
+      .filter(([, descriptor]) => isRefDescriptor(descriptor))
+      .map(([name]) => name)
+  ][0] || null;
   const relationRefs = relationKey
     ? (node.instances || []).reduce((sum, instance) => {
         const refs = instance.relations?.[relationKey];

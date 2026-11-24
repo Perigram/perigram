@@ -956,6 +956,34 @@ describe('live declaration wire interpretation', () => {
     expect(pathMutation?.value).toBe('fields.sheet');
   });
 
+  it('authors a wired ref field path in the relation slot', () => {
+    const state = graph();
+    state.nodes.push({ id: 'f2', type: 'ctsField', data: { typeId: null, name: 'Owner', descriptor: { base: 'ref', accepts: [] } } });
+    state.nodes.push({ id: 'get1', type: 'processNode', data: { refId: 'get1' } });
+    state.edges.push({ id: 'd2', source: 'f2', target: 'cls', role: 'type', label: 'field' });
+    state.edges.push({ id: 'fe1', source: 'f2', target: 'get1', role: 'type', label: 'entry' });
+    state.records.get1 = { id: 'get1', kind: 'cts.field', path: '' };
+    const pass = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    const pathMutation = pass.mutations.find(mutation => mutation.scope === 'record' && mutation.key === 'path');
+    expect(pathMutation?.value).toBe('relations.owner');
+  });
+
+  it('wires list-of-ref targets and exposes the targets socket', () => {
+    const nodes = [
+      { id: 'cls', type: 'ctsClass', data: { typeId: 'panel', class: 'item' } },
+      { id: 'target', type: 'ctsClass', data: { typeId: 'sheet', class: 'file' } },
+      { id: 'f1', type: 'ctsField', data: { typeId: null, name: 'Sheets', descriptor: { base: 'list', itemType: { base: 'ref', accepts: [] } } } }
+    ];
+    const { mutations } = interpretDeclarationEdges(nodes, [
+      { id: 'd1', source: 'f1', target: 'cls', role: 'type', label: 'field' },
+      { id: 't1', source: 'target', target: 'f1', role: 'type', label: 'targets' }
+    ], {}, {});
+    const descriptor = mutations.find(mutation => mutation.scope === 'node' && mutation.key === 'descriptor')?.value;
+    expect(descriptor).toMatchObject({ base: 'list', itemType: { base: 'ref', accepts: ['sheet'] } });
+    expect(declarationNodePorts(nodes[2]).inputSpecs.map(spec => spec.id)).toEqual(['targets']);
+    expect(declarationNodePorts(nodes[2]).outputSpecs[0].type).toMatchObject({ base: 'array', itemType: { base: 'entityRef' } });
+  });
+
   it('re-binds descendants live when the class is renamed', () => {
     const state = graph();
     apply(state, interpretDeclarationEdges(state.nodes, state.edges, state.records, {}).mutations);

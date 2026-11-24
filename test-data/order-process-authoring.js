@@ -122,7 +122,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('entryMask', { operation: 'eq' });
   authoring.drop('filterList', { id: 'entryList' });
   authoring.drop('joinByKey', { id: 'entryParts' });
-  authoring.configure('entryParts', { leftKey: 'fields.design', rightKey: 'sourceId' });
+  authoring.configure('entryParts', { leftKey: 'relations.design.id', rightKey: 'sourceId' });
   authoring.drop('recordField', { id: 'entrySourceId' });
   authoring.configure('entrySourceId', { path: 'right.sourceId', type: { base: 'string' } });
   authoring.drop('recordField', { id: 'entrySourceKey' });
@@ -135,7 +135,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('jobItems', { fields: ['sourceId', 'sourceKey', 'parts', 'count'] });
   authoring.drop('getField', { id: 'entryDesign' });
   authoring.configure('entryDesign', { typeId: 'queue-entry' });
-  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
+  authoring.setInputDefault('entryDesign', 'field', 'relations.design');
   authoring.drop('construct', { id: 'mkCassette' });
   authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
   authoring.configure('mkCassette', { access: adminAccess });
@@ -234,10 +234,10 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
   authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
-  authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
+  authoring.connect('bake', 'data:result', 'mkEntry', 'data:relations.design');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
   authoring.connect('mkEntry', 'data:result', 'entryDesign', 'data:entity');
-  authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
+  authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:relations.design');
   authoring.connect('order', 'data:result', 'mkCassette', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
@@ -296,10 +296,10 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('layoutRecord', 'data:value', 'mkSheet', 'data:layout');
   authoring.connect('bake', 'data:result', 'mkSheet', 'data:designs');
 
-  authoring.connect('matchDesign', 'data:value', 'mkCutPlanExisting', 'data:fields.design');
-  authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanExisting', 'data:fields.sheet');
-  authoring.connect('mkSheet', 'data:result', 'mkCutPlanNew', 'data:fields.design');
-  authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanNew', 'data:fields.sheet');
+  authoring.connect('matchDesign', 'data:value', 'mkCutPlanExisting', 'data:relations.design');
+  authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanExisting', 'data:relations.sheet');
+  authoring.connect('mkSheet', 'data:result', 'mkCutPlanNew', 'data:relations.design');
+  authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanNew', 'data:relations.sheet');
 
   return authoring.definition();
 }

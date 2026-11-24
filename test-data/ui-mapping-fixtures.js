@@ -471,12 +471,10 @@ export function createDocumentInstance(overrides = {}) {
       pages: 3,
       weightG: { value: 240, unit: 'count' },
       tags: ['primary'],
-      supersedes: null,
-      owner: { type: 'keeper', id: 'keeper-1' },
       scan: { fileId: 'gridfs-scan-1', mime: 'image/png', size: 2_400_000 }
     },
     lineage: { documents: { type: 'folder', id: 'folder-a1ai' } },
-    relations: { linkedSheets: [] },
+    relations: { linkedSheets: [], supersedes: null, owner: { type: 'keeper', id: 'keeper-1' } },
     state: null,
     payload: { fileId: 'gridfs-doc-1', mime: 'image/png', size: 3_100_000 },
     ...overrides
@@ -585,13 +583,13 @@ export function createUiMappingInstances() {
       pages: 2 + (index % 7),
       weightG: { value: 120 + index * 40, unit: 'count' },
       tags: ['primary', 'copy', 'fragile', 'indexed'].slice(0, 1 + (index % 3)),
-      supersedes: index >= 1 ? { type: 'document', id: `document-${index}` } : null,
-      owner: { type: 'keeper', id: index % 2 === 0 ? 'keeper-1' : 'keeper-3' },
       scan: { fileId: `gridfs-scan-${index + 1}`, mime: 'image/png', size: 900_000 + index * 260_000 }
     },
     lineage: { documents: { type: 'folder', id: folderId } },
     relations: {
-      linkedSheets: sheets.slice(0, linkedCounts[index]).map(sheet => ({ type: 'sheet', id: sheet.id }))
+      linkedSheets: sheets.slice(0, linkedCounts[index]).map(sheet => ({ type: 'sheet', id: sheet.id })),
+      supersedes: index >= 1 ? { type: 'document', id: `document-${index}` } : null,
+      owner: { type: 'keeper', id: index % 2 === 0 ? 'keeper-1' : 'keeper-3' }
     },
     payload: { fileId: `gridfs-doc-${index + 1}`, mime: 'image/png', size: 1_400_000 + index * 310_000 }
   }));
