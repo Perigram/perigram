@@ -203,6 +203,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('joinLists', 'collection.concat'),
       paletteItem('joinByKey', 'collection.join'),
+      paletteItem('lookupByKey', 'collection.lookup'),
       paletteItem('itemAtPosition', 'collection.itemAt'),
       paletteItem('sliceList', 'collection.slice'),
       paletteItem('listCount', 'collection.count'),

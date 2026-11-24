@@ -1080,11 +1080,11 @@ providers.
 - [ ] Migrate the two plugin service surfaces from per-service endpoint
   hosting. Current inventory: all 34 declared Documents services run behind
   managed runtimes or the synchronous managed projection boundary; the
-  documents executor deployment is retired. Facade keeps 2 of 6 services in
+  documents executor deployment is retired. Facade keeps 2 of 5 services in
   `mode: endpoint`: `extract-geometry` and `nesting-parts`. The independent Nesting plugin owns `nesting-solve` in its managed server runtime
   through the platform-owned `nesting.solve` capability; Facade requires Nesting
   and adapts OCCS geometry into generic source parts. Pure
-  `bake`, `match-sheet`, `construct-sheet`, `generate-sheet-dxf`, and all
+  `bake`, `construct-sheet`, `generate-sheet-dxf`, and all
   declared Documents `documents-shared` operations run in their shared
   browser/server runtimes; the Nesting plugin's `nesting-solve` runs server-only
   through the managed host capability. `nesting-parts` remains a synchronous endpoint-backed
@@ -2422,9 +2422,10 @@ G0–G2 (shared canvas, file/surface scaffolding, and canonical graph foundation
 
 - [ ] WAITING — owner verification: Facade and Nesting graph operations
   register in the editor from their installed listing declarations.
-  Facade's `match-sheet` and Nesting's dual-target `nesting-solve` are
-  authorable; a browser preview of the Nesting operation dispatches the
-  solver through the authenticated capability route.
+  Facade's `nesting-polygons` projection and Nesting's dual-target
+  `nesting-solve` are authorable; a browser preview of the Nesting
+  operation dispatches the solver through the authenticated capability
+  route.
 
   ### Agent Notes (2026-11-24, facade and nesting graph nodes)
 

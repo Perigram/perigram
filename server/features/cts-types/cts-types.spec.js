@@ -266,7 +266,6 @@ describe('cts type storage', () => {
     const view = await describeOrganizationTypes(ORG);
     const definitions = view.clientRuntimes.flatMap(binding => binding.nodeDefinitions);
     expect(definitions.map(definition => `${definition.provider}/${definition.id}`).sort()).toEqual([
-      'plugin.facade/match-sheet',
       'plugin.nesting/nesting-solve'
     ]);
   });

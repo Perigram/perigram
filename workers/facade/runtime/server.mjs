@@ -144,14 +144,6 @@ function constructSheet({ refs = {}, draft = {} } = {}) {
   };
 }
 
-function matchSheet({ layoutKey, sheets } = {}) {
-  const key = String(layoutKey || '');
-  const design = key && Array.isArray(sheets)
-    ? sheets.find(sheet => String(sheet?.fields?.compositionKey || '') === key) || null
-    : null;
-  return { found: Boolean(design), design };
-}
-
 function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
@@ -162,7 +154,6 @@ function badRequest(message) {
 export function createRuntime() {
   return {
     async execute(operationId, input = {}) {
-      if (operationId === 'match-sheet') return matchSheet(input);
       if (operationId === 'construct-sheet') return constructSheet(input);
       if (operationId === 'generate-sheet-dxf') return generateSheetDxf(input);
       if (operationId === 'bake') return await bake(input);

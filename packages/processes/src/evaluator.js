@@ -195,6 +195,24 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     }
     return createDataPacket(pairs, 'list');
   }
+  if (kind === 'collection.lookup') {
+    const keys = packetValue(required(packets, 'keys', record), 'list');
+    const items = packetValue(required(packets, 'items', record), 'list');
+    const path = String(record.itemsKey || '');
+    const byKey = new Map();
+    for (const item of items) {
+      const value = path ? readPath(item, path) : item;
+      if (isMissingField(value) || value == null || value === '') continue;
+      const key = stableKey(value);
+      if (!byKey.has(key)) byKey.set(key, item);
+    }
+    const matches = keys.map(key => {
+      const value = isMissingField(key) ? null : key;
+      const hit = value == null || value === '' ? undefined : byKey.get(stableKey(value));
+      return { key: value, found: hit !== undefined, item: hit ?? null };
+    });
+    return createDataPacket(matches, 'list');
+  }
   if (kind === 'tree.flatten') return flattenDataPacket(required(packets, 'value', record));
   if (kind === 'tree.graft') return graftDataPacket(required(packets, 'value', record));
   if (kind === 'tree.simplify') return simplifyDataPacket(required(packets, 'value', record));

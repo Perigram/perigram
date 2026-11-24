@@ -64,6 +64,9 @@ describe('process procedural provider adapter', () => {
       leftKey: { type: 'string' }, rightKey: { type: 'string' }, matching: { type: 'string' },
       joinMode: { type: 'string', enum: ['inner', 'left'] }
     });
+    expect(createProcessGraphNodeDefinition('collection.lookup').configuration.properties).toMatchObject({
+      itemsKey: { type: 'string' }
+    });
     expect(createProcessGraphNodeDefinition('collection.shift').configuration.properties.offset).toBeUndefined();
     expect(processNodeConfigurationSchema('collection.shift').properties.matching.enum).toEqual(['longest', 'shortest', 'cross']);
     expect(createProcessGraphNodeDefinition('cts.read').configuration.properties.select.enum).toContain('related');

@@ -34,16 +34,15 @@ function declaredPaletteGroups() {
 }
 
 describe('Facade plugin node palette contribution', () => {
-  it('exposes one plugin section: the wireable sheet-planning operation and geometry extraction as subgroups', () => {
+  it('exposes one plugin section with the geometry extraction subgroup', () => {
     const groups = declaredPaletteGroups();
     expect(groups).toHaveLength(1);
     const section = groups[0];
     expect(section).toMatchObject({ id: 'plugin-facade', source: 'plugin' });
     const subgroup = id => section.subgroups.find(group => group.id === id);
-    expect(subgroup('sheet-planning').label).toBe('Sheet planning');
-    expect(subgroup('sheet-planning').items.map(item => item.id)).toEqual(['service:facade:match-sheet']);
     expect(subgroup('facade').label).toBe('Facade geometry');
     expect(subgroup('facade').items.map(item => item.id)).toEqual(['extract:facade:nesting-polygons']);
+    expect(subgroup('sheet-planning')).toBeUndefined();
     expect(subgroup('production-export')).toBeUndefined();
   });
 
@@ -53,15 +52,11 @@ describe('Facade plugin node palette contribution', () => {
     for (const helper of ['extract-geometry', 'bake', 'construct-sheet', 'generate-sheet-dxf', 'nesting-parts']) {
       expect(ids).not.toContain(`service:facade:${helper}`);
     }
-    expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(1);
+    expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(0);
   });
 
   it('carries operation identity and signature fields as palette search terms', () => {
     const groups = declaredPaletteGroups();
-    const match = groups.flatMap(group => group.items).find(item => item.id === 'service:facade:match-sheet');
-    for (const term of ['facade', 'match-sheet', 'layoutKey', 'sheets']) {
-      expect(match.searchTerms).toContain(term);
-    }
     const extract = groups.flatMap(group => group.items).find(item => item.id === 'extract:facade:nesting-polygons');
     for (const term of ['facade', 'nesting-polygons', 'cassette-design']) {
       expect(extract.searchTerms).toContain(term);
