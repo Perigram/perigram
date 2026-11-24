@@ -216,7 +216,7 @@ export const test = base.extend({
       // (a fixture plugin's installed types). `declares` names additional
       // org types the definition declares without constructing (a seeded
       // child's file type).
-      async seedSpeciesProcess({ types = ['cassette-template', 'image'], via = {}, label = null, domainTypes = [], declares = [] } = {}) {
+      async seedSpeciesProcess({ types = ['cassette-template', 'image'], via = {}, label = null, domainTypes = [], declares = [], children = [] } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
         const roleResponse = await request.post(`/api/organizations/${organizationId}/roles`, {
@@ -269,6 +269,18 @@ export const test = base.extend({
             }
           }
         });
+        for (const edge of children) {
+          const parentIndex = declaredIds.indexOf(edge.parent);
+          if (parentIndex < 0 || declaredById.get(edge.parent)?.scope !== 'org') continue;
+          const childIndex = declaredIds.indexOf(edge.child);
+          const childId = childIndex >= 0 && declaredById.get(edge.child)?.scope === 'org'
+            ? `e2e-class-${childIndex}`
+            : `e2e-child-ref-${edge.child}`;
+          if (childId.startsWith('e2e-child-ref-')) {
+            authoring.declareTypeRef({ id: childId, typeId: edge.child });
+          }
+          authoring.wireDeclaration(childId, `e2e-class-${parentIndex}`, 'children', { key: edge.key });
+        }
         types.forEach((typeId, index) => {
           const id = `e2e-${index}`;
           const mode = via[typeId] || DEFAULT_VIA[typeId] || 'genericCreate';

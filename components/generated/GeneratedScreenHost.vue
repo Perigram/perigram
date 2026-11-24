@@ -98,6 +98,7 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
+import { scopedLineageData } from '~/utils/action-launch-context.js';
 import { useOutboxStore } from '~/stores/outbox';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
@@ -366,17 +367,29 @@ async function runRuntimeTransition(payload = {}) {
 async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = props.screen?.scope || {};
   const instanceId = context.instance?.id || scope.instanceId || null;
-  // Unscoped editor creates defer to the editor (SPEC §UI): the blank
-  // page opens and the first save creates the record. A context-bound
-  // create arrives with its binding in `data` and keeps the construct.
-  if (isEditorProtocolCreate(action) && !Object.keys(data || {}).length && openBlankFileEditor(action.typeId)) return;
+  // A context-bound editor create carries the launch parent through the
+  // same lineage row the create dialog submits; it runs the construct and
+  // opens the created record's editor. Only an unscoped editor create
+  // defers to the blank page (SPEC §UI).
+  const actionData = isEditorProtocolCreate(action)
+    ? {
+        ...scopedLineageData(action, {
+          scopeTypeId: props.screen?.typeId,
+          scopeId: scope.instanceId,
+          type: (processBundle.value?.types || []).find(candidate => candidate.id === action.typeId) || null,
+          bundle: processBundle.value
+        }),
+        ...(data || {})
+      }
+    : data;
+  if (isEditorProtocolCreate(action) && !Object.keys(actionData || {}).length && openBlankFileEditor(action.typeId)) return;
   // Derived command actions (export bindings) execute through the
   // generic command run path — they are not process-contract actions.
   if (action.__command) return runDerivedCommand(action, context.instance);
   try {
     // The store's runAction lands the created entity in the pool itself
     // (create hosts only decide where the record opens).
-    const result = await instances.runAction({ action, actionId: action.rerunOf || action.id, instanceId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ action, actionId: action.rerunOf || action.id, instanceId, entities: {}, data: actionData, parameters: {} });
     // Created entities open through the shared created-open contract
     // (the workspace seam or the compiled detail route); hosts without a
     // compiled home keep the routed detail destination.
