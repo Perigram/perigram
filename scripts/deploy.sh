@@ -133,6 +133,7 @@ docker run --rm --network host \
   perigram-seed:staging sh -ec '
     node server/scripts/seed-plugin-catalog.js &&
     node server/scripts/migrate-facade-pack-to-plugin.js &&
+    node server/scripts/migrate-facade-cassette-surface.js &&
     node server/scripts/migrate-nesting-browser-runtime.js &&
     node server/scripts/migrate-tech-drawing-pack-to-plugin.js &&
     node server/scripts/migrate-documents-pack-to-plugin.js
