@@ -62,7 +62,7 @@ const NODE_GLYPHS = Object.freeze({
   'collection.concat': 'concat', 'collection.itemAt': 'item-at', 'collection.slice': 'slice', 'collection.count': 'count',
   'collection.distinct': 'distinct', 'collection.sort': 'sort', 'collection.reverse': 'reverse', 'collection.shift': 'shift',
   'collection.partition': 'partition', 'collection.dispatch': 'dispatch', 'collection.groupBy': 'group-by',
-  'collection.filter': 'filter', 'collection.join': 'join', 'collection.reduce': 'reduce',
+  'collection.filter': 'filter', 'collection.join': 'join', 'collection.lookup': 'join', 'collection.reduce': 'reduce',
   'tree.flatten': 'flatten', 'tree.graft': 'graft', 'tree.simplify': 'simplify', 'tree.branch': 'branch',
   'tree.zip': 'zip', 'tree.unzip': 'unzip', 'tree.cross': 'cross', 'tree.transpose': 'transpose', 'tree.clean': 'clean', 'tree.stats': 'stats',
   'record.construct': 'record-construct', 'record.merge': 'record-merge',
@@ -117,6 +117,7 @@ const definitions = [
   data('collection.groupBy', 'groupBy'),
   data('collection.filter', 'filterValues'),
   data('collection.join', 'joinByKey'),
+  data('collection.lookup', 'lookupByKey'),
   data('collection.reduce', 'aggregate'),
   data('tree.flatten', 'flatten'),
   data('tree.graft', 'graft'),
@@ -814,6 +815,13 @@ function catalogPorts(record = {}, context = {}) {
       socket('right', processType('json'), DATA, true, 'list')
     ],
     outputs: [socket('pairs', processType('record'), DATA, false, 'list')]
+  };
+  if (kind === 'collection.lookup') return {
+    inputs: [
+      socket('keys', processType('json'), DATA, true, 'list'),
+      socket('items', processType('json'), DATA, true, 'list')
+    ],
+    outputs: [socket('matches', processType('record'), DATA, false, 'list')]
   };
   if (kind === 'tree.flatten' || kind === 'tree.graft' || kind === 'tree.simplify' || kind === 'tree.transpose' || kind === 'tree.clean') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('value', configured, DATA, false, 'tree')] };
   if (kind === 'tree.stats') return { inputs: [socket('value', configured, DATA, true, 'tree')], outputs: [socket('stats', processType('record'))] };

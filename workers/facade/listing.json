@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, and sheet instances as an installable fabrication plugin; generic polygon nesting is provided by the Nesting plugin",
-  "version": "51",
+  "version": "52",
   "requires": [
     "tech-drawing",
     "nesting"
@@ -656,50 +656,6 @@
         },
         "palette": {
           "visible": false
-        }
-      },
-      {
-        "id": "match-sheet",
-        "label": "Find reusable sheet design",
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "layoutKey": {
-                "base": "string",
-                "nullable": true
-              },
-              "sheets": {
-                "base": "list",
-                "nullable": true,
-                "itemType": {
-                  "base": "ref",
-                  "accepts": [
-                    "sheet-design"
-                  ]
-                }
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        },
-        "description": "Reuse an existing sheet design with the same composition",
-        "execution": {
-          "runtime": "facade-server",
-          "kind": "pure",
-          "targets": [
-            "browser",
-            "server"
-          ],
-          "capabilities": [],
-          "deterministic": true,
-          "idempotent": true
-        },
-        "palette": {
-          "group": "sheet-planning",
-          "label": "Sheet planning"
         }
       },
       {

@@ -7,7 +7,7 @@ describe('Facade managed server runtime', () => {
   it('declares pure managed operations with explicit execution targets and no endpoint mode', () => {
     expect(listing.declarations.runtimes.find(runtime => runtime.id === 'facade-server').targets)
       .toEqual(['browser', 'server']);
-    for (const id of ['bake', 'construct-sheet', 'generate-sheet-dxf', 'match-sheet']) {
+    for (const id of ['bake', 'construct-sheet', 'generate-sheet-dxf']) {
       const service = listing.declarations.services.find(item => item.id === id);
       expect(service.mode).toBeUndefined();
       expect(service.execution).toMatchObject({
@@ -27,23 +27,9 @@ describe('Facade managed server runtime', () => {
     expect(declared).toEqual([
       'bake',
       'construct-sheet',
-      'generate-sheet-dxf',
-      'match-sheet'
+      'generate-sheet-dxf'
     ]);
     expect(listing.declarations.services.some(service => service.id === 'nesting-solve')).toBe(false);
-  });
-
-  it('executes exact composition matching inside the managed runtime', async () => {
-    const runtime = createRuntime();
-    const sheet = { _id: 'sheet-1', fields: { compositionKey: 'composition-a' } };
-    await expect(runtime.execute('match-sheet', {
-      layoutKey: 'composition-a',
-      sheets: [sheet]
-    })).resolves.toEqual({ found: true, design: sheet });
-    await expect(runtime.execute('match-sheet', {
-      layoutKey: 'composition-b',
-      sheets: [sheet]
-    })).resolves.toEqual({ found: false, design: null });
   });
 
   it('constructs pinned sheet geometry and parts in the managed runtime', async () => {

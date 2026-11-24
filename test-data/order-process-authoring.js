@@ -171,13 +171,12 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('layoutRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'layoutKey' });
   authoring.configure('layoutKey', { path: 'compositionKey', type: { base: 'string', nullable: true } });
-  authoring.drop('service:facade:match-sheet', { id: 'matchStored' });
-  authoring.drop('castValue', { id: 'matchRecord' });
-  authoring.configure('matchRecord', { outputType: { base: 'record' } });
+  authoring.drop('lookupByKey', { id: 'matchStored' });
+  authoring.configure('matchStored', { itemsKey: 'fields.compositionKey' });
   authoring.drop('recordField', { id: 'matchFound' });
   authoring.configure('matchFound', { path: 'found', type: { base: 'boolean', nullable: false } });
   authoring.drop('recordField', { id: 'matchDesign' });
-  authoring.configure('matchDesign', { path: 'design', type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
+  authoring.configure('matchDesign', { path: 'item', type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
 
   authoring.drop('construct', { id: 'mkSheetInstance' });
   authoring.wireDeclaration('sheetInstanceRef', 'mkSheetInstance', 'binds');
@@ -211,8 +210,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('attempt', 'control:completed', 'layoutLoop', 'control:in');
   authoring.connect('layoutLoop', 'control:done', 'loopEnd', 'control:in');
   authoring.connect('layoutLoop', 'control:each', 'mkSheetInstance', 'control:in');
-  authoring.connect('mkSheetInstance', 'control:completed', 'matchStored', 'control:in');
-  authoring.connect('matchStored', 'control:completed', 'hasStoredBranch', 'control:in');
+  authoring.connect('mkSheetInstance', 'control:completed', 'hasStoredBranch', 'control:in');
   authoring.connect('hasStoredBranch', 'control:true', 'mkCutPlanExisting', 'control:in');
   authoring.connect('hasStoredBranch', 'control:false', 'mkSheet', 'control:in');
   authoring.connect('mkSheet', 'control:completed', 'mkCutPlanNew', 'control:in');
@@ -281,11 +279,10 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('solveLayouts', 'data:value', 'layoutLoop', 'data:items');
   authoring.connect('layoutLoop', 'data:item', 'layoutRecord', 'data:value');
   authoring.connect('layoutRecord', 'data:value', 'layoutKey', 'data:value');
-  authoring.connect('layoutKey', 'data:value', 'matchStored', 'data:layoutKey');
-  authoring.connect('storedSheets', 'data:result', 'matchStored', 'data:sheets');
-  authoring.connect('matchStored', 'data:result', 'matchRecord', 'data:value');
-  authoring.connect('matchRecord', 'data:value', 'matchFound', 'data:value');
-  authoring.connect('matchRecord', 'data:value', 'matchDesign', 'data:value');
+  authoring.connect('layoutKey', 'data:value', 'matchStored', 'data:keys');
+  authoring.connect('storedSheets', 'data:result', 'matchStored', 'data:items');
+  authoring.connect('matchStored', 'data:matches', 'matchFound', 'data:value');
+  authoring.connect('matchStored', 'data:matches', 'matchDesign', 'data:value');
   authoring.connect('matchFound', 'data:value', 'hasStoredBranch', 'data:condition');
 
   authoring.connect('attempt', 'data:result', 'mkSheetInstance', 'data:lineage.nestingAttemptId');

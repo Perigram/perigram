@@ -104,6 +104,24 @@ describe('process v4 data execution', () => {
     ]);
   });
 
+  it('looks up the first candidate per structural key and marks misses', async () => {
+    const record = { kind: 'collection.lookup', itemsKey: 'fields.compositionKey' };
+    const packet = await executeProcessDataNode(record, {
+      keys: createDataPacket(['A', 'B', '', { template: 'T', params: { A: 1 } }], 'list'),
+      items: createDataPacket([
+        { id: 'first', fields: { compositionKey: 'A' } },
+        { id: 'duplicate', fields: { compositionKey: 'A' } },
+        { id: 'struct', fields: { compositionKey: { template: 'T', params: { A: 1 } } } }
+      ], 'list')
+    });
+    expect(packet.branches[0].items).toEqual([
+      { key: 'A', found: true, item: { id: 'first', fields: { compositionKey: 'A' } } },
+      { key: 'B', found: false, item: null },
+      { key: '', found: false, item: null },
+      { key: { template: 'T', params: { A: 1 } }, found: true, item: { id: 'struct', fields: { compositionKey: { template: 'T', params: { A: 1 } } } } }
+    ]);
+  });
+
   it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
     const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
     const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));

@@ -76,6 +76,7 @@ export function processNodeConfigurationSchema(kind = '') {
     if (operations.length) add('operation', { type: 'string', enum: [...operations] }, defaultProcessNodeOperation(kind));
   }
   if (kind === 'collection.join') add('joinMode', { type: 'string', enum: ['inner', 'left'] }, 'inner');
+  if (kind === 'collection.lookup') add('itemsKey', { type: 'string', title: 'Key field' }, '');
 
   if (String(kind).startsWith('source.literal')) {
     const isStructure = kind === 'source.literalList' || kind === 'source.literalTree';

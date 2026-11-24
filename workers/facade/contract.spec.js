@@ -86,22 +86,6 @@ describe('Facade listing contract', () => {
 });
 
 describe('Facade graph node surface', () => {
-  it('derives typed sockets from the wireable service signature', () => {
-    const service = listing.declarations.services.find(item => item.id === 'match-sheet');
-    const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'plugin.facade.match-sheet' }, {
-      domain: { serviceContracts: { 'plugin.facade.match-sheet': { ...service, command: 'plugin.facade.match-sheet' } } }
-    });
-    const dataInputs = ports.inputs.filter(socket => socket.role !== 'control');
-    expect(dataInputs.map(socket => socket.id)).toEqual(['layoutKey', 'sheets']);
-    expect(dataInputs[0]).toMatchObject({ type: { base: 'string' }, required: false });
-    expect(dataInputs[1]).toMatchObject({
-      type: { base: 'entityRef', typeId: 'sheet-design' },
-      required: false,
-      access: 'list'
-    });
-    expect(ports.outputs.filter(socket => socket.role !== 'control')).toHaveLength(1);
-  });
-
   it('keeps every bare-value service out of the graph socket projection', () => {
     for (const service of listing.declarations.services.filter(item => !wireable(item))) {
       const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: `plugin.facade.${service.id}` }, {
@@ -184,13 +168,6 @@ describe('Facade fabrication workflow chain', () => {
     expect(constructed.data.compositionKey).toBe(layout.compositionKey);
     expect(constructed.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
     expect(constructed.data.geometry.preview.layers.length).toBeGreaterThan(0);
-
-    // match-sheet reuses the stored composition on re-runs.
-    const stored = { _id: 'sheet-1', fields: { compositionKey: constructed.data.compositionKey } };
-    await expect(facade.execute('match-sheet', {
-      layoutKey: constructed.data.compositionKey,
-      sheets: [stored]
-    })).resolves.toEqual({ found: true, design: stored });
 
     // the export binding's service: stored sheet values → layered DXF payload.
     const exported = await facade.execute('generate-sheet-dxf', { fields: constructed.data });
