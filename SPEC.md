@@ -1729,12 +1729,24 @@ editor holds focus — the idle placeholder alone, the live engine from the
 first activation; Enter commits the text as a block and leaves a fresh
 line, and Backspace in its empty line resumes the last text block. The
 trailing line is the document's single placeholder (owner direction
-2026-11-21): empty text blocks render nothing and drop when their editor
-closes. A record document carries the same trailing line (owner direction
-2026-11-13). Cursor arrows at a text
-block's visual edge continue in the adjacent text block at its start or
-end. A writable record document mounts the live engine in every text
-block, so the block reads the same while edited and while idle.
+2026-11-21): it mounts while no block editor holds focus, and empty text
+blocks render nothing and drop when their editor closes. A record document
+carries the same trailing line (owner direction 2026-11-13). Cursor arrows
+at a text block's visual edge continue in the adjacent text block at its
+start or end. A writable record document mounts the live engine in every
+text block, so the block reads the same while edited and while idle.
+
+Block boundaries behave as one document (owner direction 2026-11-24):
+Enter splits the focused top-level textblock at the caret into two page
+blocks, Backspace at a block's start joins it into the previous text
+block, and Delete at a block's end joins the next text block into the
+current one. A writable page co-edits live: block order and metadata
+converge through one Yjs document, every text block converges through its
+own Yjs document with cursor awareness, and live updates ride the
+connections SSE topic `page:<pageId>`. The persisted block document
+remains the saved truth; a save pulls missed Yjs state before serializing
+the blocks.
+
 Text blocks accept inline instance references, stored as `#instance:`
 links and rendered through the shared instance chip; file references
 render through the shared file chip.
