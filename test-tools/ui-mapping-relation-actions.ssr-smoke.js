@@ -49,7 +49,15 @@ const bundle = {
       }
     },
     { id: 'child', class: 'item', version: 1, name: 'Child', glyph: 'pi pi-tag', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} },
-    { id: 'ward', class: 'item', version: 1, name: 'Ward', glyph: 'pi pi-box', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} }
+    { id: 'ward', class: 'item', version: 1, name: 'Ward', glyph: 'pi pi-box', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} },
+    {
+      id: 'unit', class: 'group', version: 1, name: 'Unit', glyph: 'pi pi-folder', identifier: 'name',
+      fields: {
+        name: { base: 'string', identifier: true, label: 'Name' },
+        library: { base: 'ref', accepts: ['library'], label: 'Library' }
+      },
+      edges: {}
+    }
   ]
 };
 const instances = {
@@ -62,7 +70,11 @@ const instances = {
     { id: 'k-1', type: 'child', fields: { label: 'Kid one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },
     { id: 'k-2', type: 'child', fields: { label: 'Kid two' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }
   ],
-  ward: [{ id: 'w-1', type: 'ward', fields: { label: 'Ward one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }]
+  ward: [{ id: 'w-1', type: 'ward', fields: { label: 'Ward one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }],
+  unit: [{
+    id: 'unit-1', type: 'unit', fields: { name: 'Unit A' },
+    relations: { library: { type: 'library', id: 'lib-1' } }, lineage: {}
+  }]
 };
 const actions = {
   a_create_parent: { id: 'a_create_parent', label: 'New Parent', actionKind: 'createInstance', typeId: 'parent', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, construction: { mode: 'generic', inputs: [] } },
@@ -91,6 +103,18 @@ const screens = {
       { id: 'main', slot: 'main', sourceId: 'parent', surface: 'detail', actions: ['a_link_parent', 'a_unlink_parent'] },
       { id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [] },
       { id: 'ckids', slot: 'children', sourceId: 'ckids', surface: 'list', actions: [] }
+    ],
+    actions: []
+  },
+  unitDetail: {
+    id: 'auto_unit_detail', screenKey: 'auto_unit_detail', label: 'Unit', kind: 'instanceDetail', template: 'instanceDetail',
+    route: '/screens/auto_unit_detail', sourceRoute: '/screens/auto_unit_detail', placement: 'detail', typeId: 'unit',
+    required: null, roleIds: ['operator'], scope: { instanceId: 'unit-1' }, bindings: {},
+    sources: [
+      { id: 'unit', typeId: 'unit', mode: 'single', required: null, identifier: '$screen.scope.instanceId' }
+    ],
+    regions: [
+      { id: 'main', slot: 'main', sourceId: 'unit', surface: 'detail', actions: [] }
     ],
     actions: []
   }
@@ -147,5 +171,11 @@ describe('relation action placement (SPEC §22.12, SSR)', () => {
     const html = await render('detail');
     expect(html).toContain('Kid one');
     expect(html).toContain('Kid two');
+  });
+
+  it('renders a one-valued ref on a group record without a relation child region', async () => {
+    const html = await render('unitDetail');
+    expect(html).toContain('Library');
+    expect(html).toContain('p-chip');
   });
 });

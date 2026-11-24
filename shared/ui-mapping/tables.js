@@ -429,14 +429,15 @@ export const SURFACE_ENTRIES = Object.freeze([
   {
     match: { class: 'file', variant: 'full' },
     archetype: 'viewer', component: 'FileViewerSurface',
-    slots: ['preview', 'meta']
+    slots: ['preview', 'meta', 'relations']
   },
   {
     match: { class: 'file', variant: 'detail' },
     archetype: 'payload-card', component: 'FileCard',
-    slots: ['preview', 'meta']
+    slots: ['preview', 'meta', 'relations'],
+    budgets: { relations: { max: 6, overflow: 'more' } }
   },
-  { match: { class: 'file', variant: 'row' }, archetype: 'file-row', component: 'FileRow', slots: ['meta'] },
+  { match: { class: 'file', variant: 'row' }, archetype: 'file-row', component: 'FileRow', slots: ['meta', 'relations'], budgets: { relations: { max: 2, overflow: 'count' } } },
   { match: { class: 'file', variant: 'inline' }, archetype: 'chip', component: 'FileChip', slots: [] },
   {
     match: { class: 'item', variant: 'full' },
@@ -459,41 +460,42 @@ export const SURFACE_ENTRIES = Object.freeze([
   {
     match: { class: 'group', variant: 'full' },
     archetype: 'collection', component: 'CollectionSurface',
-    slots: ['identity', 'children'],
+    slots: ['identity', 'fields', 'relations', 'children'],
     budgets: { children: { overflow: 'scroll' } }
   },
   {
     match: { class: 'group', variant: 'detail' },
     archetype: 'collection-card', component: 'CollectionCard',
-    slots: ['identity', 'children'],
-    budgets: { children: { max: 6, overflow: 'more' } }
+    slots: ['identity', 'fields', 'relations', 'children'],
+    budgets: { relations: { max: 6, overflow: 'more' }, children: { max: 6, overflow: 'more' } }
   },
   {
     match: { class: 'group', variant: 'row' },
     archetype: 'collection-row', component: 'GroupRow',
-    slots: ['identity', 'children'],
-    budgets: { children: { max: 2, overflow: 'count' } }
+    slots: ['identity', 'fields', 'relations', 'children'],
+    budgets: { relations: { max: 2, overflow: 'count' }, children: { max: 2, overflow: 'count' } }
   },
   { match: { class: 'group', variant: 'inline' }, archetype: 'chip', component: 'InstanceChip', slots: [] },
   {
     match: { class: 'process', variant: 'full' },
     archetype: 'process-detail', component: 'ProcessSurface',
-    slots: ['identity', 'status', 'fields', 'actions']
+    slots: ['identity', 'status', 'fields', 'relations', 'actions']
   },
   {
     match: { class: 'process', variant: 'detail' },
     archetype: 'process-card', component: 'ProcessCard',
-    slots: ['identity', 'status', 'fields']
+    slots: ['identity', 'status', 'fields', 'relations'],
+    budgets: { relations: { max: 6, overflow: 'more' } }
   },
   {
     match: { class: 'process', variant: 'row' },
     archetype: 'process-row', component: 'ProcessRow',
-    slots: ['identity', 'status', 'fields'],
-    budgets: { fields: ROW_FIELD_BUDGET }
+    slots: ['identity', 'status', 'fields', 'relations'],
+    budgets: { fields: ROW_FIELD_BUDGET, relations: { max: 2, overflow: 'count' } }
   },
   { match: { class: 'process', variant: 'inline' }, archetype: 'chip', component: 'InstanceChip', slots: [] },
-  { match: { variant: 'full' }, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] },
-  { match: {}, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] }
+  { match: { variant: 'full' }, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields', 'relations'] },
+  { match: {}, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields', 'relations'] }
 ]);
 
 // --- Previews ---------------------------------------------------------------

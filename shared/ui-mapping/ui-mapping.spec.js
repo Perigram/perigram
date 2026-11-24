@@ -402,6 +402,14 @@ describe('surface resolution', () => {
     expect(resolveSurface(bin, { variant: 'full' }).budgets.children).toEqual({ overflow: 'scroll' });
   });
 
+  it('keeps relation slots on every record class', () => {
+    for (const classOf of ['file', 'item', 'group', 'process', 'mystery']) {
+      for (const variant of ['full', 'detail', 'row']) {
+        expect(resolveSurface({ id: classOf, class: classOf }, { variant }).slots).toContain('relations');
+      }
+    }
+  });
+
   it('falls back to the generic record surface for unknown classes', () => {
     expect(resolveSurface({ id: 'x', class: 'mystery' }, { variant: 'detail' })).toMatchObject({
       archetype: 'record', component: 'RecordSurface'
