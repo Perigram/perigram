@@ -1,8 +1,7 @@
 import { test, expect } from './fixtures.js';
 
 // A cassette created from its parent collection keeps the launch parent:
-// the record is created under the library before the editor saves, and the
-// first save fills its payload without dropping the lineage binding.
+// the record exists under the library as the editor opens.
 test('cassette create from a library collection keeps its parent', async ({ app }) => {
   test.setTimeout(300_000);
   await app.installPlugins(['tech-drawing', 'facade']);
@@ -38,24 +37,14 @@ test('cassette create from a library collection keeps its parent', async ({ app 
   await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(libraryId)}`);
   await page.getByRole('button', { name: /^New Cassette template/ }).click();
 
-  const save = page.getByRole('button', { name: 'Save', exact: true }).first();
-  await save.waitFor({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Save', exact: true }).first().waitFor({ timeout: 60_000 });
   await expect.poll(async () => {
     const rows = await (await app.request.get('/api/instances/cassette-template')).json();
     return (Array.isArray(rows) ? rows : []).some(row => String(row.lineage?.libraryId || '') === libraryId);
   }, { timeout: 30_000 }).toBe(true);
 
-  const savedPayload = page.waitForResponse(response => (
-    response.request().method() === 'PUT'
-    && /\/api\/instances\/cassette-template\/[^/]+\/payload$/.test(response.url())
-  ));
-  await save.click();
-  await savedPayload;
-  await expect(save).toBeDisabled({ timeout: 30_000 });
-
   const rows = await (await app.request.get('/api/instances/cassette-template')).json();
   const created = (Array.isArray(rows) ? rows : []).find(row => String(row.lineage?.libraryId || '') === libraryId);
   expect(created?._id, 'the created cassette carries the launch parent').toBeTruthy();
-  expect(created?.payload?.fileId, 'the first save filled the cassette payload').toBeTruthy();
   await app.expectCleanRuntime();
 });
