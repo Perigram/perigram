@@ -222,6 +222,12 @@ describe('cts type storage', () => {
           palette: { group: 'coatings', visible: false },
           signature: { input: { base: 'record', fields: {} }, output: { base: 'json' } },
           execution: { runtime: 'javascript', kind: 'pure', targets: ['browser'], capabilities: [] }
+        },
+        {
+          id: 'bare',
+          palette: { group: 'coatings' },
+          signature: { input: { base: 'json' }, output: { base: 'json' } },
+          execution: { runtime: 'javascript', kind: 'pure', targets: ['browser'], capabilities: [] }
         }
       ]
     }]);
