@@ -184,22 +184,22 @@ first step or answer streams (owner direction 2026-10-17); from then on,
 the run's own activity is its presence.
 
 Non-answer machine output is typed, not conversational (owner direction
-2026-10-17): the agent's failure notices persist with a severity kind
-and render as severity-styled system notices (Naive UI NAlert), never
-as plain chat bubbles; the run chronology renders one compact NAlert per
-tool invocation — localized tool name with a compact detail of what the
-call addressed, severity-marked by outcome, a failed tool carrying its
-error in the same notice; the thinking disclosure is a compact,
-collapsible Naive UI disclosure composition. The AI's identity face is the microchip
-glyph in the
-brand accent (carmine) wherever the assistant shows — thread avatars,
-sender chips, pickers — and it is the only AI marker on chat surfaces:
-no text badges. Instance refs attach to chat messages like files do —
-a chip row under the message body, never inline in a contrast bubble;
-tokens in authored text strip from display. Inline entity refs everywhere use the registered shared instance-reference
-primitive, implemented with the appropriate unmodified Naive UI component
-(for example NTag where its semantics fit) — no hand-rolled chip chrome,
-no per-type tint hardcoded from authored type names.
+2026-10-17): the agent's failure notices persist with a severity kind and
+render as severity-styled system notices using the shared Nuxt UI alert
+composition, never as plain chat bubbles; the run chronology renders one
+compact alert per tool invocation — localized tool name with a compact
+detail of what the call addressed, severity-marked by outcome, a failed
+tool carrying its error in the same notice; the thinking disclosure is a
+compact, collapsible disclosure composition built from Nuxt UI. The AI's
+identity face is the microchip glyph in the brand accent (carmine)
+wherever the assistant shows — thread avatars, sender chips, pickers —
+and it is the only AI marker on chat surfaces: no text badges. Instance
+refs attach to chat messages like files do — a chip row under the message
+body, never inline in a contrast bubble; tokens in authored text strip
+from display. Inline entity refs everywhere use the registered shared
+instance-reference primitive, implemented with the appropriate Nuxt UI
+component (for example its Badge where its semantics fit) — no hand-rolled
+chip chrome, no per-type tint hardcoded from authored type names.
 Person-chat presentation stays as it is.
 
 Lifecycle wakes: the AI brought into a conversation may be woken by status
@@ -236,9 +236,7 @@ All generic UI controls and interaction primitives use Nuxt UI components
 plus the repo's registered shared primitives. No hand-rolled generic
 button/input/menu/dialog chrome and no parallel application component
 library. Domain-specific compositions are permitted when they encode
-application behavior or layout rather than reimplementing generic controls. Domain-specific compositions are permitted
-when they encode application behavior or layout rather than reimplementing
-generic controls.
+application behavior or layout rather than reimplementing generic controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
 Generated record surfaces have no record-level edit mode: no header
@@ -283,13 +281,15 @@ definition (its lane, grants, screens, or actions). Screens are not a
 separate tab — they render per role under Roles.
 
 Popups (profile/org settings, org/user previews, floating call window,
-status badges) use Naive UI's native overlay components and the registered
-StandardDialog primitive: NPopover owns popover behavior; StandardDialog
-owns dialog composition and chrome over Naive UI's modal primitive. No
-hand-rolled borders or utility overrides against Naive UI internals. A record popup expands to its page: one explicit expand
-control steps the record up to its page surface (pane/route); no dead
-chrome — a type with no record surface never renders a popup link, and
-popups never carry duplicate or non-functional expansion buttons.
+status badges) use Nuxt UI's native overlay components and the registered
+StandardDialog primitive: Nuxt UI Popover owns popover behavior;
+StandardDialog owns dialog composition and chrome over Nuxt UI's dialog
+capabilities. No hand-rolled generic overlay behavior or styling against
+private component internals. A record popup expands to its page: one
+explicit expand control steps the record up to its page surface
+(pane/route); no dead chrome — a type with no record surface never
+renders a popup link, and popups never carry duplicate or non-functional
+expansion buttons.
 
 One generative UI engine (owner direction 2026-10-19): every compiled
 screen — lists, details, home, system screens — renders through the
