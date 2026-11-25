@@ -505,7 +505,7 @@ type's panel — and relation-linked children nest beneath their row with
 the link glyph.
 What currently is "entity chat" should be renamed to "comments" and get it's place in generated UI.
 I'm not currently sure how exactly, probably contract should pass "comments" toggle and it gets
-generated in same manner in UI. Use the appropriate Naive UI components and integrate them into the
+generated in same manner in UI. Use the appropriate Nuxt UI components and integrate them into the
 generated layout. More important to get aligned with architecture, so it's only assumptions.
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
 surface registry — adding a type never touches app UI code, and plugin-delivered editor
@@ -2663,7 +2663,7 @@ gates keep their migration consent dialogs.
 
 **Workspace anatomy.** The editor is a full working surface in the
 application's existing visual language, not a floating tool demo. Use the
-registered Naive UI components, shared design-system primitives, and
+registered Nuxt UI components, shared design-system primitives, and
 semantic tokens. Remove ad-hoc glass panels, floating mini-toolbar
 clusters, inconsistent spacing, and local chrome systems that do not
 belong to the app.
