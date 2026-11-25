@@ -491,7 +491,7 @@ compact rhythm belongs to data-dense panes alone, and no host profile
 tightens a surface that is already small.
 
 Mobile devices scale the whole UI through the root font-size (the rem
-basis Naive UI components and the typography roles share). Mobile record
+basis Nuxt UI components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
