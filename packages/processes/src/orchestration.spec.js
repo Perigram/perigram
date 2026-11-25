@@ -1211,6 +1211,33 @@ describe('durable process orchestration', () => {
     expect(tree.branches[1]).toMatchObject({ path: [1], itemCount: 1, items: [] });
   });
 
+  it('keeps data-node entity outputs out of the run-context entity shortcut', async () => {
+    const definition = process([
+      { id: 'designs', kind: 'source.literalList', value: [{ type: 'cassette-design', id: 'design-1' }] },
+      {
+        id: 'first',
+        kind: 'collection.itemAt',
+        type: { base: 'entityRef', typeId: 'cassette-design' },
+        inputDefaults: { index: { branches: [{ path: [], items: [0] }] } }
+      }
+    ], ['designs', 'first'], [{
+      id: 'designs-first',
+      source: 'designs',
+      sourceHandle: 'data:value',
+      target: 'first',
+      targetHandle: 'data:items',
+      role: 'data'
+    }]);
+
+    const result = await previewProcessDataflow(definition, {
+      inputs: { entity: { type: 'cassette-design', id: 'context-entity' } }
+    }, { targetNodeId: 'first', catalogContext });
+
+    expect(result.nodes.first.outputs.item.branches[0].items).toEqual([
+      { type: 'cassette-design', id: 'design-1' }
+    ]);
+  });
+
   it('binds the run-context entity to the trigger effect only; downstream consumers take their wired edges', async () => {
     const trigger = { id: 'act', kind: 'cts.transition', typeId: 'project', trigger: { mode: 'manual' } };
     const downstream = { id: 'chained', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'event' } };

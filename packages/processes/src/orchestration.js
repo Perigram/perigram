@@ -560,8 +560,8 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   // Read nodes execute their own select: the run-context shortcut yields
   // a bare reference, while a current read must hand downstream relation
   // reads the stored entity. Effects keep the shortcut for their ref
-  // outputs.
-  const contextualOutput = record.kind === 'cts.read'
+  // outputs; data nodes return the value their operation computed.
+  const contextualOutput = record.kind === 'cts.read' || !isEffectRecord(record)
     ? null
     : await resolveContextualEntityOutput(
         ports.outputs.find(port => port.id === resolvedOutputId),
