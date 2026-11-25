@@ -235,8 +235,13 @@ principals only.
 All generic UI controls and interaction primitives use Nuxt UI components
 plus the repo's registered shared primitives. No hand-rolled generic
 button/input/menu/dialog chrome and no parallel application component
-library. Domain-specific compositions are permitted when they encode
-application behavior or layout rather than reimplementing generic controls.
+library. For complete application surfaces, use the official Nuxt UI
+templates as the default implementation source wherever a template
+already solves the problem; do not independently recreate a template's
+shell, page composition, or interaction model. Domain-specific
+compositions are permitted when they encode Perigram behavior or layout
+rather than reimplementing generic controls. The template-first adoption
+and precedence rules in §33.10–§33.11 govern the application UI.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
 Generated record surfaces have no record-level edit mode: no header
@@ -5143,3 +5148,273 @@ The redesign and migration are complete only when:
   architecture.
 - Repository validation, accessibility, architecture guards, visual
   regression, and E2E suites pass.
+
+### 33.10 Official Nuxt UI templates are the application UI foundations
+
+The official [Nuxt UI templates](https://github.com/nuxt-ui-templates)
+are first-party, open-source implementation assets, not merely visual
+references. Prefer their actual source code for complete application
+surfaces wherever the product needs the same kind of surface. The
+reviewed template repositories declare the MIT license; retain each
+upstream LICENSE and required copyright/permission notices for code
+adopted from them. Record the upstream repository, source commit, and
+adopted paths in the repository's third-party notices/provenance record.
+Recheck the license and current upstream state at each adoption/update;
+do not assume a future template or dependency has the same license.
+
+The target is one integrated Perigram application. Do not deploy the
+templates as separate applications, embed their hosted demos, add
+runtime microfrontends, or preserve their independent demo backends.
+Bring relevant source into Perigram, adapt it to the existing
+application and service boundaries, and remove template-only services,
+credentials, demo data, and infrastructure. Prefer extracting and
+reusing real components, layouts, composables, and page structures
+over reimplementing their appearance from screenshots. Keep upstream
+provenance clear enough to update or compare adopted code later; do not
+create a template-fork framework or generic abstraction layer without
+a demonstrated need.
+
+The official templates are selected as follows:
+
+| Nuxt UI template | Perigram adoption |
+|---|---|
+| [Dashboard](https://github.com/nuxt-ui-templates/dashboard) | Primary authenticated application shell and page-composition baseline: sidebar, header, navigation hierarchy, responsive behavior, command palette, keyboard navigation, theme handling, and multi-page structure. Adapt navigation to Personal and independently addressable organization roots (§32); retain authorization-derived navigation. |
+| [Chat](https://github.com/nuxt-ui-templates/chat) | Primary chat implementation baseline: conversation rail, thread layout, message composition, streaming assistant output, reasoning/thinking disclosure, tool activity, markdown/code rendering, attachments, keyboard behavior, and responsive interaction. Chat is an explicit adoption, not optional inspiration. |
+| [Editor](https://github.com/nuxt-ui-templates/editor) | Primary rich-document editor baseline: TipTap, contextual/bubble controls, slash commands, block drag handles, tables, mentions, file insertion, Markdown support, and collaboration integration. Adapt document model and persistence to Perigram's canonical payload, revision, authorization, and Yjs contracts. |
+| [Calendar](https://github.com/nuxt-ui-templates/calendar) | Primary calendar/scheduling baseline wherever Perigram exposes date-based planning, schedules, events, or time-oriented records. Reuse its calendar views, drag/resize, inline editing, optimistic mutation, offline, responsive, and keyboard patterns where semantics fit. |
+| [Docs](https://github.com/nuxt-ui-templates/docs) | Documentation and knowledge-navigation presentation baseline. Adapt content loading and identity to Perigram pages, files, CTS data, and authorization; do not introduce a parallel content database as owner of Perigram records. |
+| [SaaS](https://github.com/nuxt-ui-templates/saas) | Public product/marketing and documentation-site composition baseline where those surfaces exist: landing, pricing, blog, and public docs. Do not force its public-site architecture into authenticated workspace pages. |
+| [Landing](https://github.com/nuxt-ui-templates/landing) | Public landing, onboarding, and announcement compositions where appropriate; reuse real sections and responsive patterns rather than creating another marketing component system. |
+| [Changelog](https://github.com/nuxt-ui-templates/changelog) | Release notes and product changelog presentation, adapted to Perigram's actual release source and authorization. |
+| [Portfolio](https://github.com/nuxt-ui-templates/portfolio) | Public profile/portfolio pages only when Perigram exposes that capability. Not a default authenticated workspace layout. |
+| [Starter](https://github.com/nuxt-ui-templates/starter) | Minimal Nuxt UI integration/reference baseline for isolated technical spikes and small surfaces that do not match a more specific template. Not a second application shell. |
+
+This is a default mapping, not a requirement to add every template as
+a feature. Adopt a template only where the corresponding product
+surface exists or is planned. For every applicable surface, inspect
+the full current upstream implementation and demo, not only the README
+or screenshot. Identify the exact components, layouts, composables,
+and interaction patterns reused, the parts discarded, and the Perigram
+contracts replacing template demo services.
+
+#### 33.10.1 Dashboard shell owns general application chrome
+
+Use the Dashboard template as the starting point for the authenticated
+Perigram shell. Its application-level visual and interaction grammar
+is the common baseline for sidebar, page header, navigation groups,
+page content, command palette, responsive collapse, keyboard shortcuts,
+and theme switching. Replace sample navigation and dashboard content
+with Perigram's real navigation and pages; template metrics and sample
+business modules are not product features.
+
+The existing Perigram workspace and Dockview behavior remain the
+workspace/content model. Compose Dockview inside the Dashboard-derived
+application shell: Dashboard owns global application chrome and
+navigation; Dockview owns arrangement of open work surfaces inside
+the content region. They must not become competing shells with
+duplicate sidebars, headers, command palettes, or navigation state.
+Preserve dock groups, panel movement, per-scope open-page identity,
+dirty-close behavior, and persisted layouts while adopting the
+template's shell composition and visual language.
+
+Personal and organization roots from §32 are Dashboard navigation
+data, not a second custom sidebar implementation. Organization overview,
+Team, Partners, Billing, Plugins, Process Designer, generated pages,
+and settings use the template's page anatomy and navigation conventions.
+Static template navigation never overrides server-derived capabilities
+or organization scope.
+
+#### 33.10.2 Chat template owns chat presentation
+
+Use the Chat template's actual application source as the starting
+point for Perigram's chat surface. Reuse its conversation list/rail,
+thread composition, message rendering, composer structure, streaming
+states, thinking/reasoning presentation, tool activity, markdown/code
+rendering, attachment affordances, and responsive/keyboard interaction.
+Use Nuxt UI components and supported extension points; do not maintain
+bespoke chat chrome when the template already supplies a coherent
+implementation.
+
+Replace the template's authentication, account model, database/schema,
+chat persistence, AI provider/Gateway configuration, tool execution,
+file/blob storage, and demo authorization with Perigram's authoritative
+services and contracts. In particular:
+- Chat identity, participants, organization membership, room scope,
+  role-gated AI visibility, delegated execution principal, assistant
+  attribution, and room wake rules remain governed by §§2–3 and 5–8.
+- AI execution continues through Perigram's tool catalog and model
+  profile resolution. The template's AI SDK integration is reusable
+  presentation/streaming infrastructure only; it is not a second agent
+  runtime, provider registry, or authorization boundary.
+- Conversation/message persistence and realtime delivery remain
+  Perigram-owned. Do not add the template's independent SQLite/Turso
+  data model or substitute its transport for platform realtime/Yjs.
+- Attachments use Perigram's file/CTS payload and access boundaries,
+  not template-owned blob identity or public URLs.
+- Existing message semantics remain: typed system/tool notices,
+  persistent run history, room stop/coalescing, ask-user flow, instance
+  references, private transcription, and scoped attachment behavior.
+  Render these through the template's message/content compositions.
+- Direct, group, organization, instance, and AI conversation types
+  remain typed Perigram variants. Template sample conversations and
+  account assumptions are fixtures only.
+
+The Chat template is the baseline for the whole chat family, not only
+AI conversations. Person, group, organization, instance, and AI chats
+share one composition system and differ through typed data and
+capabilities. Do not preserve a separate legacy person-chat
+presentation merely because an older rule said it should stay unchanged.
+
+The old exact chat geometry and gesture prescriptions in §§5–8
+(message-width thresholds, sender-alignment breakpoints, custom inbox
+row geometry, custom rail controls, and similar pixel-level rules)
+are not independent requirements. Prefer the template's responsive
+behavior and component anatomy; retain an older detail only when it
+expresses required product behavior or accessibility not provided by
+the template. Any retained exception is a Perigram recipe or typed
+extension of the template composition, not a parallel chat design.
+
+#### 33.10.3 Editor template owns document-editing presentation
+
+Use the Editor template's real implementation as the starting point
+for document editing and rich structured authoring. Prefer its TipTap
+editor, slash-command system, contextual controls, block operations,
+table interactions, mention support, collaboration affordances, and
+Nuxt UI composition over rebuilding these facilities independently.
+
+Perigram remains authoritative for document identity, canonical payload
+format, revision history, authorization, save lifecycle, file ownership,
+and collaboration transport. The editor serializes to and restores
+from the declared Perigram document format; template storage and upload
+adapters are replaced. Reuse the existing Yjs collaboration contract
+and verify interoperability with the template's TipTap/Yjs extensions.
+Do not introduce PartyKit or a second collaboration service merely
+because the template offers it.
+
+Markdown remains a supported canonical document representation.
+Test the template's Markdown integration for round-trip fidelity
+against Perigram syntax (including code fences, Mermaid, tables, links,
+callouts, and embeds). No silent HTML round-trip, format loss, or
+editor-only content model is allowed. Where an extension is missing,
+implement the smallest explicit TipTap extension or Perigram binding;
+do not fork the entire editor.
+
+Older bespoke editor toolbar, slash-panel, block-hover, and
+single-surface interaction prescriptions are superseded where they
+conflict with the adopted Editor template. Preserve Perigram page/header
+ownership, dirty-state and save channel, read-only behavior under read
+grants, first-save create semantics, revision access, and full-page
+editor contract. Editor pages remain flush work surfaces inside the
+Dashboard/Dockview shell.
+
+The Editor template is not a mandate to use TipTap for every editing
+surface. Code, graph, CAD, spreadsheet, and other specialized editors
+continue to use their appropriate domain engines; they adopt the common
+shell, Nuxt UI components, design tokens, and page interaction grammar.
+
+#### 33.10.4 Calendar, docs, and public-site templates
+
+Calendar adoption is limited to genuine calendar/scheduling surfaces.
+Its event model, date helpers, and sample API are not Perigram's domain
+model. Bind views and interactions to typed Perigram records and
+authorized services; preserve explicit time zones, date semantics,
+optimistic rollback, and offline/outbox guarantees.
+
+The Docs template supplies documentation navigation and reading
+composition, not a replacement content database. Perigram Pages,
+Markdown documents, organization data, generated documentation, and
+permission-filtered content continue to resolve through their existing
+owners. Reuse Nuxt UI Docs components and layouts where they fit.
+
+SaaS, Landing, Changelog, and Portfolio are public-site/page templates.
+Use their real sections and page structures when a corresponding
+public surface exists. Do not bring marketing content, analytics,
+authentication, CMS, or deployment setup into the authenticated product
+without an explicit product requirement. Do not create empty sections
+merely to demonstrate every template.
+
+### 33.11 Template integration, precedence, and migration
+
+The inspected Perigram baseline is Nuxt 3.15.x with Vue 3.5,
+PrimeVue 4, and the Nuxt Tailwind module 6.x. The official template
+repositories inspected for this direction currently use Nuxt 4.7.x,
+Nuxt UI 4.13.x, Tailwind CSS 4.3.x, and Vue 3.5.x; Chat and Editor
+also use current AI SDK and TipTap major versions. These are inspected
+upstream baselines, not immutable pins. Recheck live manifests and
+lockfiles when implementation begins.
+
+The migration target is the template-compatible Nuxt 4 + Nuxt UI 4 +
+Tailwind CSS 4 stack. Do not force current template source backwards
+into the old Nuxt 3 / Tailwind module / PrimeVue architecture or
+maintain two application styling/component stacks to avoid the upgrade.
+Perform one deliberate framework migration with pinned, lockfile-backed
+versions. Resolve Nuxt 4 compatibility for Perigram modules, SSR,
+i18n, workers, plugin host, build pipeline, and deployment before
+porting template surfaces. If a concrete blocker prevents the target,
+record the blocker and a bounded resolution; do not quietly replace
+template adoption with a bespoke implementation.
+
+Adoption is integration, not blind wholesale replacement:
+1. Pin the upstream source commit and capture the source manifest,
+   license, and adopted file inventory for each template.
+2. Build a compatibility spike on the target stack using Dashboard
+   shell and Chat, Editor, and Calendar vertical slices. Confirm SSR,
+   hydration, accessibility, keyboard/touch behavior, responsive layout,
+   portals, theme integration, and production build.
+3. Replace template-specific persistence, authentication, provider,
+   storage, routing, and demo services with Perigram service adapters.
+   Template UI must not bypass service authorization or org scope.
+4. Move Perigram canonical theme tokens and Theme Studio output into
+   supported Nuxt UI theme integration. The templates' default theme
+   is the coherent starting point; Perigram's design system supplies
+   deliberate brand and semantic customization. Do not retain a
+   parallel hand-authored visual system that fights the template.
+5. Migrate authenticated shell and page surfaces to Dashboard; integrate
+   Dockview inside it; migrate chat, document editing, and calendar
+   surfaces from matching templates; then apply the same page anatomy
+   and component conventions to generated screens, settings, org
+   management, plugin surfaces, and specialized editors.
+6. Remove replaced bespoke UI, obsolete PrimeVue components/config,
+   duplicate shell/navigation implementations, template demo services,
+   and dead compatibility code. Keep authoritative domain engines and
+   service contracts.
+7. Run visual, interaction, accessibility, responsive, SSR,
+   authorization, and E2E tests against real Perigram fixtures and
+   multi-organization scenarios. Static screenshot comparison is not
+   completion.
+
+Precedence: §33.10–§33.11 governs implementation and presentation
+choices wherever older UI-specific text in §§4–8, §22, §27, or §32
+conflicts with official template baselines. It does not supersede
+Perigram data model, process semantics, authorization, organization
+scope, persistence, collaboration, service ownership, or capability
+boundaries. Those contracts are adapted into template surfaces.
+Earlier visual details survive only when they express product behavior
+not already provided by the selected template and remain coherent
+with its composition system.
+
+Acceptance requires:
+- Dashboard's real shell and page composition are adopted as the
+  single authenticated application chrome.
+- Chat, Editor, and applicable Calendar surfaces demonstrably reuse
+  their corresponding official template source, not screenshot
+  recreations or independent rewrites.
+- Docs and public-site templates are used for applicable product
+  surfaces without parallel data/content ownership.
+- Adopted upstream code retains required MIT notices and provenance.
+- No template demo authentication, database, AI provider, storage,
+  or deployment backend remains as an accidental second platform.
+- All adopted UI routes through Perigram's typed, authorized,
+  organization-scoped service boundaries.
+- Generated pages, organization settings, plugins, and specialized
+  editors use the same Dashboard shell, Nuxt UI components, semantic
+  tokens, and composition grammar.
+- Dockview remains the one workspace panel system inside Dashboard;
+  no duplicate workspace/sidebar/page-shell implementations remain.
+- Nuxt 4, Nuxt UI 4, and Tailwind CSS 4 are integrated as one pinned
+  stack, with PrimeVue and the old Tailwind integration retired.
+- Existing product behaviors and acceptance tests remain intact unless
+  explicitly superseded by the template-first presentation rules above.
+- The application has one coherent visual and interaction language
+  across shell, chat, documents, calendar, generated pages, settings,
+  and domain editors.
