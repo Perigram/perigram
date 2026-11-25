@@ -1479,7 +1479,7 @@ function pickMutationData(data = {}, action = {}, entities = {}) {
   return picked;
 }
 
-async function normalizeProcessMutation(typeId, mutation = {}, relationContracts = [], auth = {}) {
+async function normalizeProcessMutation(typeId, mutation = {}, relationContracts = [], auth = {}, featureForType = null) {
   if (!mutation.relations) return mutation;
   const normalizedRelations = {};
   for (const [key, value] of Object.entries(mutation.relations)) {
@@ -1503,7 +1503,7 @@ async function normalizeProcessMutation(typeId, mutation = {}, relationContracts
         throw createError({ statusCode: 400, message: `Relation ${typeId}.${key} does not accept ${refType || '(untyped)'}` });
       }
       const ref = normalizeRelationRef(item, relation.targetType);
-      await assertRelationTargetAvailable(ref, relation, auth);
+      await assertRelationTargetAvailable(ref, relation, auth, featureForType);
       refs.push(ref);
     }
     const cardinality = declared[0].cardinality || 'one';
@@ -1529,7 +1529,7 @@ function declaredRelationValues(value, contracts = []) {
     .map(contract => [contract.key, value[contract.key]]));
 }
 
-async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = [], auth = {}) {
+async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = [], auth = {}, featureForType = null) {
   // The mutate patch carries its relation writes nested; the declared
   // contracts select which of them the write may normalize.
   const values = patch.relations && typeof patch.relations === 'object' && !Array.isArray(patch.relations)
@@ -1539,14 +1539,14 @@ async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = []
     .filter(contract => Object.hasOwn(values, contract.key))
     .map(contract => [contract.key, values[contract.key]]));
   if (!Object.keys(relations).length) return patch;
-  const normalized = await normalizeProcessMutation(typeId, { relations }, contracts, auth);
+  const normalized = await normalizeProcessMutation(typeId, { relations }, contracts, auth, featureForType);
   return {
     ...patch,
     relations: { ...(patch.relations || {}), ...(normalized.relations || {}) }
   };
 }
 
-async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
+async function assertRelationTargetAvailable(ref, relation = {}, auth = {}, featureForType = null) {
   // A relation entry may accept a union of target types; each stored ref
   // carries its own type, so the ref wins over any singular field.
   const targetTypeId = ref?.type || relation.targetType || [].concat(relation.targetTypes || [])[0];
@@ -1555,10 +1555,12 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
   if (!target) throw createError({ statusCode: 404, message: `${targetTypeId} relation target not found` });
   const entity = target?.toJSON ? target.toJSON() : target;
   const definition = (getDomain().entities || []).find(item => normalizeTypeId(item.type) === normalizeTypeId(targetTypeId));
+  const feature = featureForType?.(targetTypeId)
+    || resolveInstanceFeature(definition?.type || targetTypeId);
   assertEntityAccess({
     entity,
     typeId: targetTypeId,
-    feature: resolveInstanceFeature(definition?.type || targetTypeId),
+    feature,
     level: 'read',
     action: 'view',
     auth
@@ -1858,7 +1860,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     // construct-addressable `relations.*` construction inputs — and both
     // normalize through the same declared-edge contract, so the stored
     // shape is the declared cardinality whichever channel carried it.
-    blockDraft = await normalizeProcessMutation(typeId, { ...blockDraft, ...constructionDraft }, relationContracts, executionAuth);
+    blockDraft = await normalizeProcessMutation(typeId, { ...blockDraft, ...constructionDraft }, relationContracts, executionAuth, featureForType);
     let targetState = inputs.state ?? inputs['states.main']
       ?? (Object.hasOwn(record.inputDefaults || {}, 'state') ? String(authoredSocketDefault(record.inputDefaults.state)) : undefined)
       ?? (Object.hasOwn(record.inputDefaults || {}, 'states.main') ? processDefaultValue(record.inputDefaults['states.main']) : undefined)
@@ -1954,7 +1956,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       const patch = wirePatchFromChanges(persistedChanges);
       const relationValues = declaredRelationValues(inputs.relations, relationContracts);
       if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
-      const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth);
+      const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth, featureForType);
       const result = await stateService.transitionWithResult({
         typeId,
         targetId: target.id,
@@ -1968,7 +1970,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const patch = wirePatchFromChanges(persistedChanges);
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
-    const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth);
+    const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, executionAuth, featureForType);
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
     return await service.processUpdate(target.id, normalizedPatch, executionAuth);
   }
