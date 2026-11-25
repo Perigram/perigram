@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-22
+updated: 2026-11-25
 ```
 
 This spec is human-write only. 
@@ -184,21 +184,22 @@ first step or answer streams (owner direction 2026-10-17); from then on,
 the run's own activity is its presence.
 
 Non-answer machine output is typed, not conversational (owner direction
-2026-10-17): the agent's failure notices persist with a severity kind
-and render as severity-styled system notices (PrimeVue Message), never
-as plain chat bubbles; the run chronology renders one small PrimeVue
-Message per tool invocation — localized tool name with a compact detail
-of what the call addressed, severity-marked by outcome, a failed tool
-carrying its error in the same message; the thinking disclosure is the
-PrimeVue Fieldset (compact toggle button). The AI's identity face is the microchip
-glyph in the
-brand accent (carmine) wherever the assistant shows — thread avatars,
-sender chips, pickers — and it is the only AI marker on chat surfaces:
-no text badges. Instance refs attach to chat messages like files do —
-a chip row under the message body, never inline in a contrast bubble;
-tokens in authored text strip from display. Inline entity refs
-everywhere are raw PrimeVue Chips — no hand-rolled chip chrome, no
-per-type tint hardcoded from authored type names.
+2026-10-17): the agent's failure notices persist with a severity kind and
+render as severity-styled system notices using the shared Nuxt UI alert
+composition, never as plain chat bubbles; the run chronology renders one
+compact alert per tool invocation — localized tool name with a compact
+detail of what the call addressed, severity-marked by outcome, a failed
+tool carrying its error in the same notice; the thinking disclosure is a
+compact, collapsible disclosure composition built from Nuxt UI. The AI's
+identity face is the microchip glyph in the brand accent (carmine)
+wherever the assistant shows — thread avatars, sender chips, pickers —
+and it is the only AI marker on chat surfaces: no text badges. Instance
+refs attach to chat messages like files do — a chip row under the message
+body, never inline in a contrast bubble; tokens in authored text strip
+from display. Inline entity refs everywhere use the registered shared
+instance-reference primitive, implemented with the appropriate Nuxt UI
+component (for example its Badge where its semantics fit) — no hand-rolled
+chip chrome, no per-type tint hardcoded from authored type names.
 Person-chat presentation stays as it is.
 
 Lifecycle wakes: the AI brought into a conversation may be woken by status
@@ -231,8 +232,11 @@ principals only.
 
 ## 4. UI
 
-All UI is written in raw, unmodified PrimeVue plus the repo's registered
-shared primitives. No hand-rolled div/button chrome, no custom controls.
+All generic UI controls and interaction primitives use Nuxt UI components
+plus the repo's registered shared primitives. No hand-rolled generic
+button/input/menu/dialog chrome and no parallel application component
+library. Domain-specific compositions are permitted when they encode
+application behavior or layout rather than reimplementing generic controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
 Generated record surfaces have no record-level edit mode: no header
@@ -277,12 +281,15 @@ definition (its lane, grants, screens, or actions). Screens are not a
 separate tab — they render per role under Roles.
 
 Popups (profile/org settings, org/user previews, floating call window,
-status badges) are raw PrimeVue: Popover/StandardDialog own the surface
-and chrome, no hand-rolled borders or !utility overrides on PrimeVue
-internals. A record popup expands to its page: one explicit expand
-control steps the record up to its page surface (pane/route); no dead
-chrome — a type with no record surface never renders a popup link, and
-popups never carry duplicate or non-functional expansion buttons.
+status badges) use Nuxt UI's native overlay components and the registered
+StandardDialog primitive: Nuxt UI Popover owns popover behavior;
+StandardDialog owns dialog composition and chrome over Nuxt UI's dialog
+capabilities. No hand-rolled generic overlay behavior or styling against
+private component internals. A record popup expands to its page: one
+explicit expand control steps the record up to its page surface
+(pane/route); no dead chrome — a type with no record surface never
+renders a popup link, and popups never carry duplicate or non-functional
+expansion buttons.
 
 One generative UI engine (owner direction 2026-10-19): every compiled
 screen — lists, details, home, system screens — renders through the
@@ -484,7 +491,7 @@ compact rhythm belongs to data-dense panes alone, and no host profile
 tightens a surface that is already small.
 
 Mobile devices scale the whole UI through the root font-size (the rem
-basis PrimeVue components and the typography roles share). Mobile record
+basis Nuxt UI components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
@@ -498,8 +505,8 @@ type's panel — and relation-linked children nest beneath their row with
 the link glyph.
 What currently is "entity chat" should be renamed to "comments" and get it's place in generated UI.
 I'm not currently sure how exactly, probably contract should pass "comments" toggle and it gets
-generated in same manner in UI. Important to find proper PrimeVue components for it and integrate to
-layout. More important to get aligned with architecture, so it's only assumptions.
+generated in same manner in UI. Use the appropriate Nuxt UI components and integrate them into the
+generated layout. More important to get aligned with architecture, so it's only assumptions.
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
 surface registry — adding a type never touches app UI code, and plugin-delivered editor
 surfaces (owner decision 2026-10-11, §20) extend the same law to adding an
@@ -513,9 +520,9 @@ Any file may be attached to chat messages. Images and videos preview inline
 sender's bottom corner upward — the first item rests at the message-side
 base, continuation stacks upward and outward, and a gallery placed before a
 text message connects to it along that base. Preview-less instance refs
-and non-media attachments share the chip anatomy — raw PrimeVue chips
-(type icon, cropped name, compact preset geometry) inline-wrapped to
-lines at the sender edge. Audio keeps its native player.
+and non-media attachments share the registered instance-reference
+primitive (type icon, cropped name, compact preset geometry), inline-wrapped
+to lines at the sender edge. Audio keeps its native player.
 A chip click opens the file inside the app when a viewer
 exists (image, PDF, text — markdown rendered formatted) with the
 download action beside the preview; kinds without an
@@ -953,7 +960,7 @@ executor (`perigram-plugin vendor`), a surface module's bare imports
 resolve to the plugin's own vendor scope through the module proxy, and
 the SDK's surface check enforces that every bare import matches a
 declared dependency. What the host injects is never vendorable:
-dependencies named `vue`, `primevue`, or `pinia` refuse at the contract,
+dependencies named `vue`, `naive-ui`, or `pinia` refuse at the contract,
 and the host's markdown read pipeline joins the injected set — surfaces
 receive `renderMarkdown` (shared/markdown, the single marked+DOMPurify
 instance with pele for mermaid fences) rather than carrying copies. Declared licenses make the
@@ -1180,19 +1187,19 @@ trait definitions, the layout language (atoms and composition rules), the
 arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
-### 22.10 PrimeVue owns component internals (owner direction
-2026-10-27)
+### 22.10 Component internals own their layout (owner direction
+2026-10-27; library-neutral)
 
-A PrimeVue component's internal spacing is the preset's business:
-no wrapper, wedge, scoped rule, or utility adds spacing inside a
-DataTable, DataView, Timeline, or any other PrimeVue collection —
-rows, cards, and entries ride the component's own rhythm and size
-variants. Generator spacing lives at the arrangement level (section
-rhythm, region stacks, the grid-gap token) and in the preset's token
-layer; the row-surface recipe carries its own row separation through
-the pt table channel (separated cell borders, the ladder-step gap
-between the rounded rows). A utility class inside a PrimeVue
-component's internals is a defect.
+A component library component's internal spacing is owned by that
+component's theme and documented component API. No wrapper, wedge,
+scoped rule, or utility adds spacing inside a DataTable, DataView,
+Timeline, or other collection component — rows, cards, and entries ride
+the component's own rhythm and size variants. Generator spacing lives at
+the arrangement level (section rhythm, region stacks, the grid-gap
+token) and in the design-token projection; the row-surface recipe uses
+the component's documented customization API and theme overrides for
+its row separation. A utility class targeting undocumented component
+internals is a defect.
 
 ### 22.11 Group membership renders on the record surface (owner
 direction 2026-10-27)
@@ -2656,7 +2663,7 @@ gates keep their migration consent dialogs.
 
 **Workspace anatomy.** The editor is a full working surface in the
 application's existing visual language, not a floating tool demo. Use the
-registered PrimeVue components, shared design-system primitives, and
+registered Nuxt UI components, shared design-system primitives, and
 semantic tokens. Remove ad-hoc glass panels, floating mini-toolbar
 clusters, inconsistent spacing, and local chrome systems that do not
 belong to the app.
@@ -3571,6 +3578,280 @@ The CTS expression evaluator, process evaluator, and any legacy HAG
 construction path remain behind adapters until this proof and the
 migration gates in §30.11 pass.
 
+
+### 30.14 Responsibility architecture and semantic convergence
+
+This subsection resolves the package and runtime responsibilities implied by
+§§28–30. It is normative for architecture changes. It does not add packages
+or require a rewrite; it defines which existing responsibilities converge
+and which remain deliberately separate.
+
+The governing rule is: **unify semantics, separate responsibilities,
+specialize execution guarantees**. A shared graph language and typed IR do
+not imply one universal scheduler, persistence layer, application service,
+or UI. Conversely, different execution profiles do not justify separate
+graph formats, operation contracts, type systems, compatibility rules, or
+interpreters.
+
+#### One semantic pipeline
+
+All graph-based authoring and execution paths converge on one semantic
+pipeline:
+
+1. **Canonicalize** authored graph/definition data into the versioned
+   canonical document model. Editor layout and transient interaction state
+   are excluded from semantic identity.
+2. **Resolve** definition, module, operation, provider, and revision
+   references against an explicit environment and dependency lock.
+3. **Validate** graph structure, interfaces, semantic types, port
+   compatibility, conversions, constraints, capabilities, and execution
+   profile requirements using the canonical contracts.
+4. **Lower** the validated definition into the canonical typed IR in §30.13.
+   The IR is the semantic execution input, not a validation shadow beside
+   an independently interpreted source graph.
+5. **Plan** the requested execution profile: bounded procedural evaluation
+   or durable workflow execution. Planning may add profile-specific
+   scheduling metadata but must not redefine graph or operation meaning.
+6. **Execute** through the selected profile and provider bindings, producing
+   typed results, diagnostics, provenance, and explicit effect proposals.
+7. **Materialize effects** only through the owning host services after
+   authorization, validation, and any required transaction or confirmation.
+
+The same canonicalization, resolution, validation, compatibility, and IR
+lowering rules apply to visual editing, textual DSL, APIs, agents, preview,
+and execution. An adapter may translate a legacy representation into the
+canonical model; it may not become a second semantic authority.
+
+There must not be a permanent path that validates a lowered IR and then
+executes the original graph with a separate interpretation of its meaning.
+During migration, such a path is allowed only as a named compatibility
+bridge with parity fixtures, telemetry or comparison evidence where
+practical, and a removal gate. New execution work targets the IR.
+
+#### Semantic kernel and package ownership
+
+The existing package boundaries remain the initial ownership boundaries.
+Do not create a new kernel package, runtime package, graph package, or
+generic service layer merely to express this architecture.
+
+| Owner | Owns | Must not own |
+|---|---|---|
+| `packages/core` | Canonical graph/definition document mechanics; shared semantic primitives; normalization and resolution contracts; typed IR; graph-independent diagnostics and provenance contracts; pure evaluation mechanics; execution/result contracts; generic graph composition. | CTS's organization data authority; provider-native engines; persistence; authentication/authorization policy; plugin hosting; durable scheduling; application-specific activation. |
+| `packages/plugin-sdk` | The single provider-facing operation and port declaration contract; provider identity/version bindings; compatibility and conversion contributions; capability/effect/runtime-placement declarations; provider registration and preview/inspector contribution contracts. | A second evaluator, graph document, type language, or host authorization system. |
+| `packages/cts` | Organization-defined application types and values; declaration evolution; fields, relations, containment, constraints, lifecycle vocabulary, revisions, and authoritative stored-instance semantics/access adapters. | A second universal graph runtime, a competing operation registry, or generic execution scheduling. |
+| `packages/processes` | Process authoring profile; process-specific role/lane and grant declarations; event entry; durable workflow control semantics; waits, retries, leases, task boundaries, recovery, and process activation/application-contract projection. | A competing graph document, general-purpose dataflow evaluator, universal type system, or duplicate operation/port compatibility rules. |
+| Application host and feature services | Composition; authentication and authorization decisions; persistence and transactions; secrets; package installation; capability enforcement; effect dispatch; artifact destinations/materialization; durable infrastructure integration. | A second semantic interpreter or business-rule implementation hidden in transport/repository layers. |
+| Plugins/providers/workers | Domain representations, native values and engines, domain operations, adapters, conversions, renderers, and specialized inspectors, under declared provider contracts and capabilities. | Ambient host authority, platform-owned persistence, or private copies of shared semantic contracts. |
+
+The table describes responsibility, not a demand that every row become a
+module. A concern may be implemented by several focused files under one
+owner. A package boundary is justified by a stable contract and dependency
+direction, not by the number of concepts in this table.
+
+The Plugin SDK is the provider contribution boundary; Core is the consumer
+and owner of graph semantics. The SDK may define the public shape by which
+providers declare operations, ports, conversions, and runtime bindings.
+Core consumes that shape and owns the meaning of graph composition, type
+checking orchestration, IR, and pure evaluation. There must be one
+compatibility algorithm and one normalized operation descriptor, even if
+the public provider contract and its internal normalized representation
+are distinct types connected by one explicit adapter.
+
+CTS remains the authority for organization application types and stored
+instances. Core may define generic type/IR interfaces and evaluation
+mechanics, but it must not duplicate CTS declaration storage, relation
+semantics, constraints, or tenant-scoped data access. CTS expressions and
+process socket types are not allowed to evolve as independent universal
+languages: each must either lower to the canonical semantic model or
+remain a narrowly scoped domain/profile contract with an explicit adapter
+and documented reason.
+
+Processes owns durable workflow guarantees, not graph meaning. A process
+definition is a specialized definition/profile over the shared graph
+model. Process-specific lanes, grants, event starts, waits, and recovery
+remain specialized. Its compiler may project a process definition into an
+application contract (roles, actions, screens, policies, workflows, and
+related runtime projections); that operation is **process activation
+compilation**, not the canonical graph-to-IR compiler. Names, APIs, logs,
+and documentation must distinguish these operations rather than using
+"compile" as an ambiguous label.
+
+#### Execution profiles are distinct by guarantees
+
+The platform has two principal execution profiles over shared semantics:
+
+- **Procedural profile:** bounded invocation of a graph revision with
+  explicit inputs and context; supports live evaluation, preview,
+  diagnostics, caching, cancellation, and selected output materialization.
+  It does not own durable waits, long-lived leases, event subscriptions,
+  or workflow recovery.
+- **Durable workflow profile:** executes the same graph/operation semantics
+  while adding durable control-token scheduling, event entry, waits,
+  retries, leases, task dispatch, recovery, and process lifecycle evidence.
+  Its scheduler and persistence model are specialized because its
+  guarantees differ, not because it is a second graph language.
+
+Both profiles consume the same pinned operation contracts, semantic type
+rules, conversions, and typed IR. Profile-specific constructs must be
+explicitly represented in the canonical model/IR or in a versioned profile
+extension with source mapping and validation. A profile extension cannot
+silently alter the meaning of a shared operation or connection.
+
+A preview evaluator, process data-tree evaluator, server graph executor,
+and any future optimized runtime are not independent semantic authorities.
+They may be distinct adapters, hosts, or execution strategies only when
+they consume the same IR and pass the same semantic conformance suite.
+Specialized execution engines may optimize or delegate execution, but their
+observable results, diagnostics, effect classification, cancellation, and
+provenance must conform to the shared contracts.
+
+#### Three lifecycles; no overloaded Apply
+
+Keep three related but independent lifecycles:
+
+1. **Definition lifecycle:** author, normalize, validate, revise, compare,
+   and publish/activate a definition. Publishing makes a version available
+   to consumers; it does not execute arbitrary effects or materialize
+   graph outputs.
+2. **Evaluation lifecycle:** resolve a pinned revision and context, lower,
+   plan, evaluate, inspect, and retain execution evidence according to the
+   selected profile. Live authoring and pure preview must not require
+   packaging or deployment.
+3. **Effect/materialization lifecycle:** propose changes, authorize them,
+   commit persistent mutations, bake/export artifacts, and recover or
+   reconcile durable work. These operations use the owning service,
+   transaction, capability, and audit boundaries.
+
+For process definitions, **Apply** is the process activation action: save
+the authored definition, validate it against the effective environment,
+compute the application-contract change and required migrations, then
+activate the resulting process contract through the process-definition
+service. Apply is not a universal graph compilation or graph execution
+button. For procedural graphs, evaluation and preview remain available
+without Apply; **Commit**, **Bake**, or **Export** explicitly materialize
+selected results through authorized host boundaries. A product surface may
+combine lifecycle steps only when the underlying operations and their
+failure/rollback semantics remain explicit.
+
+#### Canonical ownership and overlap-resolution rules
+
+Every shared semantic concept has exactly one authoritative owner and
+implementation. In particular:
+
+- One canonical graph document and graph identity/revision model; process
+  graphs are a profile/projection, not a second persisted graph language.
+- One normalized operation/port descriptor and one compatibility/conversion
+  implementation; provider declarations are adapted once at registration.
+- One canonical type/value compatibility model; CTS-specific declaration
+  and persistence semantics remain owned by CTS.
+- One normalization, resolution, validation, typed-IR lowering, and
+  semantic execution path. Profile-specific planning and scheduling are
+  separate after semantic lowering.
+- One preview representation-discovery and rendering host contract;
+  providers contribute renderers, not parallel preview workspaces.
+- One authoritative capability/access decision and one owning persistence
+  path for each resource/effect. A graph runtime may request an operation;
+  it cannot grant itself access or write around the owning service.
+- One definition/revision source of truth. Compiled projections, caches,
+  execution plans, and runtime snapshots are derived artifacts with
+  explicit source revisions and invalidation rules; they must not become
+  independently editable authorities.
+
+Do not unify concepts merely because their names or shapes resemble each
+other. Keep distinct contracts where guarantees or domain meaning differ:
+semantic type versus representation versus engine-native value versus
+transport; graph revision versus execution versus artifact; procedural
+evaluation versus durable scheduling; process activation projection versus
+graph IR lowering; provider declaration versus resolved runtime binding.
+Each distinction must have a named owner and a documented conversion or
+boundary.
+
+#### Migration workstreams and acceptance
+
+The migration is a repository-wide reconciliation, not a sequence of
+parallel rewrites. Work is performed in this order, with vertical slices
+where useful:
+
+1. **Inventory actual authority.** Trace every graph document/session,
+   node/operation registry, port/type compatibility implementation,
+   normalizer, validator, compiler, IR, evaluator, preview path, runtime
+   registry, process activation path, effect dispatcher, and persistence
+   writer. Record source files, callers, data formats, package imports,
+   and tests. Classify each as canonical owner, adapter, host service,
+   execution profile, derived projection, or obsolete duplicate. Distinguish
+   verified duplication from superficially similar domain-specific code.
+2. **Specify the canonical contracts.** Reconcile Core, Plugin SDK, CTS,
+   Processes, and the application host against this subsection and §30.13.
+   Define exact ownership and dependency direction for graph documents,
+   operation descriptors, type/value contracts, compatibility results,
+   IR, execution requests/results, diagnostics, provenance, and effects.
+   Update package READMEs and public export maps before moving consumers.
+3. **Converge the semantic pipeline.** Make normalization, resolution,
+   validation, compatibility, IR lowering, and execution consume one set
+   of contracts. Add adapters for existing formats. Eliminate the
+   validate-IR/execute-source split. Keep procedural and durable scheduling
+   distinct after shared semantic lowering.
+4. **Converge authoring and preview.** Route generic graph and process
+   authoring through the canonical graph/session and normalized node
+   contracts. Retain specialized process controls as profile-specific
+   projections. Use the one preview host and output representation
+   pipeline from §28; remove duplicate inspectors and preview evaluators
+   only after parity is proven.
+5. **Integrate process activation.** Keep process activation compilation
+   responsible for deriving the application contract and migration gate.
+   Make its graph semantics come from the shared model/IR. Preserve role,
+   grant, lifecycle, event-entry, wait, retry, lease, recovery, and audit
+   guarantees in the durable workflow profile.
+6. **Complete effect and materialization boundaries.** Trace reads, writes,
+   plugin calls, files, notifications, exports, commits, and bakes to their
+   owning host services. Separate pure proposals from effects; verify
+   capability checks, tenant scope, transactions, idempotency, audit
+   evidence, and failure/recovery behavior at the authoritative boundary.
+7. **Remove proven duplication.** Delete obsolete evaluators, registries,
+   adapters, wrappers, aliases, and documentation only after all consumers
+   have migrated and conformance, data-compatibility, authorization, and
+   rollback gates pass. Do not retain a compatibility layer without a
+   named consumer and removal condition.
+
+A workstream is complete only when:
+- the owner and public contract are documented and match actual imports;
+- no second implementation of the shared semantic rule remains;
+- representative legacy and new fixtures pass through the canonical path;
+- procedural and durable profiles pass shared semantic conformance tests
+  plus their own profile-specific guarantee tests;
+- effects are denied without the required capability and are persisted
+  only through the owning service boundary;
+- tenant isolation, revision pinning, cancellation, idempotency, and
+  recovery behavior are covered where applicable;
+- performance and memory behavior are measured against the prior path;
+- package READMEs, SPEC, TODOs, export maps, architecture guards, and
+  tests agree with the resulting implementation.
+
+A migration adapter must state its source format, target contract, supported
+versions, semantic-loss policy, caller inventory, parity tests, and removal
+condition. An adapter without a live caller or a justified compatibility
+window is dead architecture and should be removed. A duplicate implementation
+is not justified merely because it has a different package name or is called
+a preview, compiler, evaluator, or runtime.
+
+#### Non-goals and restraint
+
+This architecture does not mandate a new package, service, repository,
+database, event bus, workflow engine, language, UI framework, or deployment
+topology. It does not require every definition to be a graph internally if
+a simpler canonical definition representation satisfies the same semantic
+contracts; graph composition remains the universal composition model where
+behavior and dataflow are being programmed. It does not collapse specialized
+editors, domain IRs, native engines, or durable scheduling into the kernel.
+It does not make Apply synonymous with build, evaluate, commit, or bake.
+
+Prefer the smallest implementation that establishes one semantic authority.
+A proposed abstraction must identify at least two concrete consumers or a
+specific invariant that cannot be enforced without it. A proposed package
+or service extraction must demonstrate an independent contract and
+operational boundary under §29. Remove forwarding-only layers and
+duplicated metadata rather than wrapping them in a new abstraction.
+
 ## 31. Architecture simplification and extraction sequence (historical implementation plan)
 
 The repository is simplified before it is divided into independently
@@ -3637,8 +3918,8 @@ implementation and delivery mechanisms, not product domains.
 |---|---|---|
 | Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
 | Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
-| Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
-| Workflow lifecycle contracts | CTS declarations plus `packages/core` | CTS owns the authored state vocabulary; core owns workflow normalization, region transitions, and lifecycle payload validation. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
+| Process authoring and activation compilation | `packages/processes` | Owns the process profile and application-contract activation projection; consumes canonical graph/operation semantics and CTS declarations, and does not define a second type system or graph compiler. |
+| Workflow lifecycle | Shared semantics plus `packages/processes` profile | CTS owns authored state/type declarations; core owns generic graph/IR semantics; processes owns durable workflow control, waits, retries, leases, and recovery. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
 | Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
 | Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
 | Transport | API routes and deployed adapters | Transport adapts requests; it does not own business rules. |
@@ -4211,16 +4492,654 @@ OCP.wasm 8.0.1.1. Upstream removed its test suite in the latest commit;
 Perigram integration is blocked on restoring repeatable browser-runtime,
 catalog-discovery, geometry-operation, export, and graph-regression tests.
 
-## 32. Accounts and optional organizations (owner direction 2026-11-22)
+## 32. Accounts, personal workspace, and organization workspaces (owner direction 2026-11-25)
 
-An account is the root identity; organization membership is optional.
-Registration and login create no organization. Every authenticated account
-enters the home workspace, with or without an organization; tenant screens,
-processes, and organization data appear only while an active membership is
-selected.
+An account is the root identity. Organization membership is optional and does
+not select an application-wide operating mode. Every authenticated account
+enters the same persistent home workspace. That workspace contains the user's
+Personal space and one independently addressable space for every organization
+in which the user has an active membership. There is no globally active
+organization and no organization-switch operation.
 
-Organization creation, switching, and leaving live in the account settings
-popup beside invitations. Leaving the active organization selects another
-active membership or the orgless home workspace. An organization retains at
-least one active user and one active owner, so the sole active member or sole
-owner cannot leave.
+### 32.1 Identity, membership, and workspace scope
+
+Identity, membership, workspace scope, and authorization are separate
+concepts:
+
+- **Identity** is the authenticated user: stable user id and profile fields.
+  It is not owned by an organization.
+- **Membership** relates that identity to an organization and carries its
+  membership lifecycle state plus the narrow owner-recovery authority already
+  defined by the organization/user contracts. Pending memberships grant no
+  organization workspace access.
+- **Workspace scope** identifies the personal workspace or one specific
+  organization. It is explicit on every organization-bound page, query,
+  mutation, process operation, subscription, and persisted workspace-page
+  reference.
+- **Authorization** is resolved by the server for the requested scope. It is
+  never inferred from the currently visible page, a client-selected id, or
+  another organization's compiled grants.
+
+The authenticated session exposes identity and the user's membership
+directory. It does not expose one selected organization's data, process,
+screens, navigation, registry, or effective permissions as global user
+properties. Organization-specific runtime contracts are resolved for an
+explicit organization id and remain associated with that organization.
+
+A workspace scope is an address, not a grant. The server independently
+verifies an active membership and derives the applicable process contract,
+role assignments, effective permissions, field policies, and system
+capabilities for every organization-scoped operation. Owner-recovery grants
+remain distinct from operational process roles and retain their existing
+last-owner guarantees.
+
+No request or client resolver may silently choose the first membership,
+reuse a previous organization id, or fall back to another organization when
+the requested scope is absent or inaccessible. An organization-bound
+operation without a valid explicit scope is refused. Organization-less
+system records retain their existing explicit system-access rules.
+
+### 32.2 Home workspace and navigation
+
+The authenticated home workspace is one persistent application shell, not a
+different shell for each organization. Its navigation contains:
+
+- Global communication surfaces whose existing ownership rules are
+  independent of a selected organization.
+- A **Personal** root for user-owned pages and data.
+- One expandable root for each active organization membership.
+- Account-level controls for identity, preferences, invitations, and
+  membership lifecycle actions.
+
+Each organization root opens that organization's overview page. Its children
+are generated from the organization's authorized capabilities and contain
+its organization-owned pages, including applicable system pages, declared
+class panels, and custom page sections. Organization A and Organization B
+remain visible and independently navigable at the same time. Opening one
+does not close, replace, or change the scope of the other.
+
+The Personal root is a real workspace scope, not an account-settings dialog.
+It contains personal pages and resources whose ownership contract is the
+user. Account preferences and identity editing remain account-level settings;
+they are not organization settings. A record is not made personal merely
+because it lacks an organization id: ownership must be explicit in its
+domain contract.
+
+The existing shared workspace dock remains the one dock for the application.
+It hosts personal and organization-bound pages together. A page-open reference
+carries its owner scope, so the same page type can be open for multiple
+organizations simultaneously. The identity of an open page includes its
+scope as well as its page/document identity; equal page ids in different
+organizations are not the same tab.
+
+Organization navigation is derived independently for each organization from
+that organization's compiled process and system capabilities. A missing
+capability hides the corresponding entry; the client does not synthesize
+administrative access from membership presence. The overview is the
+organization's landing page and links to real workspace pages through the
+existing workspace-page open seam. It does not duplicate those pages' working
+surfaces inside a collection of overview buttons.
+
+### 32.3 Page, settings, and action classification
+
+A persistent destination or substantial working surface is a page. A group
+of related configuration controls is a settings container, which is itself
+reachable as a page when it needs a stable navigation destination. A
+one-shot operation remains an action, dialog, inline editor, or confirmation;
+it does not become a page merely to give it a URL.
+
+The organization workspace has these destination classes:
+
+| Destination | Classification | Scope |
+|---|---|---|
+| Overview | Landing page | Organization |
+| Team and invitations | Working page | Organization |
+| Partners and partnership requests | Working page | Organization |
+| Billing, invoices, and ledger | Working page | Organization |
+| Installed plugins and declared integration connections | Working page | Organization |
+| Process Designer and process definitions | Editor page | Organization |
+| Organization-defined classes and their records | Generated pages | Organization |
+| Organization custom pages and sections | Custom pages | Organization |
+| General identity and organization configuration | Settings container | Organization |
+| AI providers, models, and assistant configuration | AI settings container | Organization |
+| Integration connections | Settings container | Organization |
+| Access and ownership recovery | Settings container | Organization |
+| Create organization, invite, approve/reject, leave, delete, install, upgrade, test connection | Actions/dialogs | Their owning user or organization |
+
+The existing organization overview, Team, Partners, Billing, Plugins, and
+Process surfaces are retained as capabilities and moved into this unified
+navigation. The existing Models surface is reorganized under AI settings;
+provider and web-search configuration are grouped by the integration or AI
+capability they configure. This is a navigation and ownership composition,
+not permission to duplicate the underlying feature implementations.
+
+The organization directory remains a discovery and profile surface. It is
+not the primary navigation for a member's own organization workspace and
+does not act as an organization selector. Opening an organization directory
+record and opening that organization's workspace are distinct operations.
+
+### 32.4 Organization-scoped runtime and service boundaries
+
+Every organization-bound runtime is keyed by an explicit organization id.
+This includes the compiled CTS registry, process definition and compiled
+contract, effective permissions, generated/system screen manifest,
+organization pages, saved views, record overlays, and organization-owned
+plugin package/configuration state. These values are not stored as one
+application-wide active-organization singleton.
+
+The frontend may cache multiple organization runtime contexts concurrently.
+A context refresh or contract change in Organization A invalidates A's
+derived runtime and affected pages only; it does not replace or invalidate
+Organization B's context. Realtime subscriptions are likewise scoped to the
+organization and resources they describe.
+
+Organization-owned reads and writes resolve the requested organization at
+the service boundary. Generic instance transport, process execution,
+state transitions, custom-page operations, file/payload access, billing,
+plugins, integrations, and realtime delivery all enforce the same scope.
+The server verifies that the target record, parent/lineage, process, page,
+plugin installation, and referenced resources belong to that scope before
+applying its compiled grants. A grant compiled for one organization cannot
+authorize an operation in another.
+
+Membership-derived multi-organization filtering is not a substitute for
+organization scope when an operation consumes organization-specific process
+permissions. Cross-organization directory and party-reference projections
+remain explicit, separately authorized read contracts with their existing
+redaction; they do not widen ordinary organization data access.
+
+Process Designer is bound to the organization whose process is being edited.
+Draft reads/writes, validation, preview, Apply, activation, migration
+consent, and resulting contract invalidation all carry that same scope.
+Apply remains the only activation boundary. Applying Organization A's
+process changes A's runtime and never changes B's process or permissions.
+
+### 32.5 Routes and persisted workspace state
+
+Organization destinations have canonical organization-scoped addresses,
+for example:
+
+- `/organizations/:organizationId`
+- `/organizations/:organizationId/team`
+- `/organizations/:organizationId/partners`
+- `/organizations/:organizationId/billing`
+- `/organizations/:organizationId/plugins`
+- `/organizations/:organizationId/process`
+- `/organizations/:organizationId/settings`
+
+The workspace-page registry and route resolver use the same explicit
+organization scope. A route or workspace-page reference must never infer its
+organization from a global auth field. Deep links resolve the requested
+organization and are denied when the user no longer has active membership.
+
+The dock layout is persisted once per user, not once per active organization.
+Its open-page references preserve each page's owner scope, and its layout,
+active pane/tab, sidebar state, and per-organization expansion preferences
+can be restored together. A restored tab revalidates its organization
+membership and page access before mounting. Removed memberships close or
+mark inaccessible only the affected organization's tabs; other workspaces
+remain usable.
+
+Legacy unscoped organization URLs are not aliases for an arbitrary
+membership. During migration they may resolve only when the target
+organization is unambiguous under an explicit compatibility rule; otherwise
+they return to the home workspace or require the user to choose an
+organization. They never select the first membership implicitly.
+
+Mobile navigation preserves the same scope model without placing every
+organization and every class in the fixed bottom bar. Global communication
+and account controls remain global; a workspace navigator exposes Personal
+and the user's organizations, and the selected destination retains its
+explicit scope through navigation and deep links.
+
+### 32.6 Membership lifecycle and account settings
+
+Registration and login create no organization. Orgless accounts enter the
+same home workspace and can use Personal surfaces. Organization creation is
+an account-level action that creates a membership and a new organization
+workspace; it does not switch or replace a global context.
+
+Invitations and pending memberships remain account-level lifecycle
+information until approved. Only active memberships appear as operational
+organization workspaces. Accepting an invitation adds that organization to
+the navigation without changing any other open workspace.
+
+Leaving an organization removes only that membership and its organization
+role assignment. It does not select another organization. The last active
+member and the last active owner cannot leave. Deletion remains a distinct,
+explicit destructive operation subject to the existing ownership and
+recovery rules. The organization must retain at least one active user and
+one active owner.
+
+Account settings own personal identity/preferences and the user's
+membership/invitation lifecycle. They do not contain an organization
+switcher. Organization-specific configuration belongs inside that
+organization's Settings page.
+
+### 32.7 Migration and acceptance invariants
+
+The migration removes the active-organization concept from application
+behavior rather than renaming it. Legacy persisted active-organization
+fields may be read only by a bounded migration or compatibility path; they
+must not determine current request scope or silently choose a workspace.
+The existing user identity, membership records, organization ownership,
+process role assignments, and owner-recovery grants remain authoritative.
+
+The implementation is complete only when all of these invariants hold:
+
+- A user with no memberships, one membership, or many memberships enters
+  the same home workspace.
+- Personal pages and organization pages have explicit, distinct ownership.
+- Two organizations' pages, registries, process contracts, and permissions
+  can be used simultaneously without cross-contamination.
+- Opening, refreshing, or applying in one organization does not switch or
+  mutate another organization's context.
+- Every organization-bound API and service validates explicit scope and
+  active membership; no first-membership or stale-active-org fallback
+  authorizes access.
+- Cross-organization references and directory discovery expose only their
+  separately authorized, redacted projections.
+- The shared dock restores pages from multiple scopes in one user-level
+  layout.
+- Membership removal revokes only the removed organization's access while
+  preserving other memberships and personal workspace access.
+- Existing last-member, last-owner, pending-invitation, and owner-recovery
+  guarantees remain enforced server-side.
+
+## 33. Perigram design system, Nuxt UI adoption, and Theme Studio (owner direction 2026-11-25)
+
+Perigram owns its design system. Nuxt UI is the selected general-purpose
+Vue/Nuxt component library and implementation substrate, not the owner or
+definition of the product's visual identity. The design system is rebuilt
+from first principles; the existing appearance, token catalog, component
+recipes, and layout conventions are not constraints. The [Nuxt UI Theme
+Editor](https://ui.nuxt.com/theme?view=editor) is an architectural reference
+for a live, executable theme workbench, and Nuxt UI itself is the component
+library candidate to adopt. Neither its default appearance nor its editor
+is to be copied uncritically.
+
+The target is one coherent, distinctive, production-grade product language
+across ordinary application UI, dense data surfaces, collaborative work,
+technical editors, and visualization. This is not a component-library
+reskin. Product capabilities and domain semantics remain requirements;
+their current visual expression and composition may be replaced.
+
+This section supersedes earlier component-library, visual styling,
+typography, palette, spacing, and component-appearance prescriptions where
+they conflict. In particular, prior Naive UI-specific prescriptions are
+superseded. Functional and domain requirements remain in force unless
+explicitly redesigned.
+
+### 33.1 Ownership and architecture
+
+The dependency direction is:
+
+1. **Perigram design-system document and semantic contracts** are the
+   canonical source of truth.
+2. **Perigram theme compiler/adapters** project the canonical document into
+   CSS custom properties, Tailwind CSS v4 theme/utilities where appropriate,
+   and Nuxt UI's supported theme/configuration mechanisms.
+3. **Nuxt UI** supplies generic Vue components, accessible interaction
+   primitives, and component styling mechanisms.
+4. **Perigram application and domain compositions** consume Perigram
+   semantic tokens and contracts directly.
+5. **Specialized rendering systems** (Dockview, graph editors, 2D/3D/CAD,
+   documents, charts, plugin surfaces) consume the same Perigram contracts
+   without depending on Nuxt UI internals.
+
+The design-system model and compiler must be usable and testable without
+importing Nuxt UI. No Perigram token, domain signal, layout rule, visual
+contract, or serialized theme field may be named after a Nuxt UI component,
+Tailwind utility, Reka primitive, or generated CSS variable.
+
+Nuxt UI's `app.config.ui`, component `ui` props, Tailwind Variants
+recipes, Tailwind theme variables, and CSS variables are integration
+surfaces, not competing canonical sources. Use them where they are the
+documented and maintainable way to implement the compiled design. Do not
+make application code read generated Nuxt UI variables to derive its own
+semantic colors, spacing, typography, dimensions, or state meanings.
+
+Keep the adapter one-way:
+Perigram design document -> compiled semantic CSS/theme output -> Nuxt UI
+and application consumers. No reverse mapping, duplicated token catalog,
+or component-library-specific source of truth.
+
+### 33.2 Nuxt UI adoption and technical fit
+
+Adopt Nuxt UI as the sole general-purpose component library, subject to a
+repository-level compatibility and migration audit before implementation.
+Use its documented Nuxt/Vue integration and supported component APIs.
+The target styling architecture is Nuxt UI's CSS-first theming with
+Tailwind CSS v4 and Tailwind Variants; use Reka UI primitives through
+Nuxt UI where they provide accessible interaction behavior.
+
+Before migration, verify the exact pinned versions and compatibility of
+Nuxt UI, Nuxt, Vue, Tailwind CSS, Reka UI, the current build pipeline,
+SSR/prerendering, existing CSS layers, i18n, and plugin-host constraints.
+Confirm licensing, maintenance, bundle/build impact, accessibility,
+keyboard behavior, portal behavior, and the ability to use the components
+outside Nuxt-only contexts where plugin surfaces require it. Do not assume
+that a module, integration, component, or API from another Nuxt UI major
+version is available in the pinned version.
+
+Nuxt UI is the default for generic buttons, inputs, selects, menus,
+popovers, dialogs, tabs, tooltips, alerts, badges, tables, trees, and
+similar controls. Do not build parallel generic replacements. A Perigram
+shared primitive is justified when it expresses domain semantics,
+coordinated behavior, accessibility, or a stable application contract —
+not when it merely renames or wraps a library component.
+
+Nuxt UI does not own Perigram's page architecture, workspace navigation,
+record semantics, permission model, generated screen model, editor
+infrastructure, or technical visualization. Those remain application
+contracts and may use custom compositions and rendering technology.
+
+### 33.3 Canonical design-system document
+
+Create a typed, versioned, serializable Perigram design-system document.
+It is the authoritative artifact edited by tooling and consumed by the
+theme compiler. It must support sparse overrides over explicit defaults,
+stable identifiers, validation, deterministic normalization, migration
+between schema versions, import/export, and structural diffing.
+
+The document has distinct layers with explicit ownership and inheritance:
+
+- **Foundations:** color palettes and color-space data, typography
+  families/roles/weights, spacing and sizing scales, density, radii,
+  borders, elevation, motion, breakpoints, and layout constraints.
+- **Semantic tokens:** canvas and surface hierarchy, text roles, borders,
+  focus and selection, interactive states, overlays, status meanings,
+  data visualization, and domain-specific signals. Components consume
+  semantic roles rather than inventing local colors.
+- **Component recipes:** component slots/anatomy, variants, sizes, density,
+  states, and compound conditions. Recipes compile to supported Nuxt UI
+  styling mechanisms (including Tailwind Variants where appropriate) or
+  application-owned composition styles.
+- **Domain recipes:** record headers and fields, property inspectors,
+  collection rows/cells, permission controls, state/lifecycle indicators,
+  graph nodes and sockets, editor toolbars, file/document previews, and
+  other recurring Perigram concepts.
+- **Application compositions:** workspace shell, navigation, pages,
+  settings, dialogs, chat, dock panels, empty/loading/error states, and
+  responsive arrangements.
+
+The schema must distinguish primitive values, semantic meaning, component
+implementation, and page composition. Avoid both extremes: a bag of raw
+CSS values with no semantics, and an over-generalized design language that
+cannot express real product surfaces.
+
+Support explicit light and dark appearances, with shared foundations and
+mode-specific semantic values where needed. Support named design-system
+presets/branches without duplicating the canonical schema. User-selectable
+appearance is a runtime preference; authoring and changing the product's
+canonical design system is a separate privileged development workflow.
+
+Existing `designTokens`, `--ck-*`, `--p-*`, and other legacy token
+categories are migration inputs only. Audit, simplify, replace, or delete
+them. No legacy token survives merely because code already consumes it.
+
+### 33.4 Visual language and design requirements
+
+Design the visual grammar from actual Perigram workflows and content,
+not by translating the current appearance or accepting a component
+library's defaults. The design exploration must resolve:
+
+- Color relationships, palette construction, neutral range, accent role,
+  semantic status colors, contrast, selection, focus, and chart/data colors.
+- Typography families and roles, multilingual/script coverage, shaping,
+  weights, optical sizing, line heights, tracking, code typography, and
+  dense-data readability. Choose fonts for actual language coverage and
+  visual quality; no current font assignment is sacred.
+- Spatial rhythm, density levels, spacing and sizing scales, responsive
+  breakpoints, content widths, and compact versus comfortable modes.
+- Surface hierarchy, borders, radii, shadows, elevation, overlays, and
+  separation without arbitrary card/border proliferation.
+- Interaction states: hover, active, selected, focused, disabled, pending,
+  loading, validation, drag/drop, keyboard, touch, and reduced motion.
+- Component anatomy, iconography, domain glyphs, motion, transitions,
+  and meaningful state changes.
+- Information hierarchy for dense records, large collections, technical
+  inspectors, node graphs, chat, and multi-panel workspaces.
+
+Do not assume the current zinc palette, carmine accent, IBM Plex
+assignments, current radii, flatness, shadows, contrast, or density are
+correct. Evaluate each from first principles. Nuxt UI's default theme and
+the Theme Editor's current appearance are reference material, not
+constraints. The result may be colorful or restrained, compact or spacious,
+flat or layered, provided the choices form a coherent product system and
+work across real use cases.
+
+Do not use generic gradients, glass effects, arbitrary colored cards,
+decorative borders, or inconsistent one-off treatments as substitutes
+for a visual system. Every repeated visual distinction must have a
+semantic role or an explicit component/domain recipe.
+
+### 33.5 Theme Studio: executable design-system workbench
+
+Build a first-class Perigram Theme Studio inspired by the architecture
+and workflow of the [Nuxt UI Theme Editor](https://ui.nuxt.com/theme?view=editor).
+Initially it is a development/design-authoring tool, not an end-user
+customization feature. Its purpose is to author, inspect, validate, preview,
+compare, and export the actual Perigram design-system document.
+
+The studio edits the canonical document directly. It must not maintain a
+parallel editor-only state model or mutate arbitrary CSS as its source of
+truth. Editing operations are typed document transformations; previews
+render the result through the same compiler and runtime integration used
+by the application.
+
+The studio includes:
+
+- **Foundations editor:** palettes, semantic color roles, typography,
+  weights, spacing, sizing, density, shape, elevation, and motion.
+- **Semantic token editor:** inspect and edit token meaning, light/dark
+  values, inheritance, references, and actual consumers.
+- **Component recipe editor:** inspect component anatomy, slots, variants,
+  sizes, states, and compound variants; preview real component instances.
+- **Domain recipe editor:** edit and preview Perigram-specific recurring
+  surfaces, not only generic library components.
+- **Preset management:** create, apply, compare, duplicate, reset, import,
+  and export named design-system documents.
+- **History:** undo/redo based on meaningful edit transactions; coalesce
+  continuous slider/drag interactions rather than storing every pointer
+  movement as a separate step.
+- **Live preview:** update the running preview immediately from the edited
+  document, including light/dark modes and responsive sizes.
+- **Sharing and reproducibility:** serialize a versioned document into a
+  portable artifact or shareable representation. Shared artifacts must
+  validate and migrate by schema version; do not depend on hidden browser
+  state or a remote theme website.
+- **Export/build output:** deterministic generated CSS, Nuxt UI integration
+  configuration, component recipes, and documentation derived from the
+  canonical document. Generated output is not manually edited source.
+
+Color tooling should be a real color engine, not a hex input collection.
+Use a perceptually appropriate color space such as OKLCH for palette
+construction and editing. Support palette ramps, curve-based generation,
+sampling, fitting/importing an existing palette, exact pinned colors,
+gamut handling, and derived light/dark ramps where useful. Keep the
+mathematics in pure, independently tested functions; do not couple it to
+Vue components or CSS rendering.
+
+The preview is the most important part of the studio. It must render
+actual application components and realistic Perigram compositions, not
+just a gallery of generic controls. Provide selectable preview contexts
+that cover at minimum:
+
+1. Workspace shell and navigation with multiple open panels.
+2. Record/detail pages with inline field editing and state/lifecycle
+   information.
+3. Dense collections, tables, filters, sorting, and bulk actions.
+4. Property inspectors, forms, permissions, and validation states.
+5. Chat, messages, agent activity, attachments, and typed notices.
+6. Dialogs, popovers, menus, command surfaces, and notifications.
+7. Dockview and editor layouts, including graph/node interfaces.
+8. 2D/3D or document preview surfaces where visual integration matters.
+
+Previews use deterministic fixture data and representative empty, loading,
+error, disabled, selected, focused, and populated states. They must be
+interactive enough to exercise actual component behavior. A preview must
+not be a static screenshot or a simplified mock that bypasses the
+production component and recipe.
+
+The studio must expose both the resulting appearance and its causes:
+selected semantic token, recipe, variant, density, mode, and responsive
+context. It should make it possible to trace a visible element back to
+the canonical design document and identify the consumers of a token.
+
+Keep the studio implementation modular: pure schema/normalization and
+migration; pure color/palette engine; edit-command/history layer; compiler
+and adapters; preview host and fixtures; authoring UI. The studio must
+not become a runtime dependency of ordinary application screens.
+
+### 33.6 Component and domain integration
+
+Use Nuxt UI components as the default generic implementation, styled by
+the compiled Perigram design system. Prefer documented slots, props,
+variants, and theme extension points. Avoid undocumented selectors,
+private DOM structure, or brittle overrides against generated markup.
+Application CSS may style component hosts and application compositions;
+component internals are controlled through supported Nuxt UI mechanisms
+or explicit application-owned components.
+
+Perigram shared primitives are retained, redesigned, consolidated, or
+deleted based on their actual semantic responsibility. StandardDialog,
+instance/file references, inline field editing, generated surface
+composition, typed notices, and other shared primitives are candidates
+for redesign. They are not untouchable legacy contracts.
+
+StandardDialog remains the single application dialog contract where
+application behavior requires it. It owns dialog anatomy, sizing,
+close/dirty-confirmation behavior, accessibility, and focus lifecycle,
+and composes Nuxt UI's dialog/modal capabilities. Other overlays use
+Nuxt UI's native components unless a registered Perigram primitive owns
+additional behavior.
+
+Preserve underlying product capabilities while reconsidering their
+presentation: generated pages and ui-mapping contracts, Dockview workspace
+behavior, plugin surfaces, graph/editor canvases, 2D/3D viewers, CAD/OCCT,
+charting, markdown, and domain-specific visualization. These systems are
+not required to look or behave as they do today. They must consume Perigram
+semantic tokens and visual contracts directly; they must not depend on
+Nuxt UI's private implementation or theme variables. Restructure their
+presentation when it improves the product.
+
+The plugin host's component-library dependency contract must be updated
+to the chosen Nuxt UI package and its actual runtime requirements. Verify
+whether Nuxt UI components can be consumed in each supported plugin
+execution context; do not assume a Nuxt application module is equivalent
+to a portable Vue component runtime. The host must not silently vendor a
+second copy of the generic component library.
+
+### 33.7 Runtime, CSS, and build integration
+
+Integrate Nuxt UI using the documented APIs for the pinned major version.
+Use its application/provider component (such as `UApp` when required by
+that version) for global overlay, toast, tooltip, and related infrastructure.
+Do not reproduce provider behavior manually when the library already
+provides it.
+
+The theme compiler emits the semantic CSS layer and the Nuxt UI/Tailwind
+projection. Define one deliberate CSS cascade order for Tailwind,
+Perigram-generated styles, Nuxt UI component styles, and application
+composition styles. Avoid specificity escalation and duplicated sources
+of truth.
+
+The selected appearance must be known before the first server render.
+SSR, hydration, route transitions, portal/overlay rendering, theme changes,
+and production builds must not produce a theme flash, hydration mismatch,
+missing styles, or route-dependent differences. Light and dark output
+must be deterministic.
+
+Do not assume every Nuxt UI feature is SSR-safe or compatible with the
+current prerender strategy. Verify the actual pinned versions and all
+required runtime contexts. Keep the design document/compiler independent
+of Nuxt-specific runtime code; Nuxt integration is an adapter.
+
+### 33.8 Migration sequence
+
+1. **Audit the real application.** Inventory component usage, pages,
+   generated surfaces, CSS, token sources, shared primitives, icons,
+   Tailwind configuration, Dockview, plugin surfaces, responsive behavior,
+   SSR behavior, and visual inconsistencies. Capture screenshots and
+   interaction baselines as diagnostic evidence, not targets to preserve.
+2. **Validate Nuxt UI technically.** Pin and test the compatible Nuxt UI,
+   Nuxt, Vue, Tailwind CSS, and Reka versions. Build a small integration
+   spike covering SSR, overlays, forms, tables, plugin constraints,
+   accessibility, and CSS layering. Resolve migration risks before
+   committing to broad conversion.
+3. **Design the product language.** Explore coherent visual directions
+   against actual Perigram workflows. Define principles and representative
+   screens before locking palette, typography, density, or component
+   geometry.
+4. **Define the canonical document and compiler.** Establish schema,
+   defaults, sparse overrides, validation, migration, semantic tokens,
+   deterministic CSS output, and the Nuxt UI adapter.
+5. **Build the Theme Studio.** Implement the editing engine, color tools,
+   history, presets, export, and real application previews. Use it to
+   refine the design system rather than building a separate mockup that
+   diverges from production.
+6. **Prototype complete vertical slices.** Rebuild the workspace shell,
+   record/detail, dense collection, inspector/form, chat, overlay, and
+   editor/visualization contexts using the actual runtime components and
+   domain compositions.
+7. **Migrate and redesign the application.** Replace old presentation,
+   component usage, CSS, primitives, and visual conventions. Preserve
+   correct functional contracts and data semantics, but do not preserve
+   UI structure solely to reduce migration effort.
+8. **Retire legacy infrastructure.** Remove PrimeVue, old presets,
+   pass-through configuration, PrimeIcons, old variable bridges, obsolete
+   token definitions, duplicate styling systems, and dead compatibility
+   code. Remove Naive UI experiments/configuration if any were introduced
+   during the abandoned migration direction.
+9. **Validate and document.** Run unit, schema/compiler, SSR, architecture,
+   accessibility, visual regression, responsive, and E2E checks. Document
+   token ownership, recipe authoring, Nuxt UI integration, Theme Studio
+   workflows, and contribution rules.
+
+### 33.9 Acceptance criteria
+
+The redesign and migration are complete only when:
+
+- Nuxt UI is the sole general-purpose component library, and its pinned
+  versions are verified against the actual Nuxt/Vue/Tailwind build.
+- The canonical Perigram design-system document and compiler work without
+  importing Nuxt UI or depending on its generated variables.
+- The document has explicit, versioned schemas for foundations, semantic
+  tokens, component recipes, domain recipes, and application compositions.
+- Sparse overrides, defaults, normalization, validation, schema migration,
+  structural diff, import/export, and deterministic compilation are tested.
+- Nuxt UI integration is a one-way projection; no application-owned token,
+  CSS rule, Dockview setting, plugin contract, or domain renderer derives
+  its semantics from Nuxt UI variables or private component markup.
+- The visual language is intentionally designed for Perigram workflows,
+  multilingual content, dense technical interfaces, light/dark modes,
+  responsive layouts, and accessible interaction states. No legacy visual
+  decision is retained by default.
+- The Theme Studio edits the canonical document and uses the production
+  compiler/runtime for live previews.
+- The studio has foundations, semantic tokens, component and domain
+  recipes, presets, undo/redo, import/export, and deterministic generated
+  output.
+- The studio previews real, interactive Perigram compositions with
+  deterministic fixtures across workspace, records, collections,
+  inspectors, chat, overlays, editors, and visualization contexts.
+- Visible preview elements can be traced to their semantic tokens and
+  recipes; token consumers can be inspected.
+- Color palette generation/editing uses tested perceptual color
+  mathematics and supports ramps, fitting/import, pins, and gamut handling.
+- Generated pages, Dockview, plugin UI, graph editors, and 2D/3D/CAD
+  viewers participate in the same Perigram visual system without depending
+  on Nuxt UI internals.
+- SSR and hydration render the selected appearance correctly on the first
+  render; portals, overlays, route transitions, and production builds are
+  validated.
+- Generic component implementations are not duplicated in a parallel
+  Perigram control library; shared primitives exist only for real
+  application/domain contracts.
+- PrimeVue packages, module setup, presets, pass-through configuration,
+  PrimeIcons, CSS layers, runtime imports, and active implementation
+  references are retired. No Naive UI migration remains in the active
+  architecture.
+- Repository validation, accessibility, architecture guards, visual
+  regression, and E2E suites pass.
