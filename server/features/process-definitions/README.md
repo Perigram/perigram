@@ -528,7 +528,9 @@ services expose `processList`/`processGetById` adapters as defined in
 [server/runtime](../../runtime/README.md); process evaluation calls only
 these adapters for current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket
-projection.
+projection. Execution grants resolve a type's feature through its
+declaration class collection, the same feature its instance service
+checks.
 
 `executeProcessQuery` forwards the concrete filter object to the
 adapter's `processList` verbatim with the full auth context — the
