@@ -169,6 +169,19 @@ describe('Facade fabrication workflow chain', () => {
     expect(constructed.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
     expect(constructed.data.geometry.preview.layers.length).toBeGreaterThan(0);
 
+    const repeated = await facade.execute('construct-sheet', {
+      refs: { designs: [{ id: 'design-1', revision: '7' }] },
+      draft: {
+        data: {
+          layout: {
+            ...layout,
+            placed_items: [...layout.placed_items, ...layout.placed_items]
+          }
+        }
+      }
+    });
+    expect(repeated.relations.parts).toEqual([{ type: 'cassette-design', id: 'design-1', revision: '7' }]);
+
     // the export binding's service: stored sheet values → layered DXF payload.
     const exported = await facade.execute('generate-sheet-dxf', { fields: constructed.data });
     expect(exported.payload.mime).toBe('application/dxf');

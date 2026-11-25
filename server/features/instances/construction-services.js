@@ -18,6 +18,22 @@ import { executorPayload } from '../plugins/executor-payload.js';
 
 const EXECUTOR_FIELD_IDS = Symbol('executorFieldIds');
 
+// A relation slot is a set: executor-declared refs collapse by type+id so
+// a computed list (one entry per placement) stores each target once.
+function uniqueRelationValue(value) {
+  if (!Array.isArray(value)) return value;
+  const seen = new Set();
+  return value.filter(ref => {
+    const id = ref && typeof ref === 'object' ? (ref.id ?? ref._id) : ref;
+    if (id == null) return true;
+    const type = ref && typeof ref === 'object' ? (ref.type || ref.typeId || '') : '';
+    const key = `${type}:${String(id)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 
 // Service-backed construction (SPEC §Plugin marketplace): construction
 // modes of installed-plugin types dispatch to the plugin's executor.
@@ -122,7 +138,10 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   // join the draft beside the computed fields and store through the same
   // §3 relations slot wire patches use.
   if (output.relations && typeof output.relations === 'object' && !Array.isArray(output.relations)) {
-    merged.relations = { ...(draft.relations || {}), ...output.relations };
+    merged.relations = {
+      ...(draft.relations || {}),
+      ...Object.fromEntries(Object.entries(output.relations).map(([key, value]) => [key, uniqueRelationValue(value)]))
+    };
   }
   // Revision stamps (SPEC §24): the resolved pin rides the stored ref —
   // a declared ref field stores `{ type, id, revision }`, and every

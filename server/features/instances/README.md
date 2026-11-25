@@ -283,6 +283,9 @@ structured refusal; the create write gate applies.
 capability projections filter on it); genuinely unbound modes fail
 loudly at dispatch. Types that declare construction modes never offer a
 bare `genericCreate` — the per-call declaration check refuses it.
+Executor-declared relation arrays are relation slots: refs duplicate by
+type+id collapse to the first, so a computed per-placement list stores
+each target once.
 
 See [plugins](../plugins/README.md) for the listing grammar and
 [workers/facade](../../../workers/facade/README.md) for the reference

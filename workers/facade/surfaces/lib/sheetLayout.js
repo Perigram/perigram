@@ -206,14 +206,12 @@ function nestingSourceForItem(sourcePointsById, item = {}) {
 }
 
 // The sheet design's typed parts relation (SPEC §6 edge `parts`): one
-// cassette-design ref per placement. `designPins` (construct path)
+// cassette-design ref per distinct design. `designPins` (construct path)
 // supplies the resolved revision pins; the editor path stores unpinned
 // refs, which follow latest.
 export function sheetDesignParts(result = {}, designPins = new Map()) {
-  const designs = designsForNestingResult(result);
-  return designs.flatMap(({ designId, count }) =>
-    Array.from({ length: count }, () =>
-      designPins.get(designId) || { type: 'cassette-design', id: designId }));
+  return designsForNestingResult(result).map(({ designId }) =>
+    designPins.get(designId) || { type: 'cassette-design', id: designId });
 }
 
 export function designsForNestingResult(result = {}) {

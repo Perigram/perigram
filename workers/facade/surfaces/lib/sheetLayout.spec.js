@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nestingResultToPreview } from './sheetLayout.js';
+import { nestingResultToPreview, sheetDesignParts } from './sheetLayout.js';
 import { occsLayerExportName } from '../../occs/layerStandards.js';
 
 // The nesting redraw names standard layers through the registry (the
@@ -23,5 +23,17 @@ describe('nesting redraw preview layers', () => {
     const sheet = preview.layers.find(layer => layer.standardCode === 'contour.material_sheet');
     expect(sheet?.name).toBe(occsLayerExportName('contour.material_sheet'));
     expect(preview.layers.every(layer => layer.name !== layer.standardCode || !layer.name.includes('.'))).toBe(true);
+  });
+
+  it('lists each placed design once in the parts relation', () => {
+    const placed = {
+      items: [
+        { id: 0, design_id: 'c1' },
+        { id: 1, design_id: 'c1' },
+        { id: 2, design_id: 'c2' }
+      ],
+      solution: { layouts: [{ placed_items: [{ item_id: 0 }, { item_id: 1 }, { item_id: 2 }] }] }
+    };
+    expect(sheetDesignParts(placed).map(part => part.id)).toEqual(['c1', 'c2']);
   });
 });
