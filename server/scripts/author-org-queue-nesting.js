@@ -18,6 +18,7 @@ import {
   validateLineageBindingResolution,
   validateRequiredInputAvailability
 } from '#packages/processes';
+import { prepareAuthoredDefinition } from '#packages/processes/designer';
 
 const APP = process.env.APP_URL || 'http://localhost:3000';
 const APPLY = process.argv.includes('--apply');
@@ -38,6 +39,7 @@ if (!ORG) {
 
 const QUEUE_TYPE = 't-qsh5vy5wjc';
 const ENTRY_TYPE = 't-96n6bf0zpl';
+const TABLE_TYPE = 't-hiihlfgqr6';
 const DESIGN_TYPE = 'cassette-design';
 const MACHINE_TYPE = 't-machine';
 const MATERIAL_TYPE = 't-material';
@@ -140,6 +142,8 @@ function typeNeedsWrite(declaration, stored) {
   for (const [key, field] of Object.entries(declaration.fields || {})) {
     if (stableJson(current.fields?.[key]) !== stableJson(field)) return true;
   }
+  if (declaration.projections !== undefined
+    && stableJson(current.projections) !== stableJson(declaration.projections)) return true;
   return false;
 }
 
@@ -164,10 +168,20 @@ async function installedDomain() {
     [MACHINE_TYPE, MACHINE],
     [MATERIAL_TYPE, MATERIAL]
   ]);
+  const documentsInstall = installs.find(install => install.pluginId === 'documents');
+  const csvTable = (documentsInstall?.declarations?.types || []).find(type => type.id === 'csv-table');
+  const storedTable = types.find(type => type.id === TABLE_TYPE);
+  const tableProjections = storedTable?.projections?.length
+    ? storedTable.projections
+    : (csvTable?.projections || []);
+  const tableRepair = storedTable && tableProjections.length && !storedTable.projections?.length
+    ? plannedDeclaration(storedTable, { projections: tableProjections })
+    : null;
   const storedIds = new Set(types.map(type => type.id));
   for (const stored of types) {
     const planned = overlay.get(stored.id)
-      || (stored.id === QUEUE_TYPE ? { fields: QUEUE_NESTING_FIELDS } : null);
+      || (stored.id === QUEUE_TYPE ? { fields: QUEUE_NESTING_FIELDS } : null)
+      || (stored.id === TABLE_TYPE ? tableRepair : null);
     registry.defineType({
       ...(planned ? plannedDeclaration(stored, planned) : stored),
       scope: 'org',
@@ -203,14 +217,19 @@ async function installedDomain() {
   }
   return {
     domain: projectDomainFromView(registry, ORG, { commands, construction, events: [], serviceContracts: {} }, { packServices }),
-    types
+    types,
+    tableProjections,
+    tableRepair
   };
 }
 
 function classNodeId(authoring, typeId) {
-  const record = Object.values(authoring.definition().ctsTypes)
+  const data = authoring.definition();
+  const record = Object.values(data.ctsTypes)
     .find(candidate => candidate.kind === 'class' && candidate.typeId === typeId);
-  return record?.id || '';
+  if (record?.id) return record.id;
+  return data.graph.nodes
+    .find(node => node.type === 'ctsClass' && node.data?.typeId === typeId)?.id || '';
 }
 
 function ensureNode(authoring, id, paletteId, configure) {
@@ -238,12 +257,14 @@ function ensureWire(authoring, source, sourceHandle, target, targetHandle) {
 }
 
 function ensureDeclarationField(authoring, { id, classId, name, descriptor }) {
-  if (authoring.definition().ctsTypes[id]) return;
+  const data = authoring.definition();
+  if (data.ctsTypes[id] || data.graph.nodes.some(node => node.id === id)) return;
   authoring.declareField({ id, ownerClassId: classId, name, descriptor });
 }
 
 function ensureDeclarationClass(authoring, { id, typeId, class: classKind, name, glyph }) {
-  if (authoring.definition().ctsTypes[id]) return;
+  const data = authoring.definition();
+  if (data.ctsTypes[id] || data.graph.nodes.some(node => node.id === id)) return;
   authoring.declareClass({ id, typeId, class: classKind, name, glyph });
 }
 
@@ -252,17 +273,19 @@ function queueDeclaration(stored) {
 }
 
 function validatePlan(data, domain, roles) {
-  const validation = validateProcessDefinition(data, domain, { roles });
+  const prepared = prepareAuthoredDefinition(data, domain);
+  const validation = validateProcessDefinition(prepared.definition, domain, { roles });
   const availability = validateRequiredInputAvailability(validation.definition, domain);
   const lineage = validateLineageBindingResolution(validation.definition, domain);
   return [
+    ...(prepared.errors || []),
     ...(validation.errors || []),
     ...availability.map(diagnostic => diagnostic.message),
     ...lineage.map(diagnostic => diagnostic.message)
   ];
 }
 
-function planDefinition(definition, domain, adminRoleId) {
+function planDefinition(definition, domain, adminRoleId, tableProjections = []) {
   const seed = authoredProcessDataFromGraphDocument(definition.data) || definition.data;
   const authoring = createDefinitionAuthoring(domain, null, seed);
   const adminAccess = {
@@ -285,6 +308,11 @@ function planDefinition(definition, domain, adminRoleId) {
   ensureDeclarationField(authoring, { id: 'materialColorField', classId: 'materialClass', name: 'Цвет', descriptor: { base: 'string' } });
   ensureDeclarationField(authoring, { id: 'materialWidthField', classId: 'materialClass', name: 'Ширина', descriptor: { base: 'quantity', unit: 'mm' } });
   ensureDeclarationField(authoring, { id: 'materialHeightField', classId: 'materialClass', name: 'Высота', descriptor: { base: 'quantity', unit: 'mm' } });
+
+  const tableClassId = classNodeId(authoring, TABLE_TYPE);
+  if (tableClassId && tableProjections.length) {
+    authoring.configure(tableClassId, { projections: tableProjections });
+  }
 
   const queueClassId = classNodeId(authoring, QUEUE_TYPE);
   if (!queueClassId) throw new Error(`Process declares no ${QUEUE_TYPE} class`);
@@ -433,16 +461,16 @@ try {
   const adminRoleId = adminRole?.id || '';
   if (!adminRoleId) throw new Error('organization has no admin role');
 
-  const { domain, types } = await installedDomain();
+  const { domain, types, tableProjections, tableRepair } = await installedDomain();
   const byId = new Map(types.map(type => [type.id, type]));
   if (!byId.has(QUEUE_TYPE)) throw new Error(`organization has no ${QUEUE_TYPE} type`);
   if (!byId.has(ENTRY_TYPE)) throw new Error(`organization has no ${ENTRY_TYPE} type`);
 
   const queue = queueDeclaration(byId.get(QUEUE_TYPE));
-  const declarations = [MACHINE, MATERIAL, queue];
+  const declarations = [MACHINE, MATERIAL, queue, ...(tableRepair ? [tableRepair] : [])];
   const changedTypes = declarations.filter(declaration => typeNeedsWrite(declaration, byId.get(declaration.id)));
 
-  const planned = planDefinition(definitionDoc, domain, adminRoleId);
+  const planned = planDefinition(definitionDoc, domain, adminRoleId, tableProjections);
   const currentAuthored = authoredProcessDataFromGraphDocument(definitionDoc.data) || definitionDoc.data;
 
   if (!APPLY) {
@@ -464,9 +492,9 @@ try {
     });
   }
 
-  const applyDomain = (await installedDomain()).domain;
-  const data = planDefinition(definitionDoc, applyDomain, adminRoleId);
-  const errors = validatePlan(data, applyDomain, roleMap);
+  const applyInfo = await installedDomain();
+  const data = planDefinition(definitionDoc, applyInfo.domain, adminRoleId, applyInfo.tableProjections);
+  const errors = validatePlan(data, applyInfo.domain, roleMap);
   if (errors.length) throw new Error(`Planned process does not validate: ${errors.join('; ')}`);
   await api(`/api/process-definitions/${definitionId}`, {
     method: 'PATCH',
