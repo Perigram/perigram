@@ -2661,7 +2661,7 @@ gates keep their migration consent dialogs.
 
 **Workspace anatomy.** The editor is a full working surface in the
 application's existing visual language, not a floating tool demo. Use the
-registered PrimeVue components, shared design-system primitives, and
+registered Naive UI components, shared design-system primitives, and
 semantic tokens. Remove ad-hoc glass panels, floating mini-toolbar
 clusters, inconsistent spacing, and local chrome systems that do not
 belong to the app.
