@@ -32,6 +32,24 @@ describe('Nesting managed runtime', () => {
     expect(result.summary).toMatchObject({efficiency:50,sheetCount:1,placedCount:1});
   });
 
+  it('reads graph invocation inputs from the envelope and returns the value port', async () => {
+    const call = vi.fn(async () => ({solution:{layouts:[]}}));
+    const result = await createRuntime().execute('nesting-solve',{
+      mode:'preview',
+      config:{},
+      inputs:{
+        items:[{sourceId:'source-3',count:1,parts:[{coordinates:[[0,0],[10,0],[10,10],[0,10]]}]}],
+        sheetWidth:100,
+        sheetHeight:100,
+        space:3
+      }
+    },{capabilities:{call}});
+    expect(call).toHaveBeenCalledWith('nesting.solve',expect.objectContaining({
+      items:[expect.objectContaining({source_id:'source-3'})]
+    }));
+    expect(result.value.layouts).toEqual([]);
+  });
+
   it('reserves one worst-case sheet per physical polygon part, not per source design', async () => {
     const call = vi.fn(async (_name, request) => ({solution:{layouts:[]}}));
     await createRuntime().execute('nesting-solve',{

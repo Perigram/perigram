@@ -2,7 +2,7 @@
   "pluginId": "nesting",
   "name": "Nesting",
   "description": "Reusable 2D polygon nesting over generic source parts and stock-sheet geometry",
-  "version": "2",
+  "version": "3",
   "requires": [],
   "declarations": {
     "types": [
