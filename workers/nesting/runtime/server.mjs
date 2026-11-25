@@ -137,8 +137,12 @@ export function createRuntime() {
       if (!capabilities || typeof capabilities.call !== 'function') {
         throw new Error('Nesting requires the platform nesting.solve capability');
       }
-      const items = normalizeItems(input.items);
-      const {requestItems,params} = buildRequest(items,input);
+      // The managed graph/construction task wraps its payload in the graph
+      // invocation envelope; direct dispatch receives it as-is.
+      const graphInvocation = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object';
+      const args = graphInvocation ? input.inputs : input;
+      const items = normalizeItems(args.items);
+      const {requestItems,params} = buildRequest(items,args);
       const workerInput = {
         items:requestItems.map(({id,sourceId,coords,handles,count}) => ({id,source_id:sourceId,coords,handles,count})),
         params
@@ -157,7 +161,8 @@ export function createRuntime() {
         }]
       };
       const layouts = layoutResults(enriched,requestItems,params);
-      return {layouts:groupLayouts(layouts),summary:summarize(enriched,layouts,params)};
+      const solved = {layouts:groupLayouts(layouts),summary:summarize(enriched,layouts,params)};
+      return graphInvocation ? {value:solved} : solved;
     }
   };
 }
