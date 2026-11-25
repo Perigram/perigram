@@ -44,7 +44,7 @@ by executor implementation. The declared groups are **Facade geometry**
 (`facade`) and **Cassette** (`cassette`). The geometry group carries the
 `nesting-polygons` extraction projection feeding the Nesting plugin's
 `nesting-solve`; the cassette group carries the pure value operations
-`design-key`, `design-bake`, and `design-import` plus the
+`design-key` and `design-bake` plus the
 `cassette-template` `document` projection. Platform nodes own instance
 lookup, creation, and queue-entry writes; Facade computes cassette values
 and stable design identity.
@@ -61,7 +61,7 @@ Every payload-bearing Facade file type declares a revision scope. The cassette t
 
 ## Services
 
-The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `construct-sheet`, `generate-sheet-dxf`, `template-source`, `design-key`, `design-bake`, `design-import`, `compose-sheet`, and `sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary. The separate Nesting plugin owns server-only solver execution and contributes its own `nesting-solve` graph operation.
+The remaining HTTP executor exposes only `extract-geometry` and `nesting-parts`. `bake`, `construct-sheet`, `generate-sheet-dxf`, `template-source`, `design-key`, `design-bake`, `compose-sheet`, and `sheet-dxf` execute through the versioned `facade-server` runtime; pure operations use the browser/server Worker boundary. The separate Nesting plugin owns server-only solver execution and contributes its own `nesting-solve` graph operation.
 
 Service compute is value→value (SPEC §8): payload values in, computed
 values and files out, free of service imports, persistence, and auth.
@@ -73,7 +73,6 @@ values and files out, free of service imports, persistence, and auth.
 | `template-source` | the `cassette-template` `document` projection | the template's OCCS payload in → the parsed document value out; the platform extract read exposes it to graphs |
 | `design-key` | cassette graph value | `{ templateId, parameters }` in → the stable design key out; the lookup key platform `Find` filters on |
 | `design-bake` | cassette graph value | template document + id/name + parameters in → `{ name, designKey, geometry }` out; pure OCCS evaluation with no instance write |
-| `design-import` | cassette graph value | DXF base64 + name + layer mapping in → `{ name, geometry, mapping }` out; pure DXF extraction with no instance write |
 | `compose-sheet` | sheet graph value | solved layout + pinned design identity records in → `{ data: { compositionKey, geometry }, relations: { parts } }` out; pure sheet composition with no instance write |
 | `sheet-dxf` | sheet graph value | stored sheet values + name in → the layered DXF `payload` out; pure export with no instance write |
 | `nesting-parts` | the cassette-design `nesting-polygons` projection | one baked design in → one generic Nesting source item out: `sourceId`/`sourceKey`, polygon `parts` (coordinates, handles, and workpiece layers joined by `workpieceId`), and quantity; the Nesting plugin remains unaware of cassette types while Facade resolves its returned source IDs back to cassette-design refs |
