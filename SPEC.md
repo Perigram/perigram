@@ -4749,9 +4749,13 @@ The implementation is complete only when all of these invariants hold:
 The application design system is owned by Perigram, not by its component
 library. The target component library is Naive UI, using the
 [Naive UI Themes — Monochrome theme](https://naiveuithemes.com/themes/monochrome)
-as the starting theme. This is a deliberate component-library migration,
-not a visual redesign and not permission to replace Perigram's established
-visual identity with Naive UI defaults.
+as a visual and component-theme reference. This is a full redesign of
+Perigram's visual language and design system alongside the component-library
+migration. Existing visual decisions are not constraints: they are material
+to audit, challenge, replace, or discard. The goal is a coherent, distinctive,
+production-grade interface designed deliberately for Perigram's actual
+workflows — not a reskin of the current application and not an unmodified
+Naive UI demo theme.
 
 ### 33.1 Ownership and dependency direction
 
@@ -4771,12 +4775,12 @@ application-owned token, layout recipe, domain signal, typography role,
 status meaning, or surface contract may be named after or defined in terms
 of a component-library API or CSS variable.
 
-The existing `designTokens` contract and application-owned `--ck-*`
-semantic variables remain the source of truth unless a separately reviewed
-token cleanup establishes a better canonical namespace. PrimeVue's
-`--p-*` variables cease to be sources of truth and are not retained as
-compatibility aliases. Naive UI's generated theme variables are likewise
-implementation details, not application tokens.
+The current `designTokens`, `--ck-*` variables, and existing token
+categories are legacy implementation material, not requirements. Audit
+them and replace the token model where it is inconsistent, underspecified,
+redundant, or incapable of expressing the new design. The resulting
+Perigram-owned semantic system is authoritative; neither former PrimeVue
+variables nor Naive UI-generated variables become application tokens.
 
 The adapter is a one-way projection: semantic tokens -> Naive UI theme
 overrides. Application code must not read Naive UI theme variables to
@@ -4785,31 +4789,38 @@ There is no reverse mapping and no second token catalog.
 
 ### 33.2 Semantic token contract
 
-The token source remains framework-independent and owns:
+Design the token model from the desired experience, not by mechanically
+renaming the current variables. It owns the complete visual grammar:
 
-- Light and dark canvas, surface, raised-surface, overlay, border, and
-  text roles.
-- Primary neutral ramp and the Perigram brand accent.
-- Semantic status colors and domain/entity signal colors.
-- Typography families and roles, including the existing IBM Plex Sans,
-  IBM Plex Mono, and IBM Plex Serif assignments.
-- Layout constraints and reusable dimensions already defined by the
-  token source.
-- Selection, focus, disabled, hover, and other application-level
-  interaction semantics where they are shared across surfaces.
+- Color system: canvas, surfaces, borders, text hierarchy, accent, semantic
+  states, data visualization, and domain-specific color roles.
+- Typography: font families, scripts and language coverage, weights,
+  optical sizing, line heights, tracking, and role-based hierarchy. Select
+  typefaces based on actual multilingual coverage and visual quality; no
+  current font assignment is sacred.
+- Spatial system: layout grids, spacing, sizing, density, responsive
+  breakpoints, and content-width rules.
+- Shape and depth: radii, borders, shadows, layering, elevation, and
+  separation strategies.
+- Interaction language: focus, hover, active, selected, disabled, loading,
+  validation, drag/drop, keyboard, and touch states.
+- Component and composition recipes: control sizes, field anatomy,
+  navigation, menus, tables, trees, cards, dialogs, overlays, empty states,
+  feedback, and complex workspace surfaces.
+- Motion: transition vocabulary, durations, easing, reduced-motion behavior,
+  and meaningful state transitions.
 
-Preserve the current visual decisions: zinc/neutral primary surfaces,
-the Perigram red brand accent (`#ff0040`) in its existing semantic
-roles, the current light/dark contrast model, flat structural surfaces,
-and the established IBM Plex typography. The Monochrome theme is the
-component-theme baseline; it does not replace the Perigram token contract,
-brand accent, typography, or domain colors.
+Do not assume the current zinc palette, red accent usage, IBM Plex font
+assignments, flat surfaces, current density, radii, or contrast choices are
+correct. Re-evaluate each from first principles. Retain an existing choice
+only when the redesign demonstrates that it is the best solution. The
+Monochrome theme is a strong visual starting point, not a mandate that the
+entire product become monochrome and not a substitute for designing
+Perigram's own hierarchy, personality, and domain visualization.
 
-No component-library theme may introduce a competing palette, font system,
-spacing scale, radius scale, or elevation language. Component-specific
-dimensions and behavior belong in a component-theme projection only when
-they are genuinely component-specific; reusable application decisions
-remain semantic tokens.
+No component-library theme may become the design system. Component-specific
+theme values are projections of the Perigram design decisions; shared
+application decisions remain framework-independent.
 
 ### 33.3 Monochrome theme adoption
 
@@ -4820,20 +4831,16 @@ its source URL, retrieval date, and license/provenance, and make builds
 independent of the theme website. Do not fetch theme JSON at runtime or
 during production builds.
 
-Adapt the snapshot through the semantic-token projection:
-
-- Neutral/monochrome component surfaces and controls follow Perigram's
-  light and dark semantic surface roles.
-- Component primary/focus/selection behavior follows the Perigram neutral
-  primary contract, not an arbitrary library default.
-- The Perigram red accent remains reserved for its existing brand and
-  decision semantics; do not turn the whole component library red.
-- Existing IBM Plex typography is applied consistently; theme-provided
-  font-family choices must not replace it.
-- Existing density, control sizing, border, radius, and elevation decisions
-  are retained where they are part of the Perigram design contract.
-- Any theme-export value that conflicts with these rules is overridden by
-  the semantic projection, not copied blindly.
+Study the Monochrome theme's actual exported configuration and visual
+result. Use it as a baseline to explore and build the new system, not as a
+preset to accept wholesale. Adapt, extend, or discard any part of it to
+achieve the intended product design. Define Perigram's palette, typography,
+density, shape, depth, component states, and light/dark modes as one
+coherent system, then project those decisions into Naive UI. Do not
+pre-commit to any existing brand-accent usage, font, neutral ramp, or
+component geometry. Record which Monochrome decisions are adopted and
+which are deliberately changed, so the result is intentional rather than
+an accumulation of overrides.
 
 The exported Monochrome configuration is an upstream baseline, not a
 second source of truth. Do not hand-edit duplicated light/dark values in
@@ -4864,11 +4871,14 @@ or theme behavior.
 
 ### 33.5 Component usage and application primitives
 
-Use Naive UI's unmodified components for generic controls and interaction
-primitives. Preserve Perigram's registered shared primitives where they
-represent stable application contracts, including StandardDialog,
-instance/file references, field editing, generated surface composition,
-and other cross-feature behaviors.
+Use Naive UI's native components as the default implementation for generic
+controls and interaction primitives, with the new design system providing
+their visual language. Re-evaluate existing Perigram shared primitives:
+retain, redesign, consolidate, or delete each based on whether it expresses
+real application semantics or merely compensates for the old component
+library and styling. StandardDialog, instance/file references, field
+editing, and generated surface composition are candidates for redesign,
+not untouchable legacy contracts.
 
 Shared primitives must compose Naive UI rather than become a second
 component library. Do not create generic Perigram replacements for NButton,
@@ -4884,23 +4894,23 @@ capabilities internally. Other overlays use the corresponding native
 Naive UI component unless an existing registered application primitive
 owns additional behavior.
 
-The following existing visual/behavioral contracts survive the migration:
-- Tables, tree collections, forms, tabs, menus, popovers, notifications,
-  context menus, and dialogs retain their documented application behavior.
-- Chat machine notices use Naive UI alert semantics; collapsible reasoning
-  uses a native disclosure composition; entity and file references use
-  registered shared reference primitives.
-- Generated pages continue to render through the ui-mapping generator.
-  Component selection is an implementation mapping, never a new
-  per-entity hardcoded renderer.
-- Dockview remains the workspace docking engine and receives Perigram
-  semantic tokens directly.
-- Graph/editor canvases, 2D/3D viewers, charting, markdown, and other
-  specialized rendering systems are not replaced by general-purpose UI
-  components. They integrate through the same application token contract.
-- Domain glyph fonts remain domain assets. General-purpose icons follow
-  one explicit application icon contract; PrimeIcons usage is retired
-  rather than retained as an accidental second icon system.
+Preserve product capabilities and domain semantics, not their current
+visual expression. Revisit every major surface — workspace shell, sidebar,
+record pages, generated screens, forms, tables, trees, chat, dialogs,
+inspectors, editors, and mobile layouts — and redesign its hierarchy,
+composition, density, navigation, and responsive behavior as needed.
+
+The redesign must remain compatible with the platform's underlying
+capabilities: generated pages and ui-mapping contracts, Dockview workspace
+behavior, plugin surfaces, graph/editor canvases, 2D/3D viewers, charting,
+markdown, and domain-specific visualization. These systems are not required
+to look or behave as they do today. They must consume the new Perigram
+design tokens and participate in the new visual language. Replace or
+restructure their presentation where that produces a better product.
+
+Re-evaluate the icon system, domain glyphs, shared primitives, and all
+existing visual assets. Avoid carrying multiple icon languages or legacy
+styling conventions forward merely for compatibility.
 
 Do not use undocumented selectors or internal component DOM structure to
 force styling. Component internals are styled through documented theme
@@ -4940,35 +4950,38 @@ component library.
 
 ### 33.7 Migration sequence
 
-1. **Inventory and baseline.** Enumerate every PrimeVue component, directive,
-   service, PT customization, theme variable, icon, CSS selector, test
-   helper, and dependency across application, shared packages, workers,
-   plugins, and tests. Record behavior and consumer locations. Capture
-   representative light/dark screenshots and interaction tests before
-   changing implementation.
-2. **Decouple tokens.** Remove application dependence on `--p-*`
-   variables. Make semantic tokens authoritative for the app shell,
-   typography, Dockview, overlays, and domain surfaces. Add tests/guards
-   preventing new library-variable dependencies outside the adapter.
-3. **Integrate Naive UI and Monochrome.** Add the pinned library, SSR-safe
-   provider, vendored theme snapshot, typed token projection, and
-   deterministic light/dark initialization. Validate production SSR and
-   hydration before broad component migration.
-4. **Build representative vertical slices.** Migrate and compare a complex
-   form/inspector, hierarchical explorer, dense data table, dialog/popover
-   flow, and chat message/attachment surface. Include keyboard, focus,
-   accessibility, mobile, and dark-mode behavior.
-5. **Migrate remaining consumers.** Move application pages, generated
-   surfaces, shared primitives, and workspace/editor chrome using the
-   inventory. Preserve domain rendering engines and plugin boundaries.
-6. **Retire PrimeVue.** Remove dependencies, module configuration, PT,
-   theme preset, CSS layer, variables, icons, imports, and obsolete tests.
-   Run repository-wide searches and architecture guards to prove there are
-   no active PrimeVue references or runtime imports.
-7. **Validate and document.** Run the full unit, SSR, framework, architecture,
-   documentation, plugin dependency, and E2E checks. Update the design-token
-   documentation and component usage guidance to describe the final
-   library-independent ownership model and Naive UI adapter.
+1. **Audit and understand.** Inventory all current UI surfaces, PrimeVue
+   usage, CSS, tokens, shared primitives, icons, responsive behavior, and
+   visual inconsistencies. Capture screenshots and interaction baselines,
+   but treat screenshots as diagnostic evidence, not targets to preserve.
+2. **Design the system before migrating components.** Establish product
+   design principles and explore multiple coherent visual directions,
+   using Monochrome as one input. Produce a complete visual proposal with
+   typography, color, spatial scale, shape, depth, component states, motion,
+   responsive rules, and representative application screens. Evaluate it
+   against real Perigram workflows and dense technical interfaces.
+3. **Build the independent token foundation.** Replace or simplify the
+   current token source as needed. Define semantic tokens and composition
+   contracts independently of Naive UI. Ensure application CSS, Dockview,
+   plugin surfaces, and domain renderers consume this system directly.
+4. **Implement the Naive UI theme adapter.** Vendor the reviewed Monochrome
+   snapshot, record provenance, and project the approved Perigram design
+   into typed Naive UI light/dark overrides. Verify SSR, hydration, portals,
+   and first-render theme selection.
+5. **Prototype complete vertical slices.** Implement representative end-to-end
+   screens — workspace shell, record/detail surface, data-heavy collection,
+   complex inspector/form, chat, and overlay flows — in the new system.
+   Refine the design based on actual use, not isolated component galleries.
+6. **Rebuild and migrate the application.** Replace old presentation,
+   components, CSS, primitives, and visual conventions systematically.
+   Keep functional contracts and data semantics where still correct, but
+   do not preserve UI structure solely to reduce migration effort.
+7. **Retire PrimeVue and legacy design infrastructure.** Remove obsolete
+   dependencies, presets, PT, CSS layers, variable bridges, icons, token
+   definitions, duplicated styling systems, and dead compatibility code.
+8. **Validate and document.** Run unit, SSR, architecture, accessibility,
+   visual regression, responsive, and E2E checks. Document the new design
+   language, token ownership, component usage, and contribution rules.
 
 ### 33.8 Acceptance criteria
 
@@ -4989,9 +5002,10 @@ The migration is complete only when:
 - Theme selection is correct on the first SSR render and after hydration;
   no theme flash, style loss, portal mismatch, or route-dependent styling
   regression occurs.
-- Representative tables, trees, forms, overlays, dialogs, chat surfaces,
-  and inspectors preserve required behavior, keyboard access, focus
-  management, and responsive layouts.
+- Representative workspace, navigation, record, collection, form,
+  inspector, chat, overlay, and editor surfaces demonstrate the new design
+  consistently while preserving required product capabilities, keyboard
+  access, focus management, and responsive behavior.
 - Generated surfaces, Dockview, plugin UI, graph editors, and 2D/3D
   viewers consume the same application design tokens without depending on
   the component-library theme implementation.
