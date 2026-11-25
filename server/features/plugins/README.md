@@ -205,7 +205,10 @@ group label and `palette.keywords`/`palette.visible` controlling search
 and discovery. A service without a palette contribution falls to the
 services tab; the section renders in the designer palette's plugin tier
 with pack provenance. The documents plugin's `table-data` section
-carries the extraction trio beside the CSV composition. The same services compose
+carries the extraction trio beside the CSV composition. Projected species
+carry their listing `execution` record; the process palette projects
+`pure`/`read` services as `cts.valueService` data nodes and effectful
+services as `cts.service` effects. The same services compose
 into the projected command
 table (`projectedDomainsForOrganization`): a service's scalar signature
 fields ride as the command's `input.parameters` — the inputs a run
@@ -223,7 +226,10 @@ conversion, or export binding and the connector path.
 
 Managed service execution dispatches through the platform scheduler.
 Browser pure and read operations may preview in a Worker. Server tasks run
-the pinned package and mediate each declared capability. Graph input
+the pinned package and mediate each declared capability. Process
+`cts.valueService` nodes dispatch through the same managed value seam and
+await the task result as a data value; effectful `cts.service` nodes keep
+the command/event path. Graph input
 validation, read evidence, and transactional effect commits are tracked
 in TODO. Endpoint and claim services use the external integration protocol.
 

@@ -105,7 +105,9 @@ registry's per-type `processCapabilities` record — `cts.construct` requires
 `cts.mutate` requires `processUpdate`, `cts.remove` requires `delete`, and
 `cts.transition` requires `archive` for an archive intent, else a status
 workflow — as deterministic `validation.errors` entries (400), and resolves
-required entity profiles from command metadata. Auth hydration compiles the current semantic graph before
+required entity profiles from command metadata. `cts.payload` writes the
+owning file type's payload through its instance service and requires a
+declared payload and revision scope. Auth hydration compiles the current semantic graph before
 resolving screens, actions, workflows, and grants; the stored compiled
 snapshot serves inspection — runtime boundaries compile fresh.
 

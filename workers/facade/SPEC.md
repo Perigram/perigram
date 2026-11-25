@@ -852,7 +852,11 @@ through the plugin's export binding (owner decision 2026-10-10).
   baked `geometry`; every design is nestable without a second step. The
   record name derives from the template and its parameter values on
   `render`, and from the uploaded file on `upload`; pickers list designs
-  by that name.
+  by that name. `designKey` stores the stable template-id plus canonical
+  parameter identity, so a platform `Find` can reuse an existing design.
+  The pure `design-key`, `design-bake`, and `design-import` operations
+  compute these values without writing records; instance creation and
+  queue-entry writes stay on platform nodes.
 - Owner decision (2026-10-31, DXF import): the upload create takes the
   DXF file and immediately maps its source layers to the OCCS layer
   vocabulary; the mapping is the create form's declared `mapping` input,

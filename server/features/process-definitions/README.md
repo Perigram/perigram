@@ -157,6 +157,14 @@ reference when the evaluation parks on an async command. The delegated
 entity/status/command service remains the access and business-logic
 boundary; `command_runs` and `task_runs` are the audit trail.
 
+Pure/read plugin services are `cts.valueService` data nodes: the same
+graph evaluator dispatches them through the organization's installed
+plugin value-service seam, which awaits managed tasks before returning the
+value. Effectful plugin services keep the `cts.service` command/event
+contract. `cts.payload` is the platform file-payload effect; it writes
+through the owning instance service's payload boundary under the action's
+execution grant.
+
 Durable effect dispatch classifies once (`operationKindOf`) and keeps
 the record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run
 through the construction/update/delete adapters, `cts.command`/
@@ -524,7 +532,10 @@ projection.
 
 `executeProcessQuery` forwards the concrete filter object to the
 adapter's `processList` verbatim with the full auth context — the
-children read's `lineage.<key>` filter is the shipped shape. Filtering is
+children read's `lineage.<key>` filter is the shipped shape. `Find` reads
+use the same adapter with their authored filter map; validation restricts
+each key to a readable declared field or lineage path and each value to a
+scalar. Filtering is
 process algebra: predicate conditions and gates stay algebra values,
 evaluated in memory by `entityFilter` over the serialized models
 ([packages/processes](../../../packages/processes/README.md)). Parent,

@@ -50,7 +50,8 @@ then the new `typeVersion` stamp), each migrated instance publishing the
 shared typed invalidation event. The applied summary persists on the
 stored declaration as `migrated`; the steps themselves are stripped on
 every upsert, so a persisted declaration is always step-free (steps are
-one-time). An uncovered breaking change, or a declared step matching
+one-time). Declared projections persist with the declaration and clear when
+a posted declaration omits them. An uncovered breaking change, or a declared step matching
 nothing in the diff, is refused — and the refusal is authorable: the
 `400` carries `data.plan` beside `data.boundBy`, the serialization of the
 computed migration plan (`{ changes: [<breaking change records>],

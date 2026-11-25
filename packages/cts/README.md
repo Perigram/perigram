@@ -82,7 +82,10 @@ modules onto its sections.
   (compile checks shape only). `defineType` gates redefinition per SPEC §11; the free paths
   are zero live instances (synchronous `hasInstances` probe) and repair
   of a stored declaration that violates class obligations or declares
-  unresolvable children.
+  unresolvable children. Declarations may carry `projections` (extract
+  gates); each entry declares `{ id, label?, output, resolve }` with exactly
+  one of `field`, `handler`, or plugin `service` resolve. Org-authored
+  declarations persist their projections beside fields and edges.
 Authored instance-scoped `constraints` compile against the composed typed
 view; `validateConstraints` evaluates them with asynchronous collection
 resolvers. The generic instance service enforces declared constraints on

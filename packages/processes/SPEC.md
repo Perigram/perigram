@@ -22,6 +22,17 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | Apply shape | In-tree vocabulary composes tree → posts compiled declarations → re-seats the domain (`withDomain`) → composes the graph over it. |
 | Save floors | `graphIntegrityProblems`, `graphEdgeSocketProblems`, `collapseEffectAccessGrants` (an effect's access is one grant, the lane gesture); semantic validity stays with the validator. Every palette item drops, configures, and round-trips headlessly (`authoring.spec.js`). |
 
+### Node species ownership
+
+| Aspect | Law |
+|---|---|
+| Platform instance effects | `cts.construct`, `cts.mutate`, `cts.transition`, `cts.remove`, `cts.payload` own identity, persistence, lifecycle, delete, and payload replacement. |
+| Plugin value services | `cts.valueService` carries a pure/read service signature as data sockets and no event contract; the platform value-service seam dispatches it and awaits managed task results. |
+| Plugin effect services | `cts.service` carries the event contract for effectful plugin operations. |
+| Instance reads | `cts.read` carries `current`, `all`, `find`, `extract`, `parent`, `children`, `related`. `find` filters by readable declared fields and lineage paths with scalar values. |
+| Ownership | Plugin nodes compute domain values; platform nodes read and mutate Perigram instances and payloads. A plugin node queries no collection and writes no record. |
+| No domain find-or-create | Existence composes as `Find` → `if` → `Create`; no node combines lookup and persistence over a collection. |
+
 ### Designer round trip
 
 | Aspect | Law |
@@ -128,7 +139,7 @@ without claiming static guarantees the underlying data cannot support.
 | Aspect | Law |
 |---|---|
 | Identity | `producerOutputId = nodeId:outputSocketId`; only `cts.construct` and entity-producing operators mint outputs. Consumers resolve their type from the entity input; an upstream `producerOutputId` carries optional field/lineage policy; lifecycle comes from the type declaration; same-type streams are ordinary typed list dataflow. |
-| Bindings | `lineageBindings`: `{ childTypeId, parentTypeId, lineageKey, producerOutputId, sourceProducerOutputId, sourceNode, sourceSocket, consumingNode, consumingSocket }`, deduplicated on the full identity. Compiled bindings are the authoritative hierarchy for access scoping and grant windows; presentation placement reads the merged view — compiled bindings first, then org-authored children edges. |
+| Bindings | `lineageBindings`: `{ childTypeId, parentTypeId, lineageKey, producerOutputId, sourceProducerOutputId?, sourceNode, sourceSocket, consumingNode, consumingSocket }`, deduplicated on the full identity. `sourceProducerOutputId` is present when the source is a producer output; any typed entity source may feed lineage. Compiled bindings are the authoritative hierarchy for access scoping and grant windows; presentation placement reads the merged view — compiled bindings first, then org-authored children edges. |
 
 ### Screens and inference
 

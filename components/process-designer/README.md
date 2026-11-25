@@ -723,7 +723,8 @@ every mutation is an event back to the page's update/sync entry points.
   (`eventId` over the domain events) — the wire keeps precedence.
   The state-policy facet (visible/editable row-field lists narrowing
   instances of the state, SPEC §7) authors here, on the typed operation
-  (transition target / construct initial state).
+  (transition target / construct initial state). `Find` reads author their
+  declared-field filter map as JSON.
 - `DeclarationInspector.vue` — class/field/state/type-reference records.
   A state authors the value and display severity/icon. Class display
   tokens follow SPEC §4: beside the name, a glyph row offers a curated
@@ -733,7 +734,9 @@ every mutation is an event back to the page's update/sync entry points.
   authors its payload traits (SPEC §4) beside the class pick: accepted
   MIME (chips from the offered families or typed; an empty list leaves the type payload-less and
   fields alone satisfy the class), size limit, preview mode, and creation
-  protocols. A field authors its
+  protocols. Every class authors extract `projections` (id, label, output,
+  one resolve) through the shared `ProjectionsEditor`; the same editor mounts
+  in the type-designer class dialog. A field authors its
   descriptor through the shared `DescriptorEditor`
   (`components/type-designer/DescriptorEditor.vue`): base kind,
   qualifiers (unit, ref targets, enum values, variant tags, list/map item

@@ -47,7 +47,7 @@ provider-authored search terms. The kind's generic palette vocabulary —
 the item a node of that kind reads before authored variants specialize
 it — is `genericPaletteItemForKind`.
 
-The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition.
+The canonical procedural node-provider contract is owned by [@perigram/plugin-sdk](../plugin-sdk/README.md#node-provider-palette-contract). The process adapter declares each operation's semantic palette group explicitly from its catalog family; graph palette categories are not inferred from operation-id prefixes. The canvas node's group label is projected from that same definition. Pure/read plugin services project as `cts.valueService` data nodes; effectful plugin services keep the `cts.service` event contract. The split is authored at the palette drop, so a read never enters a graph as a process effect.
 
 `processNodeConfigurationSchema` (`src/procedural-provider.js`) declares authoring fields for every cataloged process operation; the [graph editor's inspector](../../components/process-designer/README.md#inspector-anatomy) renders them from the node definition. A palette drop seeds node config from the schema's defaults, so the setting the inspector shows is the one the evaluator runs.
 
@@ -342,6 +342,18 @@ Current species ports mint `entityRef`; the `entity` spelling lives in the
 persisted-v4 compatibility tier and the wire coercion (`types.js`), and
 producer-output acceptance recognizes both spellings.
 
+### Node species ownership
+
+| Species | Owns | Never owns |
+|---|---|---|
+| `cts.construct`, `cts.mutate`, `cts.transition`, `cts.remove`, `cts.payload` | Platform instance persistence: create, update, lifecycle, delete, payload replacement | Domain computation |
+| `cts.service` | Effectful plugin services: event in, completed out, plugin computes | Instance collection reads or lookups |
+| `cts.valueService` | Pure/read plugin services as data nodes: signature sockets, result value | Control events, record persistence |
+| `cts.read` (`current`, `all`, `find`, `parent`, `children`, `related`, `extract`) | Instance queries, declared traversal, declared projections | Domain computation |
+| Values, records, collections, trees | Pure value algebra | Instance or file access |
+
+`find` is a declarative instance query: its `filters` map addresses readable declared fields (bare row keys or `fields.<key>`) and lineage keys. Compose existence with `Find` → `if` → `Create`.
+
 ### Readable principals
 
 Party types (`user`, `organization`) project as readable principals under
@@ -530,6 +542,10 @@ Relations block compiles and renders like every other generated
 entity-detail action; manual screen input policy is traced from connected
 block composers, so generated forms and graph execution use the same field
 contract.
+
+### Payload writes
+
+`cts.payload` is the platform file-payload effect: file instances in, a base64 payload value in, the replaced instances out. The effect maps per aligned file/payload pair, resolves each instance through its registered service, runs the write under the action's execution grant, and returns the updated DTOs. A file type must declare a payload and revision scope; the write mints a payload revision through the same instance boundary as the upload transport.
 
 ### Parent contracts
 
@@ -753,17 +769,17 @@ composition must resolve — the entry exists on the target record, the
 source node resolves to a process record, the ancestor entity type is
 derivable (source entity port, source record type, or entry declaration)
 and is a type other than `organization`, and a lineage key exists for the
-ancestor type. An entity-emitting lineage source socket must also resolve
-to a producer output record — by exact `nodeId:outputSocketId` key, by
-authored socket alias, or as the single same-type candidate — because
-`compileLineageBindings` carries that identity on every binding as
-`sourceProducerOutputId`. A native `data:lineage.<lineageKey>` edge into a
+ancestor type. An entity-emitting lineage source may be any typed source:
+a producer output, a read (`Parent`, `Find`, `Related`), or the run context.
+`compileLineageBindings` carries `sourceProducerOutputId` when the source
+resolves to a producer output and leaves it absent for other typed sources.
+A native `data:lineage.<lineageKey>` edge into a
 construct resolves by the same rules. Each error names the edge id plus the
 responsible node, entry, and socket. Dataflow edge incompatibilities and
 required-input availability errors carry the same producer context: an
-entity edge error names the source `producerOutputId`, and a required
-effect input error on a producer names `producerOutputId` beside the socket
-id.
+entity edge error names the source `producerOutputId` when one exists, and a
+required effect input error on a producer names `producerOutputId` beside the
+socket id.
 
 ### Action records
 
