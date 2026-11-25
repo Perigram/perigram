@@ -62,7 +62,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths, retireStateScopeAuthoring } from '#packages/cts';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue, invokePreviewValueService } from '~/server/features/plugins/service.js';
+import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
