@@ -4755,7 +4755,10 @@ migration. Existing visual decisions are not constraints: they are material
 to audit, challenge, replace, or discard. The goal is a coherent, distinctive,
 production-grade interface designed deliberately for Perigram's actual
 workflows — not a reskin of the current application and not an unmodified
-Naive UI demo theme.
+Naive UI demo theme. This section supersedes earlier visual styling,
+typography, palette, spacing, and component-appearance prescriptions
+where they conflict; functional/domain requirements remain in force unless
+explicitly redesigned.
 
 ### 33.1 Ownership and dependency direction
 
@@ -4996,9 +4999,9 @@ The migration is complete only when:
 - Monochrome is the traceable baseline for Naive UI component theming, with
   a vendored, licensed/provenance-recorded snapshot and explicit Perigram
   adaptations.
-- The existing zinc neutral palette, Perigram red accent semantics, IBM
-  Plex typography, light/dark surfaces, domain signals, and density
-  contracts remain visually coherent.
+- The new palette, typography, light/dark modes, domain signals, density,
+  and surface treatments are designed as a coherent system from first
+  principles; no legacy visual decision is retained by default.
 - Theme selection is correct on the first SSR render and after hydration;
   no theme flash, style loss, portal mismatch, or route-dependent styling
   regression occurs.
