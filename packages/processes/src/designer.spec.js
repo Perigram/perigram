@@ -279,6 +279,7 @@ describe('process designer domain contract', () => {
       'cts.mutate',
       'cts.transition',
       'cts.remove',
+      'cts.payload',
       'cts.emit'
     ]);
     // The retained instance sources are current, typed-reference, and All<T>;
@@ -286,7 +287,7 @@ describe('process designer domain contract', () => {
     // them; declared-edge traversal remains separate from unfiltered
     // collection reads.
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'all', undefined, undefined, undefined, 'extract', 'parent', 'children', 'related', undefined, undefined
+      'current', 'all', 'find', undefined, undefined, undefined, 'extract', 'parent', 'children', 'related', undefined, undefined
     ]);
     const pinned = groups.instances.find(item => item.id === 'pinnedEntity');
     expect(pinned.kind).toBe('source.literalItem');

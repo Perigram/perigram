@@ -446,6 +446,10 @@
       <label>{{ $t('processDesigner.projection') }}</label>
       <Select v-model="record.projection" :options="projectionOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
+    <div v-if="record.kind === 'cts.read' && record.select === 'find'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.filters') }}</label>
+      <Textarea :model-value="filtersText" rows="3" auto-resize @update:model-value="setFiltersText" />
+    </div>
     <div v-if="record.kind === 'collection.join'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.joinLeftKey') }}</label>
       <InputText v-model="record.leftKey" class="w-full" @change="$emit('sync')" />
@@ -518,6 +522,7 @@ import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
+import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import TypedValueControl from '~/components/process-designer/TypedValueControl.vue';
 import TypedLiteralControl from '~/components/process-designer/TypedLiteralControl.vue';
@@ -568,6 +573,18 @@ const { t, te } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => EFFECT_SPECIES_KINDS.has(op.value));
 const typeId = computed(() => typeIdOf(props.record || {}));
+const filtersText = computed(() => JSON.stringify(props.record.filters || {}, null, 2));
+
+function setFiltersText(value) {
+  try {
+    const parsed = JSON.parse(String(value || '{}'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+    props.record.filters = parsed;
+    emit('sync');
+  } catch {
+    // Incomplete JSON stays in the textarea until it parses.
+  }
+}
 
 const isLiteral = computed(() => String(op.value).startsWith('source.literal'));
 const isCast = computed(() => op.value === 'value.cast');

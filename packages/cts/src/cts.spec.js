@@ -408,7 +408,9 @@ describe('intents (R7)', () => {
 describe('draft declaration records (SPEC §7/§20)', () => {
   it('declarationsFromCtsRecords projects classes and fields; state records declare no type facet', () => {
     const records = {
-      cls: { id: 'cls', kind: 'class', typeId: 't-goo-1', class: 'file' },
+      cls: { id: 'cls', kind: 'class', typeId: 't-goo-1', class: 'file', projections: [
+        { id: 'rows', label: 'Rows', output: { base: 'list', itemType: { base: 'record' } }, resolve: { service: 'plugin.demo.rows' } }
+      ] },
       name: { id: 'name', kind: 'field', typeId: 't-goo-1', name: 'title', descriptor: { base: 'string', identifier: true } },
       goo: { id: 'goo', kind: 'state', typeId: 't-goo-1', value: 'GOO', initial: true, terminal: false },
       changed: { id: 'changed', kind: 'state', typeId: 't-goo-1', value: 'CHANGED', initial: false, terminal: true }
@@ -427,7 +429,10 @@ describe('draft declaration records (SPEC §7/§20)', () => {
     expect(declaration).toEqual({
       id: 't-goo-1',
       class: 'file',
-      fields: { title: { base: 'string', identifier: true } }
+      fields: { title: { base: 'string', identifier: true } },
+      projections: [
+        { id: 'rows', label: 'Rows', output: { base: 'list', itemType: { base: 'record' } }, resolve: { service: 'plugin.demo.rows' } }
+      ]
     });
     const registry = createTypeRegistry({ id: 'record-projection-check' });
     registry.defineType(declaration);

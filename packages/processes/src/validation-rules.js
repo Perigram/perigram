@@ -351,6 +351,14 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors, p
     const relation = (domain.relations || []).find(item => item.ownerType === node.typeId && item.key === (node.relationKey || node.relation));
     if (!relation) errors.push(`Process node ${nodeId} must select a declared relation for ${node.typeId}`);
   }
+  if (node.kind === 'cts.read' && node.select === 'find') {
+    const filters = node.filters && typeof node.filters === 'object' && !Array.isArray(node.filters) ? node.filters : {};
+    const declared = new Set(entityFieldSchemas(domain, node.typeId).filter(field => field.readable !== false).map(field => field.path));
+    for (const [path, value] of Object.entries(filters)) {
+      if (!declared.has(path) && !declared.has(`fields.${path}`)) errors.push(`Process node ${nodeId} filters undeclared field ${path}`);
+      if (value != null && typeof value === 'object') errors.push(`Process node ${nodeId} filter ${path} must be a scalar`);
+    }
+  }
   if (classification === 'cts.command' && (!node.commandId || !domain.commands?.[node.commandId])) {
     errors.push(`Process node ${nodeId} must select a registered command`);
   }
@@ -632,7 +640,7 @@ export function validateProcessNodeConnections(process = {}, errors = [], domain
 
 function processNodeRequiresTypeId(kind = '') {
   if (kind === 'record.construct') return false;
-  return ['cts.construct', 'cts.read'].includes(kind);
+  return ['cts.construct', 'cts.read', 'cts.payload'].includes(kind);
 }
 
 function validateConstruction(actionId, action = {}, domain = {}, errors = []) {

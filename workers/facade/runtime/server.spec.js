@@ -26,8 +26,14 @@ describe('Facade managed server runtime', () => {
       .sort();
     expect(declared).toEqual([
       'bake',
+      'compose-sheet',
       'construct-sheet',
-      'generate-sheet-dxf'
+      'design-bake',
+      'design-import',
+      'design-key',
+      'generate-sheet-dxf',
+      'sheet-dxf',
+      'template-source'
     ]);
     expect(listing.declarations.services.some(service => service.id === 'nesting-solve')).toBe(false);
   });
@@ -112,7 +118,32 @@ describe('Facade managed server runtime', () => {
       draft: { data: { parameters: { A: '600', B: '450' } } }
     });
     expect(result.data.name).toBe('Tray 600 · A 600 · B 450');
+    expect(result.data.designKey).toBe('template-1:{"A":"600","B":"450"}');
     expect(result.data.geometry.nestingPolygons.length).toBeGreaterThan(0);
+  });
+
+  it('unwraps the graph invocation envelope and computes cassette values', async () => {
+    const { createDefaultOccsCassetteTemplateDefinition } = await import('../occs/templates.js');
+    const definition = createDefaultOccsCassetteTemplateDefinition();
+    const runtime = createRuntime();
+    const envelope = inputs => ({ mode: 'preview', config: {}, inputs, nodeId: 'n', executionId: 'e', invocationPath: [] });
+    const source = await runtime.execute('template-source', envelope({
+      payloadBase64: btoa(unescape(encodeURIComponent(JSON.stringify(definition))))
+    }));
+    expect(source.document.occs).toBe('0.4-draft');
+    await expect(runtime.execute('design-key', envelope({
+      templateId: 'template-1',
+      parameters: { B: '450', A: '600' }
+    }))).resolves.toBe('template-1:{"A":"600","B":"450"}');
+    const baked = await runtime.execute('design-bake', envelope({
+      template: source,
+      templateId: 'template-1',
+      templateName: 'Tray 600',
+      parameters: { A: '600', B: '450' }
+    }));
+    expect(baked.name).toBe('Tray 600 · A 600 · B 450');
+    expect(baked.designKey).toBe('template-1:{"A":"600","B":"450"}');
+    expect(baked.geometry.nestingPolygons.length).toBeGreaterThan(0);
   });
 
   it('passes package-relative WASM bytes explicitly when the host provides Deno.readFile', async () => {

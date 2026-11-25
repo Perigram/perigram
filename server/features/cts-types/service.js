@@ -401,7 +401,7 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
       ...withoutMigrateSteps(versioned),
       scope: 'org',
       organizationId: String(organizationId)
-    }, { unset: ['migrate'] });
+    }, { unset: ['migrate', ...(versioned.projections?.length ? [] : ['projections'])] });
     // Keep the organization read boundary pending through the one-time
     // instance migration. If migration fails after the declaration write,
     // the sequence still advances for the partially committed schema state.
@@ -423,7 +423,7 @@ async function defineTypeInternal(declaration = {}, { organizationId, actor = nu
           scope: 'org',
           organizationId: String(organizationId),
           migrated: migration
-        }, { unset: ['migrate'] });
+        }, { unset: ['migrate', ...(versioned.projections?.length ? [] : ['projections'])] });
       } catch (error) {
         migrationError = error;
       }

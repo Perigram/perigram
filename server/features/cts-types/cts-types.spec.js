@@ -266,6 +266,11 @@ describe('cts type storage', () => {
     const view = await describeOrganizationTypes(ORG);
     const definitions = view.clientRuntimes.flatMap(binding => binding.nodeDefinitions);
     expect(definitions.map(definition => `${definition.provider}/${definition.id}`).sort()).toEqual([
+      'plugin.facade/compose-sheet',
+      'plugin.facade/design-bake',
+      'plugin.facade/design-import',
+      'plugin.facade/design-key',
+      'plugin.facade/sheet-dxf',
       'plugin.nesting/nesting-solve'
     ]);
   });
@@ -472,7 +477,7 @@ describe('cts type storage', () => {
     expect(lastOrg).toBe(ORG);
     expect(lastTypeId).toBe('child');
     expect(Object.hasOwn(lastPayload, 'migrate')).toBe(false);
-    expect(lastOptions).toEqual({ unset: ['migrate'] });
+    expect(lastOptions).toEqual({ unset: ['migrate', 'projections'] });
 
     // The rot the strip prevents: a client that round-trips the OLD stored
     // shape (steps still on the declaration) carries them into its next

@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, and sheet instances as an installable fabrication plugin; generic polygon nesting is provided by the Nesting plugin",
-  "version": "52",
+  "version": "53",
   "requires": [
     "tech-drawing",
     "nesting"
@@ -76,7 +76,23 @@
           }
         },
         "name": "Cassette template",
-        "glyph": "ck-entity-icon ck-entity-icon-cassette-template"
+        "glyph": "ck-entity-icon ck-entity-icon-cassette-template",
+        "projections": [
+          {
+            "id": "document",
+            "label": "Template document",
+            "output": {
+              "base": "json"
+            },
+            "resolve": {
+              "service": "plugin.facade.template-source"
+            },
+            "palette": {
+              "group": "cassette",
+              "label": "Cassette"
+            }
+          }
+        ]
       },
       {
         "id": "cassette-design",
@@ -140,6 +156,10 @@
           "name": {
             "base": "string",
             "identifier": true
+          },
+          "designKey": {
+            "base": "string",
+            "constructible": false
           },
           "template": {
             "base": "ref",
@@ -672,6 +692,256 @@
         },
         "palette": {
           "visible": false
+        }
+      },
+      {
+        "id": "template-source",
+        "label": "Template document",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "payloadBase64": {
+                "base": "string"
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "server"
+          ],
+          "capabilities": []
+        },
+        "palette": {
+          "visible": false
+        }
+      },
+      {
+        "id": "design-key",
+        "label": "Cassette design key",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "templateId": {
+                "base": "string"
+              },
+              "parameters": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "deterministic": true,
+          "idempotent": true
+        },
+        "palette": {
+          "group": "cassette",
+          "label": "Cassette",
+          "visible": true,
+          "keywords": [
+            "key",
+            "identity",
+            "parameters"
+          ]
+        }
+      },
+      {
+        "id": "design-bake",
+        "label": "Bake cassette values",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "template": {
+                "base": "json"
+              },
+              "templateId": {
+                "base": "string",
+                "nullable": true
+              },
+              "templateName": {
+                "base": "string",
+                "nullable": true
+              },
+              "parameters": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        },
+        "palette": {
+          "group": "cassette",
+          "label": "Cassette",
+          "visible": true,
+          "keywords": [
+            "bake",
+            "parameters",
+            "geometry"
+          ]
+        }
+      },
+      {
+        "id": "design-import",
+        "label": "Import cassette DXF values",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "base64": {
+                "base": "string"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true
+              },
+              "mapping": {
+                "base": "json",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        },
+        "palette": {
+          "group": "cassette",
+          "label": "Cassette",
+          "visible": true,
+          "keywords": [
+            "dxf",
+            "import",
+            "geometry"
+          ]
+        }
+      },
+      {
+        "id": "compose-sheet",
+        "label": "Compose sheet values",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "layout": {
+                "base": "json",
+                "nullable": true
+              },
+              "designs": {
+                "base": "list",
+                "itemType": {
+                  "base": "json"
+                },
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        },
+        "palette": {
+          "group": "sheet",
+          "label": "Sheet",
+          "visible": true,
+          "keywords": [
+            "sheet",
+            "layout",
+            "compose"
+          ]
+        }
+      },
+      {
+        "id": "sheet-dxf",
+        "label": "Sheet DXF values",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "fields": {
+                "base": "json"
+              },
+              "name": {
+                "base": "string",
+                "nullable": true
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        },
+        "execution": {
+          "runtime": "facade-server",
+          "kind": "pure",
+          "targets": [
+            "browser",
+            "server"
+          ],
+          "capabilities": [],
+          "idempotent": true
+        },
+        "palette": {
+          "group": "sheet",
+          "label": "Sheet",
+          "visible": true,
+          "keywords": [
+            "sheet",
+            "dxf",
+            "export"
+          ]
         }
       }
     ],

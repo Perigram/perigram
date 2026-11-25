@@ -37,6 +37,34 @@ function authoring() {
   return createDefinitionAuthoring(projectedDomain());
 }
 
+describe('declaration projections', () => {
+  it('carries class projections through authoring, tree compilation, and canvas round-trip', () => {
+    const seam = authoring();
+    seam.declareClass({
+      id: 'cls_table',
+      typeId: 'table',
+      name: 'Table',
+      class: 'file',
+      payload: { mime: ['text/csv'], creation: ['upload'] },
+      projections: [{
+        id: 'rows',
+        label: 'Rows',
+        output: { base: 'list', itemType: { base: 'record' } },
+        resolve: { service: 'plugin.documents.table-rows' }
+      }]
+    });
+    const data = seam.definition();
+    expect(data.ctsTypes.cls_table.projections).toEqual([expect.objectContaining({ id: 'rows' })]);
+    const [declaration] = compileTreeDeclarations(data.graph.nodes, data.graph.edges, data.ctsTypes).declarations;
+    expect(declaration.projections).toEqual([expect.objectContaining({
+      id: 'rows',
+      resolve: { service: 'plugin.documents.table-rows' }
+    })]);
+    const roundTrip = validateRoundTrip(data);
+    expect(roundTrip.ok).toBe(true);
+  });
+});
+
 // The edit path: a seam seated on an existing authored document accepts
 // the same gestures against the stored graph — original nodes and wires
 // survive, new gestures land beside them, and declaration wiring keeps

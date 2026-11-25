@@ -33,6 +33,13 @@
           v-model="node.data.payload"
           @update:model-value="$emit('sync')"
         />
+        <div class="flex flex-col gap-1">
+          <label class="text-label text-muted">{{ $t('processDesigner.projections') }}</label>
+          <ProjectionsEditor
+            :model-value="node.data.projections || []"
+            @update:model-value="value => { node.data.projections = value; $emit('sync'); }"
+          />
+        </div>
         <div v-if="identifierFieldOptions.length" class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.namesRecord') }}</label>
           <Select
@@ -127,6 +134,7 @@ import FieldDeclarationForm from '~/components/type-designer/FieldDeclarationFor
 import StateDeclarationForm from '~/components/type-designer/StateDeclarationForm.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import PayloadTraitsEditor from '~/components/type-designer/PayloadTraitsEditor.vue';
+import ProjectionsEditor from '~/components/type-designer/ProjectionsEditor.vue';
 import { DECLARABLE_CLASSES } from '#packages/cts';
 
 const props = defineProps({

@@ -1582,8 +1582,34 @@ describe('current process-definition service contract', () => {
     expect(transitionStep).not.toHaveProperty('effects');
   });
 
-  it('applies the authored initial primary state while retaining all workflow region initials', async () => {
-    const created = { _id: 'queue-1', type: 'queue', identity: { name: 'Queue' } };
+  it('writes a payload through the owning instance service', async () => {
+    const replacePayload = vi.fn(async () => ({ _id: 'file-1', type: 'queue' }));
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'queue' ? { replacePayload } : organizationService
+    });
+    const result = await performDurableEffect({
+      kind: 'cts.payload',
+      record: {
+        kind: 'cts.payload',
+        id: 'write-payload',
+        typeId: 'queue',
+        access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+      },
+      inputs: {
+        entity: { type: 'queue', id: 'file-1' },
+        payload: { payload: { base64: Buffer.from('hello').toString('base64'), mime: 'text/plain', name: 'note.txt' } }
+      }
+    }, adminAuth(), {}, processTestDomain);
+
+    expect(replacePayload).toHaveBeenCalledWith('file-1', expect.objectContaining({
+      buffer: Buffer.from('hello'),
+      filename: 'note.txt',
+      mimeType: 'text/plain'
+    }), expect.objectContaining({ userId: 'admin' }));
+    expect(result).toEqual({ _id: 'file-1', type: 'queue' });
+  });
+
+  it('applies the authored initial primary state while retaining all workflow region initials', async () => {    const created = { _id: 'queue-1', type: 'queue', identity: { name: 'Queue' } };
     const initialStatus = { state: { primary: 'READY', active: { main: 'READY', fulfillment: 'UNASSIGNED' } } };
     const create = vi.fn().mockResolvedValue(created);
     stateService.setInitialStateForOrganization.mockResolvedValue(initialStatus);

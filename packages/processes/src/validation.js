@@ -30,7 +30,6 @@ import {
   normalizeRoleCatalog,
   catalogContext,
   catalogPortForHandle,
-  resolveSourceProducerOutputId,
   declaredLineageInput,
   declaredAncestorTypeId
 } from './compiler-core.js';
@@ -436,7 +435,8 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
     // Species records classify through the operation-kind seam (SPEC §20):
     // `cts.construct`/`cts.service` carry the same required-input contract
     // their legacy effect twins do.
-    if (!isEffectRecord(record) && !CONTROL_REQUIRED_INPUT_KINDS.has(String(record.kind || ''))) continue;
+    if (!isEffectRecord(record) && !CONTROL_REQUIRED_INPUT_KINDS.has(String(record.kind || ''))
+      && record.kind !== 'cts.valueService') continue;
     const manual = isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual';
     const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
     let ports = [];
@@ -559,14 +559,6 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
       push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`, anchors);
       continue;
     }
-    if (portTypeId && sourcePort?.id
-      && !resolveSourceProducerOutputId(process, source, sourcePort)) {
-      push(
-        `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portTypeId} `
-        + `but has no resolvable producer output record`,
-        anchors
-      );
-    }
   }
   // Native parity: a typed `lineage.<lineageKey>` socket on a
   // lineage-persisting construct resolves by the same rules, so a dropped
@@ -603,14 +595,6 @@ export function validateLineageBindingResolution(process = {}, domain = {}) {
     if (ancestorType === 'organization') {
       push(`Edge ${edge.id} lineage socket ${handle} on ${target.id} cannot use organization as an ancestor`, anchors);
       continue;
-    }
-    if (portTypeId && sourcePort?.id
-      && !resolveSourceProducerOutputId(process, source, sourcePort)) {
-      push(
-        `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portTypeId} `
-        + `but has no resolvable producer output record`,
-        anchors
-      );
     }
   }
   return errors;

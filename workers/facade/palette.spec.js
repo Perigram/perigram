@@ -53,6 +53,13 @@ describe('Facade plugin node palette contribution', () => {
       expect(ids).not.toContain(`service:facade:${helper}`);
     }
     expect(items.filter(item => item.kind === 'cts.service')).toHaveLength(0);
+    expect(items.filter(item => item.kind === 'cts.valueService').map(item => item.id).sort()).toEqual([
+      'service:facade:compose-sheet',
+      'service:facade:design-bake',
+      'service:facade:design-import',
+      'service:facade:design-key',
+      'service:facade:sheet-dxf'
+    ]);
   });
 
   it('carries operation identity and signature fields as palette search terms', () => {

@@ -128,6 +128,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('mutate', 'cts.mutate'),
       paletteItem('transition', 'cts.transition'),
       paletteItem('remove', 'cts.remove'),
+      paletteItem('writePayload', 'cts.payload'),
       paletteItem('emitEvent', 'cts.emit')
     ]
   },
@@ -150,6 +151,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
       paletteItem('allEntities', 'cts.read', { preset: { select: 'all' } }),
+      paletteItem('findEntities', 'cts.read', { preset: { select: 'find', filters: {} } }),
       // The pinned-entity-ref source (SPEC §24 definition-design piece):
       // one authored instance reference — the exact record, picked on the
       // node, wireable into any construct's ref sockets.
@@ -451,7 +453,8 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
         ...(data.glyph ? { glyph: data.glyph } : {}),
         ...(data.payload ? { payload: data.payload } : {}),
         ...(Array.isArray(data.migrate) && data.migrate.length ? { migrate: data.migrate } : {}),
-        ...(Array.isArray(data.operators) ? { operators: data.operators } : {})
+        ...(Array.isArray(data.operators) ? { operators: data.operators } : {}),
+        ...(Array.isArray(data.projections) ? { projections: data.projections } : {})
       };
       continue;
     }
@@ -828,7 +831,7 @@ export function servicesPaletteGroups(serviceContracts = {}) {
     if (String(service.plugin || '') || pluginProviderId(service)) continue;
     frameworkItems.push(paletteItem(
       `service:${service.id}`,
-      'cts.service',
+      serviceNodeKind(service),
       {
         label: service.label || service.render?.label || service.id,
         description: service.description || service.render?.description || service.label || service.render?.label || service.id,
@@ -890,7 +893,7 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
     const localId = String(service.id).startsWith(`plugin.${provider}.`)
       ? String(service.id).slice(`plugin.${provider}.`.length)
       : String(service.id);
-    itemsFor(sectionFor(provider, String(service.pluginLabel || '')), group === provider ? '' : group, groupLabel).push(paletteItem(`service:${provider}:${localId}`, 'cts.service', {
+    itemsFor(sectionFor(provider, String(service.pluginLabel || '')), group === provider ? '' : group, groupLabel).push(paletteItem(`service:${provider}:${localId}`, serviceNodeKind(service), {
       label: service.label || service.render?.label || localId,
       description: service.description || service.render?.description || service.render?.label || localId,
       searchTerms: [provider, service.id, service.command, ...Object.keys(service.signature?.input?.fields || {}), ...Object.keys(service.signature?.output?.fields || {}), ...(service.palette?.keywords || [])].filter(Boolean),
@@ -910,6 +913,10 @@ export function pluginPaletteGroups(projectionContracts = {}, serviceContracts =
       };
     })
     .filter(section => section.items.length);
+}
+
+function serviceNodeKind(service = {}) {
+  return ['pure', 'read'].includes(service.execution?.kind) ? 'cts.valueService' : 'cts.service';
 }
 
 function pluginProviderId(source = {}) {

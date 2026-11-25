@@ -567,10 +567,10 @@ describe('species kind-membership sets', () => {
       'cts.command', 'cts.construct', 'cts.conversion', 'cts.service'
     ]);
     expect([...CONSUMER_SPECIES_KINDS].sort()).toEqual([
-      'cts.mutate', 'cts.remove', 'cts.transition'
+      'cts.mutate', 'cts.payload', 'cts.remove', 'cts.transition'
     ]);
     expect([...MAPPED_MUTATION_SPECIES_KINDS].sort()).toEqual([
-      'cts.construct', 'cts.mutate', 'cts.remove', 'cts.transition'
+      'cts.construct', 'cts.mutate', 'cts.payload', 'cts.remove', 'cts.transition'
     ]);
     for (const set of [
       PRODUCER_ORIGIN_SPECIES_KINDS, CONSUMER_SPECIES_KINDS,

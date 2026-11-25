@@ -747,6 +747,7 @@ export async function servicesForOrganization(organizationId) {
           groupLabel: service.palette?.label || install.name
         } : {}),
         signature: service.signature,
+        execution: service.execution || null,
         render: service.render || { label: service.label || service.id }
       });
     }

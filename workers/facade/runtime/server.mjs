@@ -4,6 +4,7 @@ import { occsLayerExportName, occsLayerStandard } from '../occs/layerStandards.j
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { isOccsDocument } from '../occs/parameters.js';
 import { stableSheetName } from '../nesting-projections.js';
+import { extractGeometry } from '../services.js';
 
 function designIdOfPlacement(items = [], placed = {}) {
   const source = items.find(item => String(item.id) === String(placed.item_id ?? placed.itemId ?? placed.id));
@@ -21,6 +22,84 @@ function sheetPolygonBounds(polygon) {
 function utf8FromBase64(value) {
   const binary = atob(String(value || ''));
   return new TextDecoder().decode(Uint8Array.from(binary, character => character.charCodeAt(0)));
+}
+
+function canonicalParameters(parameters = {}) {
+  if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return '{}';
+  const ordered = Object.keys(parameters).sort().reduce((acc, key) => {
+    const value = parameters[key];
+    if (value != null && value !== '') acc[key] = value;
+    return acc;
+  }, {});
+  return JSON.stringify(ordered);
+}
+
+function designKeyOf(templateId = '', parameters = {}) {
+  return `${String(templateId || '')}:${canonicalParameters(parameters)}`;
+}
+
+function templateSource(input = {}) {
+  const base64 = input.payloadBase64 || input.payload?.payloadBase64 || input.payload?.base64 || '';
+  if (!base64) badRequest('template-source requires a template payload');
+  let document;
+  try {
+    document = JSON.parse(utf8FromBase64(base64));
+  } catch {
+    badRequest('Cassette template payload is not a readable OCCS document');
+  }
+  if (!isOccsDocument(document)) badRequest('Cassette template is not an OCCS parametric template');
+  return { document };
+}
+
+function designKey(input = {}) {
+  return designKeyOf(input.templateId, input.parameters);
+}
+
+async function designBake(input = {}) {
+  const definition = input.template?.document || input.template;
+  if (!definition || typeof definition !== 'object') badRequest('design-bake requires a template document');
+  if (!isOccsDocument(definition)) badRequest('Cassette template is not an OCCS parametric template');
+  const parameters = input.parameters && typeof input.parameters === 'object' && !Array.isArray(input.parameters)
+    ? input.parameters
+    : {};
+  const evaluation = await evaluateOccsCassetteTemplate(definition, parameters, {
+    templateId: input.templateId || '',
+    templateName: input.templateName || 'Cassette template'
+  });
+  const signature = Object.entries(parameters)
+    .filter(([, value]) => value != null && value !== '')
+    .map(([key, value]) => `${key} ${value}`)
+    .join(' · ');
+  const base = String(input.templateName || definition.id || '').trim() || 'Cassette design';
+  return {
+    name: signature ? `${base} · ${signature}` : base,
+    designKey: designKeyOf(input.templateId || '', parameters),
+    geometry: evaluation
+  };
+}
+
+async function designImport(input = {}) {
+  const result = await extractGeometry({
+    mode: 'upload',
+    payloadBase64: input.base64 || input.payloadBase64 || '',
+    payloadMeta: { name: input.name || '' },
+    mapping: input.mapping || {}
+  });
+  return result.data;
+}
+
+function composeSheet(input = {}) {
+  return constructSheet({
+    refs: { designs: input.designs || [] },
+    draft: { data: { layout: input.layout || null } }
+  });
+}
+
+function sheetDxf(input = {}) {
+  return generateSheetDxf({
+    fields: input.fields || {},
+    draft: { data: { name: input.name || null } }
+  });
 }
 
 async function bake({ refs = {}, draft = {} } = {}) {
@@ -48,7 +127,7 @@ async function bake({ refs = {}, draft = {} } = {}) {
     .map(([key, value]) => `${key} ${value}`)
     .join(' · ');
   const base = String(template.name || '').trim() || 'Cassette design';
-  return { data: { name: signature ? `${base} · ${signature}` : base, geometry: evaluation } };
+  return { data: { name: signature ? `${base} · ${signature}` : base, designKey: designKeyOf(template.id, parameters), geometry: evaluation } };
 }
 
 function base64OfUtf8(value) {
@@ -154,9 +233,18 @@ function badRequest(message) {
 export function createRuntime() {
   return {
     async execute(operationId, input = {}) {
-      if (operationId === 'construct-sheet') return constructSheet(input);
-      if (operationId === 'generate-sheet-dxf') return generateSheetDxf(input);
-      if (operationId === 'bake') return await bake(input);
+      const args = input?.mode === 'preview' && input?.inputs && typeof input.inputs === 'object'
+        ? input.inputs
+        : input;
+      if (operationId === 'template-source') return templateSource(args);
+      if (operationId === 'design-key') return designKey(args);
+      if (operationId === 'design-bake') return await designBake(args);
+      if (operationId === 'design-import') return await designImport(args);
+      if (operationId === 'compose-sheet') return composeSheet(args);
+      if (operationId === 'sheet-dxf') return sheetDxf(args);
+      if (operationId === 'construct-sheet') return constructSheet(args);
+      if (operationId === 'generate-sheet-dxf') return generateSheetDxf(args);
+      if (operationId === 'bake') return await bake(args);
       throw new Error(`Unsupported Facade managed operation: ${operationId}`);
     }
   };

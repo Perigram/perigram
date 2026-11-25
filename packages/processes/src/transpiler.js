@@ -256,7 +256,8 @@ function projectDeclarationRecords(records = {}, x) {
           idCustom: record.idCustom === true,
           class: record.class || 'file',
           payload: record.payload || null,
-          operators: record.operators || []
+          operators: record.operators || [],
+          projections: record.projections || []
         } : {}),
         ...(record.kind === 'field' ? { typeId: record.typeId || null, name: record.name || '', descriptor: { ...(record.descriptor || { base: 'string' }) } } : {}),
         ...(record.kind === 'state' ? {

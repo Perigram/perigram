@@ -59,7 +59,7 @@ const MATCHING_KINDS = new Set([
 const TYPE_BOUND_KINDS = new Set([
   'cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove',
   'cts.command', 'cts.service', 'cts.conversion', 'cts.read',
-  'cts.field', 'cts.emit', 'cts.compose', 'cts.decompose'
+  'cts.field', 'cts.emit', 'cts.compose', 'cts.decompose', 'cts.payload'
 ]);
 
 export function processNodeConfigurationSchema(kind = '') {
@@ -103,7 +103,8 @@ export function processNodeConfigurationSchema(kind = '') {
   if (MATCHING_KINDS.has(kind)) add('matching', { type: 'string', enum: [...PROCESS_MATCHING_MODES] }, 'longest');
   if (TYPE_BOUND_KINDS.has(kind)) add('typeId', { semantic: { kind: 'perigram.entity-type' } }, '');
 
-  if (kind === 'cts.read') add('select', { type: 'string', enum: ['current', 'all', 'extract', 'parent', 'children', 'related'] }, 'current');
+  if (kind === 'cts.read') add('select', { type: 'string', enum: ['current', 'all', 'find', 'extract', 'parent', 'children', 'related'] }, 'current');
+  if (kind === 'cts.read') add('filters', { type: 'object' }, {});
   if (kind === 'value.cast') add('outputType', { type: 'string', enum: [...CAST_BASES] }, 'record');
   if (kind === 'value.convertUnit') {
     add('fromUnit', { type: 'string', enum: [...CONVERT_UNITS] }, 'mm');

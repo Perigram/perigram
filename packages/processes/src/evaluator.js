@@ -18,7 +18,7 @@ import {
   treeStats
 } from './data-tree.js';
 import { operationKindOf } from '@perigram/cts';
-import { MAKE_LIST_INPUTS } from './node-catalog.js';
+import { MAKE_LIST_INPUTS, resolveCatalogNodePorts } from './node-catalog.js';
 import { PROCESS_OPERATION_REGISTRY, CONVERT_UNIT_FACTORS, processOperation, runProcessOperation, stableKey } from './operations.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
@@ -44,6 +44,21 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       if (isMissingField(fieldValue)) return missingFieldMarker(path);
       return fieldValue;
     });
+  }
+  if (kind === 'cts.valueService') {
+    if (!record.operator) throw new Error(`Value service ${record.id || kind} has no operator`);
+    if (typeof context.valueService !== 'function') {
+      throw new Error(`Value service ${record.operator} has no dispatch seam in this environment`);
+    }
+    const ports = resolveCatalogNodePorts(record, { domain: context.domain });
+    const parameters = {};
+    for (const port of ports.inputs.filter(port => port.role === 'data')) {
+      if (!packets[port.id]) continue;
+      parameters[port.id] = packetValue(packets[port.id], port.access === 'list' ? 'list' : 'item');
+    }
+    const result = await context.valueService(record.operator, parameters);
+    const output = ports.outputs.find(port => port.role === 'data') || {};
+    return createDataPacket(structuredClone(result), output.access === 'list' ? 'list' : 'item');
   }
   if (kind === 'cts.read') return executeRead(record, packets, context);
   // Structure species (SPEC §20): compose/decompose/join stay species
@@ -428,6 +443,13 @@ async function executeRead(record, packets, context) {
       return createDataPacket(await context.relatedEntities?.(entityStream(), record.relationKey || record.relation, record.typeId) || [], 'list');
     case 'all':
       return createDataPacket(await context.queryEntities?.(record.typeId) || [], 'list');
+    case 'find': {
+      const filters = Object.fromEntries(Object.entries(record.filters || {}).map(([path, value]) => [
+        String(path).startsWith('fields.') ? String(path).slice('fields.'.length) : String(path),
+        value
+      ]));
+      return createDataPacket(await context.queryEntities?.(record.typeId, filters) || [], 'list');
+    }
     case 'extract': {
       // The declared projection (SPEC §8 p): the bound type's declaration
       // owns the resolve — the evaluator only routes each instance

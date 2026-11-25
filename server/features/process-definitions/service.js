@@ -62,7 +62,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths, retireStateScopeAuthoring } from '#packages/cts';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
+import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue, invokePreviewValueService } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -1648,6 +1648,7 @@ function processDataEnvironment(auth, run, domain = getDomain()) {
       if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
       return await executeProcessQuery(service.processList, filters, auth);
     },
+    valueService: (operatorId, parameters) => invokePreviewValueService(operatorId, parameters, auth),
     // The declared-projection seam (SPEC §8 p extract): the graph's only
     // entity→value dereference beside the reads above. The projection
     // declaration owns the resolve — a stored field path is read here, a
@@ -1763,6 +1764,32 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     // events, billing) stays in command_runs — spreading it onto the
     // graph would flatten list results into indexed keys.
     return record.kind === 'cts.service' ? (commandResult?.raw ?? commandResult) : commandResult;
+  }
+  if (operation === 'cts.payload') {
+    const typeId = normalizeTypeId(record.typeId || inputs.entity?.type || '');
+    if (!typeId) throw new Error('Write payload requires typeId');
+    const service = getAppRegistry().getInstanceService(typeId);
+    if (!service?.replacePayload) throw new Error(`Entity service missing payload write for ${typeId}`);
+    const target = effectEntityTarget(inputs.entity, typeId);
+    if (!target?.id) throw new Error('Write payload requires a file instance');
+    const envelope = inputs.payload?.payload || inputs.payload || null;
+    const base64 = envelope?.base64 || envelope?.payload?.base64 || '';
+    if (!base64) throw new Error('Write payload requires a base64 payload');
+    const executionAuth = createActionExecutionAuth(auth, {
+      ...record,
+      typeId,
+      actionKind: 'updateEntity',
+      access: record.access
+    }, { featureForType });
+    return await service.replacePayload(target.id, {
+      buffer: Buffer.from(String(base64), 'base64'),
+      filename: envelope.name || envelope.payload?.name || 'payload',
+      mimeType: envelope.mime || envelope.payload?.mime || null
+    }, {
+      auth: executionAuth,
+      userId: auth.userId,
+      organizationId: resolveOrganizationId(auth)
+    });
   }
   const typeId = normalizeTypeId(record.typeId || inputs.entity?.type || '');
   if (!typeId) throw new Error(`${kind} requires typeId`);

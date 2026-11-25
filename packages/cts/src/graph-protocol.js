@@ -675,6 +675,7 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
       ...(cls.name ? { name: cls.name } : {}),
       ...(cls.glyph ? { glyph: cls.glyph } : {}),
       ...(cls.payload ? { payload: cls.payload } : {}),
+      ...(Array.isArray(cls.projections) && cls.projections.length ? { projections: cls.projections } : {}),
       ...(Array.isArray(cls.migrate) && cls.migrate.length ? { migrate: cls.migrate } : {})
     };
     for (const field of byKind('field')) {

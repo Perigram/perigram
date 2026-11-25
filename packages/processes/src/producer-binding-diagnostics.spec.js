@@ -207,7 +207,7 @@ describe('producer-scoped binding diagnostics', () => {
     expect(errors[0]).toContain('Edge project-to-lineage lineage entry project on queue_lineage cannot use organization as an ancestor');
   });
 
-  it('reports ambiguity when two same-type producer outputs could source one lineage edge', () => {
+  it('accepts ambiguous same-type lineage sources as typed entity sources', () => {
     const definition = lineageFixture();
     definition.producerOutputs['project_source_b:entity'] = {
       ...definition.producerOutputs['project_source:entity'],
@@ -217,8 +217,7 @@ describe('producer-scoped binding diagnostics', () => {
     };
 
     const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
+    expect(errors).toEqual([]);
   });
 
   it('resolves the authored socket alias when the catalog port id differs', () => {
@@ -298,7 +297,7 @@ describe('producer-scoped binding diagnostics', () => {
     expect(errors[0]).toContain('Edge project-to-queue lineage socket lineage.projectId on create_queue cannot use organization as an ancestor');
   });
 
-  it('reports a native lineage source socket without a resolvable producer output record', () => {
+  it('accepts a native lineage source socket without a producer output record', () => {
     const definition = nativeLineageFixture();
     delete definition.producerOutputs['project_source:result'];
     definition.producerOutputs['project_source_b:result'] = {
@@ -315,9 +314,7 @@ describe('producer-scoped binding diagnostics', () => {
     };
 
     const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('Edge project-to-queue lineage source socket project_source:result');
-    expect(errors[0]).toContain('emits entity type project but has no resolvable producer output record');
+    expect(errors).toEqual([]);
   });
 
   it('names the producer output when a required effect input has no source', () => {

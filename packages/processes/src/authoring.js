@@ -66,7 +66,9 @@ export function iconForProcessNode(kind = '') {
   if (kind.startsWith('cts.mutate')) return 'pi pi-pencil';
   if (kind.startsWith('cts.transition')) return 'pi pi-forward';
   if (kind.startsWith('cts.remove')) return 'pi pi-trash';
+  if (kind.startsWith('cts.payload')) return 'pi pi-file-edit';
   if (kind.startsWith('cts.command')) return 'pi pi-bolt';
+  if (kind === 'cts.valueService') return 'pi pi-cog';
   if (kind.startsWith('cts.conversion')) return 'pi pi-replay';
   if (kind.startsWith('cts.read')) return 'pi pi-database';
   if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
@@ -500,6 +502,7 @@ function syncDeclarationRecordFromNode(record, nodeType, data) {
     record.glyph = data.glyph || null;
     record.payload = data.payload || null;
     record.operators = Array.isArray(data.operators) ? data.operators : [];
+    record.projections = Array.isArray(data.projections) ? data.projections : [];
   } else if (nodeType === 'ctsField') {
     record.kind = 'field';
     record.typeId = data.typeId || null;
@@ -595,10 +598,10 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return node;
   }
 
-  function declareClass({ id, typeId, class: classKind = 'file', name, glyph, payload, operators }) {
+  function declareClass({ id, typeId, class: classKind = 'file', name, glyph, payload, operators, projections }) {
     return declare({
       id, nodeType: 'ctsClass',
-      data: { typeId, name: name || typeId, class: classKind, glyph: glyph || null, payload: payload || null, operators: operators || [], label: '', fields: 0, states: 0 }
+      data: { typeId, name: name || typeId, class: classKind, glyph: glyph || null, payload: payload || null, operators: operators || [], projections: Array.isArray(projections) ? projections : [], label: '', fields: 0, states: 0 }
     });
   }
 
@@ -791,7 +794,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   // states, identity chrome on classes, the row contract on fields.
   const DECLARATION_NODE_WRITES = Object.freeze({
     ctsState: ['value', 'label', 'severity', 'icon'],
-    ctsClass: ['name', 'glyph'],
+    ctsClass: ['name', 'glyph', 'projections'],
     ctsField: ['name', 'descriptor']
   });
 

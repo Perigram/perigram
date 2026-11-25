@@ -41,6 +41,26 @@ describe('pluginPaletteGroups', () => {
     })).toEqual([]);
   });
 
+  it('splits pure/read services into value nodes and effectful services into effects', () => {
+    const groups = pluginPaletteGroups({}, {
+      read: {
+        id: 'plugin.documents.read-table-rows',
+        command: 'plugin.documents.read-table-rows',
+        pluginId: 'documents',
+        execution: { kind: 'read' }
+      },
+      effect: {
+        id: 'plugin.documents.fill',
+        command: 'plugin.documents.fill',
+        pluginId: 'documents',
+        execution: { kind: 'effect' }
+      }
+    });
+    const items = groups.flatMap(group => group.items);
+    expect(items.find(item => item.id === 'service:documents:read-table-rows').kind).toBe('cts.valueService');
+    expect(items.find(item => item.id === 'service:documents:fill').kind).toBe('cts.service');
+  });
+
   it('keeps identical group slugs isolated by provider', () => {
     const groups = pluginPaletteGroups({}, {
       first: { id: 'one', command: 'plugin.documents.one', palette: { group: 'operations' } },

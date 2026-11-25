@@ -1047,3 +1047,46 @@ describe('stable structural equality', () => {
     expect(grouped.branches[0].items).toEqual(['x', 'y']);
   });
 });
+
+describe('platform node species', () => {
+  const serviceDomain = {
+    serviceContracts: {
+      'plugin.demo.echo': {
+        signature: {
+          input: { base: 'record', fields: { value: { base: 'string' } } },
+          output: { base: 'string' }
+        }
+      }
+    }
+  };
+
+  it('executes a pure value service as a data node', async () => {
+    const valueService = vi.fn(async (operator, parameters) => {
+      expect(operator).toBe('plugin.demo.echo');
+      expect(parameters).toEqual({ value: 'hello' });
+      return 'HELLO';
+    });
+    const packet = await executeProcessDataNode(
+      { id: 'echo', kind: 'cts.valueService', operator: 'plugin.demo.echo' },
+      { value: createDataPacket('hello') },
+      { domain: serviceDomain, valueService }
+    );
+    expect(valueService).toHaveBeenCalledTimes(1);
+    expect(packet.branches[0].items).toEqual(['HELLO']);
+  });
+
+  it('finds instances through declared filters', async () => {
+    const queryEntities = vi.fn(async (typeId, filters) => {
+      expect(typeId).toBe('panel');
+      expect(filters).toEqual({ serial: 'P-1' });
+      return [{ _id: 'panel-1', type: 'panel' }];
+    });
+    const packet = await executeProcessDataNode(
+      { id: 'find', kind: 'cts.read', select: 'find', typeId: 'panel', filters: { 'fields.serial': 'P-1' } },
+      {},
+      { queryEntities }
+    );
+    expect(queryEntities).toHaveBeenCalledTimes(1);
+    expect(packet.branches[0].items).toEqual([{ _id: 'panel-1', type: 'panel' }]);
+  });
+});

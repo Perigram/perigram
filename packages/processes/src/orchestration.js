@@ -40,7 +40,7 @@ function transitionState(record, status, table, label) {
   return record;
 }
 
-const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']);
+const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.payload']);
 
 function isNativeEffect(record = {}) {
   return EFFECT_SPECIES_KINDS.has(String(record.kind || ''));

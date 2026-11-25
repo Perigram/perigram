@@ -121,6 +121,10 @@
           <Tab v-if="draft.class === 'file'" value="payload" class="px-2.5 sm:px-4">
             {{ $t('classes.payload') }}
           </Tab>
+          <Tab value="projections" class="px-2.5 sm:px-4">
+            {{ $t('processDesigner.projections') }}
+            <Tag :value="String(draft.projections.length)" severity="secondary" />
+          </Tab>
           <Tab value="states" class="px-2.5 sm:px-4">
             {{ $t('classes.states') }}
             <Tag :value="String(draft.states.length)" severity="secondary" />
@@ -181,6 +185,12 @@
           <TabPanel v-if="draft.class === 'file'" value="payload" class="p-0">
             <div class="py-3">
               <PayloadTraitsEditor v-model="draft.payload" />
+            </div>
+          </TabPanel>
+
+          <TabPanel value="projections" class="p-0">
+            <div class="py-3">
+              <ProjectionsEditor v-model="draft.projections" />
             </div>
           </TabPanel>
 
@@ -328,6 +338,7 @@ import ClassFieldRow from '~/components/type-designer/ClassFieldRow.vue';
 import ClassStateRow from '~/components/type-designer/ClassStateRow.vue';
 import GlyphSelect from '~/components/type-designer/GlyphSelect.vue';
 import PayloadTraitsEditor from '~/components/type-designer/PayloadTraitsEditor.vue';
+import ProjectionsEditor from '~/components/type-designer/ProjectionsEditor.vue';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { generateTypeId, mintId } from '~/utils/processDesignerIdentity.js';
 import { fieldDescriptorSummary } from '~/utils/processDesignerDeclarationEditor.js';
@@ -447,6 +458,7 @@ function freshDraft() {
     name: '',
     glyph: '',
     payload: null,
+    projections: [],
     fields: [{ key: mintId('field'), id: 'fName', name: 'Name', descriptor: { base: 'string', identifier: true, label: 'Name' } }],
     children: [],
     states: []
@@ -463,6 +475,7 @@ function initialize() {
     draft.value.fields ||= [];
     draft.value.children ||= [];
     draft.value.states ||= [];
+    draft.value.projections ||= [];
     base.value = null;
     return;
   }
@@ -485,6 +498,7 @@ function initialize() {
     name: record.name || '',
     glyph: record.glyph || '',
     payload: record.payload || null,
+    projections: record.projections || [],
     fields: Object.entries(record.fields || {}).map(([id, descriptor]) => ({
       key: mintId('field'),
       id,
@@ -655,6 +669,9 @@ function declarationFor(draftValue, record = {}) {
   } else {
     delete declaration.payload;
   }
+  const projections = (draftValue.projections || []).filter(projection => String(projection?.id || '').trim());
+  if (projections.length) declaration.projections = projections;
+  else delete declaration.projections;
 
   const states = {};
   for (const state of draftValue.states || []) {

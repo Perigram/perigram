@@ -27,7 +27,8 @@ export const PRODUCER_ORIGIN_SPECIES_KINDS = new Set([
 export const CONSUMER_SPECIES_KINDS = new Set([
   'cts.mutate',
   'cts.transition',
-  'cts.remove'
+  'cts.remove',
+  'cts.payload'
 ]);
 
 // The operational species union: origin + consumer species, plus the
@@ -43,7 +44,8 @@ export const MAPPED_MUTATION_SPECIES_KINDS = new Set([
   'cts.construct',
   'cts.mutate',
   'cts.transition',
-  'cts.remove'
+  'cts.remove',
+  'cts.payload'
 ]);
 
 const FAMILY_GLYPHS = Object.freeze({
@@ -67,7 +69,9 @@ const NODE_GLYPHS = Object.freeze({
   'tree.zip': 'zip', 'tree.unzip': 'unzip', 'tree.cross': 'cross', 'tree.transpose': 'transpose', 'tree.clean': 'clean', 'tree.stats': 'stats',
   'record.construct': 'record-construct', 'record.merge': 'record-merge',
   'cts.construct': 'construct', 'cts.mutate': 'mutate', 'cts.transition': 'transition', 'cts.remove': 'remove',
-  'cts.command': 'command', 'cts.service': 'service', 'cts.conversion': 'conversion', 'cts.read': 'read',
+  'cts.payload': 'payload',
+  'cts.command': 'command', 'cts.service': 'service', 'cts.valueService': 'value-service',
+  'cts.conversion': 'conversion', 'cts.read': 'read',
   'cts.field': 'field', 'cts.emit': 'emit', 'cts.compose': 'compose', 'cts.decompose': 'decompose',
   'control.if': 'condition', 'control.switch': 'switch', 'control.fork': 'fork', 'control.joinAll': 'join-all',
   'control.joinAny': 'join-any', 'control.forEach': 'for-each', 'control.forEachEnd': 'for-each-end',
@@ -147,8 +151,10 @@ const definitions = [
   cts('cts.mutate', 'mutate', 'effects', 'effect'),
   cts('cts.transition', 'transition', 'effects', 'effect'),
   cts('cts.remove', 'remove', 'effects', 'effect'),
+  cts('cts.payload', 'payload', 'effects', 'effect'),
   cts('cts.command', 'command', 'effects', 'effect'),
   cts('cts.service', 'service', 'effects', 'effect'),
+  definition('cts.valueService', 'valueService', 'values', 'data', true, catalogPorts),
   cts('cts.conversion', 'conversion', 'effects', 'effect'),
   cts('cts.read', 'read', 'reads', 'read'),
   cts('cts.field', 'field', 'records', 'data'),
@@ -236,7 +242,7 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
 // `carriesTypePin(record)` is the per-record seam — kind plus read
 // select — every binding consumer routes through.
 const ENTITY_DERIVED_READS = Object.freeze(['parent', 'children', 'related']);
-const ORIGIN_READ_SELECTS = Object.freeze(['current', 'all']);
+const ORIGIN_READ_SELECTS = Object.freeze(['current', 'all', 'find']);
 
 export function carriesTypePin(record = {}) {
   const kind = String(record.kind || '');
@@ -245,7 +251,7 @@ export function carriesTypePin(record = {}) {
   return false;
 }
 
-export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read', 'cts.field', 'cts.decompose']);
+export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.payload', 'cts.read', 'cts.field', 'cts.decompose']);
 
 // The re-base vocabulary `value.cast` accepts; the evaluator enforces
 // the same set with named errors.
@@ -412,6 +418,21 @@ function nativeRemovePorts(record = {}) {
   };
 }
 
+function nativePayloadPorts(record = {}) {
+  const typeId = typeIdOf(record);
+  return {
+    inputs: [
+      ...nativeControlInput(),
+      socket('entity', processType('entityRef', typeId ? { typeId } : undefined), DATA, true, 'list'),
+      socket('payload', processType('json'), DATA, true)
+    ],
+    outputs: [
+      completedSocket(),
+      socket('result', processType('entityRef', typeId ? { typeId } : undefined), DATA, false)
+    ]
+  };
+}
+
 function nativeReadPorts(record = {}, context = {}) {
   const typeId = typeIdOf(record);
   const select = record.select || 'current';
@@ -428,6 +449,12 @@ function nativeReadPorts(record = {}, context = {}) {
     };
   }
   if (select === 'all') {
+    return {
+      inputs: [declarationTypePin(record)],
+      outputs: [socket('result', processType('entityRef', { typeId }), DATA, false, 'list')]
+    };
+  }
+  if (select === 'find') {
     return {
       inputs: [declarationTypePin(record)],
       outputs: [socket('result', processType('entityRef', { typeId }), DATA, false, 'list')]
@@ -578,6 +605,7 @@ function cts(kind, label, family, level) {
       if (record.kind === 'cts.mutate') return nativeMutatePorts(record, context);
       if (record.kind === 'cts.transition') return nativeTransitionPorts(record);
       if (record.kind === 'cts.remove') return nativeRemovePorts(record);
+      if (record.kind === 'cts.payload') return nativePayloadPorts(record);
       if (record.kind === 'cts.command') return nativeCommandPorts(record, context);
       if (record.kind === 'cts.read') return nativeReadPorts(record, context);
       if (record.kind === 'cts.field') return nativeFieldPorts(record, context);
@@ -636,6 +664,11 @@ function socket(id, type, role = DATA, required = false, access = 'item') {
 
 function catalogPorts(record = {}, context = {}) {
   const kind = record.kind;
+  if (kind === 'cts.valueService') {
+    const signature = serviceSignaturePorts(context.domain?.serviceContracts?.[record.operator]?.signature)
+      || { inputs: [], outputs: [] };
+    return { inputs: signature.inputs, outputs: signature.outputs };
+  }
   const configuredBase = record.base || 'json';
   const configured = processTypeFrom(record.type, processType(configuredBase, {
     nullable: record.nullable,
