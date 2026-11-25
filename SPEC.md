@@ -4485,16 +4485,256 @@ OCP.wasm 8.0.1.1. Upstream removed its test suite in the latest commit;
 Perigram integration is blocked on restoring repeatable browser-runtime,
 catalog-discovery, geometry-operation, export, and graph-regression tests.
 
-## 32. Accounts and optional organizations (owner direction 2026-11-22)
+## 32. Accounts, personal workspace, and organization workspaces (owner direction 2026-11-25)
 
-An account is the root identity; organization membership is optional.
-Registration and login create no organization. Every authenticated account
-enters the home workspace, with or without an organization; tenant screens,
-processes, and organization data appear only while an active membership is
-selected.
+An account is the root identity. Organization membership is optional and does
+not select an application-wide operating mode. Every authenticated account
+enters the same persistent home workspace. That workspace contains the user's
+Personal space and one independently addressable space for every organization
+in which the user has an active membership. There is no globally active
+organization and no organization-switch operation.
 
-Organization creation, switching, and leaving live in the account settings
-popup beside invitations. Leaving the active organization selects another
-active membership or the orgless home workspace. An organization retains at
-least one active user and one active owner, so the sole active member or sole
-owner cannot leave.
+### 32.1 Identity, membership, and workspace scope
+
+Identity, membership, workspace scope, and authorization are separate
+concepts:
+
+- **Identity** is the authenticated user: stable user id and profile fields.
+  It is not owned by an organization.
+- **Membership** relates that identity to an organization and carries its
+  membership lifecycle state plus the narrow owner-recovery authority already
+  defined by the organization/user contracts. Pending memberships grant no
+  organization workspace access.
+- **Workspace scope** identifies the personal workspace or one specific
+  organization. It is explicit on every organization-bound page, query,
+  mutation, process operation, subscription, and persisted workspace-page
+  reference.
+- **Authorization** is resolved by the server for the requested scope. It is
+  never inferred from the currently visible page, a client-selected id, or
+  another organization's compiled grants.
+
+The authenticated session exposes identity and the user's membership
+directory. It does not expose one selected organization's data, process,
+screens, navigation, registry, or effective permissions as global user
+properties. Organization-specific runtime contracts are resolved for an
+explicit organization id and remain associated with that organization.
+
+A workspace scope is an address, not a grant. The server independently
+verifies an active membership and derives the applicable process contract,
+role assignments, effective permissions, field policies, and system
+capabilities for every organization-scoped operation. Owner-recovery grants
+remain distinct from operational process roles and retain their existing
+last-owner guarantees.
+
+No request or client resolver may silently choose the first membership,
+reuse a previous organization id, or fall back to another organization when
+the requested scope is absent or inaccessible. An organization-bound
+operation without a valid explicit scope is refused. Organization-less
+system records retain their existing explicit system-access rules.
+
+### 32.2 Home workspace and navigation
+
+The authenticated home workspace is one persistent application shell, not a
+different shell for each organization. Its navigation contains:
+
+- Global communication surfaces whose existing ownership rules are
+  independent of a selected organization.
+- A **Personal** root for user-owned pages and data.
+- One expandable root for each active organization membership.
+- Account-level controls for identity, preferences, invitations, and
+  membership lifecycle actions.
+
+Each organization root opens that organization's overview page. Its children
+are generated from the organization's authorized capabilities and contain
+its organization-owned pages, including applicable system pages, declared
+class panels, and custom page sections. Organization A and Organization B
+remain visible and independently navigable at the same time. Opening one
+does not close, replace, or change the scope of the other.
+
+The Personal root is a real workspace scope, not an account-settings dialog.
+It contains personal pages and resources whose ownership contract is the
+user. Account preferences and identity editing remain account-level settings;
+they are not organization settings. A record is not made personal merely
+because it lacks an organization id: ownership must be explicit in its
+domain contract.
+
+The existing shared workspace dock remains the one dock for the application.
+It hosts personal and organization-bound pages together. A page-open reference
+carries its owner scope, so the same page type can be open for multiple
+organizations simultaneously. The identity of an open page includes its
+scope as well as its page/document identity; equal page ids in different
+organizations are not the same tab.
+
+Organization navigation is derived independently for each organization from
+that organization's compiled process and system capabilities. A missing
+capability hides the corresponding entry; the client does not synthesize
+administrative access from membership presence. The overview is the
+organization's landing page and links to real workspace pages through the
+existing workspace-page open seam. It does not duplicate those pages' working
+surfaces inside a collection of overview buttons.
+
+### 32.3 Page, settings, and action classification
+
+A persistent destination or substantial working surface is a page. A group
+of related configuration controls is a settings container, which is itself
+reachable as a page when it needs a stable navigation destination. A
+one-shot operation remains an action, dialog, inline editor, or confirmation;
+it does not become a page merely to give it a URL.
+
+The organization workspace has these destination classes:
+
+| Destination | Classification | Scope |
+|---|---|---|
+| Overview | Landing page | Organization |
+| Team and invitations | Working page | Organization |
+| Partners and partnership requests | Working page | Organization |
+| Billing, invoices, and ledger | Working page | Organization |
+| Installed plugins and declared integration connections | Working page | Organization |
+| Process Designer and process definitions | Editor page | Organization |
+| Organization-defined classes and their records | Generated pages | Organization |
+| Organization custom pages and sections | Custom pages | Organization |
+| General identity and organization configuration | Settings container | Organization |
+| AI providers, models, and assistant configuration | AI settings container | Organization |
+| Integration connections | Settings container | Organization |
+| Access and ownership recovery | Settings container | Organization |
+| Create organization, invite, approve/reject, leave, delete, install, upgrade, test connection | Actions/dialogs | Their owning user or organization |
+
+The existing organization overview, Team, Partners, Billing, Plugins, and
+Process surfaces are retained as capabilities and moved into this unified
+navigation. The existing Models surface is reorganized under AI settings;
+provider and web-search configuration are grouped by the integration or AI
+capability they configure. This is a navigation and ownership composition,
+not permission to duplicate the underlying feature implementations.
+
+The organization directory remains a discovery and profile surface. It is
+not the primary navigation for a member's own organization workspace and
+does not act as an organization selector. Opening an organization directory
+record and opening that organization's workspace are distinct operations.
+
+### 32.4 Organization-scoped runtime and service boundaries
+
+Every organization-bound runtime is keyed by an explicit organization id.
+This includes the compiled CTS registry, process definition and compiled
+contract, effective permissions, generated/system screen manifest,
+organization pages, saved views, record overlays, and organization-owned
+plugin package/configuration state. These values are not stored as one
+application-wide active-organization singleton.
+
+The frontend may cache multiple organization runtime contexts concurrently.
+A context refresh or contract change in Organization A invalidates A's
+derived runtime and affected pages only; it does not replace or invalidate
+Organization B's context. Realtime subscriptions are likewise scoped to the
+organization and resources they describe.
+
+Organization-owned reads and writes resolve the requested organization at
+the service boundary. Generic instance transport, process execution,
+state transitions, custom-page operations, file/payload access, billing,
+plugins, integrations, and realtime delivery all enforce the same scope.
+The server verifies that the target record, parent/lineage, process, page,
+plugin installation, and referenced resources belong to that scope before
+applying its compiled grants. A grant compiled for one organization cannot
+authorize an operation in another.
+
+Membership-derived multi-organization filtering is not a substitute for
+organization scope when an operation consumes organization-specific process
+permissions. Cross-organization directory and party-reference projections
+remain explicit, separately authorized read contracts with their existing
+redaction; they do not widen ordinary organization data access.
+
+Process Designer is bound to the organization whose process is being edited.
+Draft reads/writes, validation, preview, Apply, activation, migration
+consent, and resulting contract invalidation all carry that same scope.
+Apply remains the only activation boundary. Applying Organization A's
+process changes A's runtime and never changes B's process or permissions.
+
+### 32.5 Routes and persisted workspace state
+
+Organization destinations have canonical organization-scoped addresses,
+for example:
+
+- `/organizations/:organizationId`
+- `/organizations/:organizationId/team`
+- `/organizations/:organizationId/partners`
+- `/organizations/:organizationId/billing`
+- `/organizations/:organizationId/plugins`
+- `/organizations/:organizationId/process`
+- `/organizations/:organizationId/settings`
+
+The workspace-page registry and route resolver use the same explicit
+organization scope. A route or workspace-page reference must never infer its
+organization from a global auth field. Deep links resolve the requested
+organization and are denied when the user no longer has active membership.
+
+The dock layout is persisted once per user, not once per active organization.
+Its open-page references preserve each page's owner scope, and its layout,
+active pane/tab, sidebar state, and per-organization expansion preferences
+can be restored together. A restored tab revalidates its organization
+membership and page access before mounting. Removed memberships close or
+mark inaccessible only the affected organization's tabs; other workspaces
+remain usable.
+
+Legacy unscoped organization URLs are not aliases for an arbitrary
+membership. During migration they may resolve only when the target
+organization is unambiguous under an explicit compatibility rule; otherwise
+they return to the home workspace or require the user to choose an
+organization. They never select the first membership implicitly.
+
+Mobile navigation preserves the same scope model without placing every
+organization and every class in the fixed bottom bar. Global communication
+and account controls remain global; a workspace navigator exposes Personal
+and the user's organizations, and the selected destination retains its
+explicit scope through navigation and deep links.
+
+### 32.6 Membership lifecycle and account settings
+
+Registration and login create no organization. Orgless accounts enter the
+same home workspace and can use Personal surfaces. Organization creation is
+an account-level action that creates a membership and a new organization
+workspace; it does not switch or replace a global context.
+
+Invitations and pending memberships remain account-level lifecycle
+information until approved. Only active memberships appear as operational
+organization workspaces. Accepting an invitation adds that organization to
+the navigation without changing any other open workspace.
+
+Leaving an organization removes only that membership and its organization
+role assignment. It does not select another organization. The last active
+member and the last active owner cannot leave. Deletion remains a distinct,
+explicit destructive operation subject to the existing ownership and
+recovery rules. The organization must retain at least one active user and
+one active owner.
+
+Account settings own personal identity/preferences and the user's
+membership/invitation lifecycle. They do not contain an organization
+switcher. Organization-specific configuration belongs inside that
+organization's Settings page.
+
+### 32.7 Migration and acceptance invariants
+
+The migration removes the active-organization concept from application
+behavior rather than renaming it. Legacy persisted active-organization
+fields may be read only by a bounded migration or compatibility path; they
+must not determine current request scope or silently choose a workspace.
+The existing user identity, membership records, organization ownership,
+process role assignments, and owner-recovery grants remain authoritative.
+
+The implementation is complete only when all of these invariants hold:
+
+- A user with no memberships, one membership, or many memberships enters
+  the same home workspace.
+- Personal pages and organization pages have explicit, distinct ownership.
+- Two organizations' pages, registries, process contracts, and permissions
+  can be used simultaneously without cross-contamination.
+- Opening, refreshing, or applying in one organization does not switch or
+  mutate another organization's context.
+- Every organization-bound API and service validates explicit scope and
+  active membership; no first-membership or stale-active-org fallback
+  authorizes access.
+- Cross-organization references and directory discovery expose only their
+  separately authorized, redacted projections.
+- The shared dock restores pages from multiple scopes in one user-level
+  layout.
+- Membership removal revokes only the removed organization's access while
+  preserving other memberships and personal workspace access.
+- Existing last-member, last-owner, pending-invitation, and owner-recovery
+  guarantees remain enforced server-side.
