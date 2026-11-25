@@ -185,20 +185,21 @@ the run's own activity is its presence.
 
 Non-answer machine output is typed, not conversational (owner direction
 2026-10-17): the agent's failure notices persist with a severity kind
-and render as severity-styled system notices (PrimeVue Message), never
-as plain chat bubbles; the run chronology renders one small PrimeVue
-Message per tool invocation — localized tool name with a compact detail
-of what the call addressed, severity-marked by outcome, a failed tool
-carrying its error in the same message; the thinking disclosure is the
-PrimeVue Fieldset (compact toggle button). The AI's identity face is the microchip
+and render as severity-styled system notices (Naive UI NAlert), never
+as plain chat bubbles; the run chronology renders one compact NAlert per
+tool invocation — localized tool name with a compact detail of what the
+call addressed, severity-marked by outcome, a failed tool carrying its
+error in the same notice; the thinking disclosure is a compact,
+collapsible Naive UI disclosure composition. The AI's identity face is the microchip
 glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
 no text badges. Instance refs attach to chat messages like files do —
 a chip row under the message body, never inline in a contrast bubble;
-tokens in authored text strip from display. Inline entity refs
-everywhere are raw PrimeVue Chips — no hand-rolled chip chrome, no
-per-type tint hardcoded from authored type names.
+tokens in authored text strip from display. Inline entity refs everywhere use the registered shared instance-reference
+primitive, implemented with the appropriate unmodified Naive UI component
+(for example NTag where its semantics fit) — no hand-rolled chip chrome,
+no per-type tint hardcoded from authored type names.
 Person-chat presentation stays as it is.
 
 Lifecycle wakes: the AI brought into a conversation may be woken by status
@@ -231,8 +232,11 @@ principals only.
 
 ## 4. UI
 
-All UI is written in raw, unmodified PrimeVue plus the repo's registered
-shared primitives. No hand-rolled div/button chrome, no custom controls.
+All UI uses unmodified Naive UI components plus the repo's registered
+shared primitives. No hand-rolled div/button chrome and no parallel
+application component library. Domain-specific compositions are permitted
+when they encode application behavior or layout rather than reimplementing
+generic controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
 
 Generated record surfaces have no record-level edit mode: no header
@@ -277,9 +281,10 @@ definition (its lane, grants, screens, or actions). Screens are not a
 separate tab — they render per role under Roles.
 
 Popups (profile/org settings, org/user previews, floating call window,
-status badges) are raw PrimeVue: Popover/StandardDialog own the surface
-and chrome, no hand-rolled borders or !utility overrides on PrimeVue
-internals. A record popup expands to its page: one explicit expand
+status badges) use Naive UI's native overlay components and the registered
+StandardDialog primitive: NPopover owns popover behavior; StandardDialog
+owns dialog composition and chrome over Naive UI's modal primitive. No
+hand-rolled borders or utility overrides against Naive UI internals. A record popup expands to its page: one explicit expand
 control steps the record up to its page surface (pane/route); no dead
 chrome — a type with no record surface never renders a popup link, and
 popups never carry duplicate or non-functional expansion buttons.
@@ -484,7 +489,7 @@ compact rhythm belongs to data-dense panes alone, and no host profile
 tightens a surface that is already small.
 
 Mobile devices scale the whole UI through the root font-size (the rem
-basis PrimeVue components and the typography roles share). Mobile record
+basis Naive UI components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
 
 Process definition nodes should generate render contracts, that go to procedural UI generator. Need
@@ -498,8 +503,8 @@ type's panel — and relation-linked children nest beneath their row with
 the link glyph.
 What currently is "entity chat" should be renamed to "comments" and get it's place in generated UI.
 I'm not currently sure how exactly, probably contract should pass "comments" toggle and it gets
-generated in same manner in UI. Important to find proper PrimeVue components for it and integrate to
-layout. More important to get aligned with architecture, so it's only assumptions.
+generated in same manner in UI. Use the appropriate Naive UI components and integrate them into the
+generated layout. More important to get aligned with architecture, so it's only assumptions.
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
 surface registry — adding a type never touches app UI code, and plugin-delivered editor
 surfaces (owner decision 2026-10-11, §20) extend the same law to adding an
@@ -513,9 +518,9 @@ Any file may be attached to chat messages. Images and videos preview inline
 sender's bottom corner upward — the first item rests at the message-side
 base, continuation stacks upward and outward, and a gallery placed before a
 text message connects to it along that base. Preview-less instance refs
-and non-media attachments share the chip anatomy — raw PrimeVue chips
-(type icon, cropped name, compact preset geometry) inline-wrapped to
-lines at the sender edge. Audio keeps its native player.
+and non-media attachments share the registered instance-reference
+primitive (type icon, cropped name, compact preset geometry), inline-wrapped
+to lines at the sender edge. Audio keeps its native player.
 A chip click opens the file inside the app when a viewer
 exists (image, PDF, text — markdown rendered formatted) with the
 download action beside the preview; kinds without an
@@ -953,7 +958,7 @@ executor (`perigram-plugin vendor`), a surface module's bare imports
 resolve to the plugin's own vendor scope through the module proxy, and
 the SDK's surface check enforces that every bare import matches a
 declared dependency. What the host injects is never vendorable:
-dependencies named `vue`, `primevue`, or `pinia` refuse at the contract,
+dependencies named `vue`, `naive-ui`, or `pinia` refuse at the contract,
 and the host's markdown read pipeline joins the injected set — surfaces
 receive `renderMarkdown` (shared/markdown, the single marked+DOMPurify
 instance with pele for mermaid fences) rather than carrying copies. Declared licenses make the
@@ -1180,19 +1185,19 @@ trait definitions, the layout language (atoms and composition rules), the
 arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
-### 22.10 PrimeVue owns component internals (owner direction
-2026-10-27)
+### 22.10 Component internals own their layout (owner direction
+2026-10-27; library-neutral)
 
-A PrimeVue component's internal spacing is the preset's business:
-no wrapper, wedge, scoped rule, or utility adds spacing inside a
-DataTable, DataView, Timeline, or any other PrimeVue collection —
-rows, cards, and entries ride the component's own rhythm and size
-variants. Generator spacing lives at the arrangement level (section
-rhythm, region stacks, the grid-gap token) and in the preset's token
-layer; the row-surface recipe carries its own row separation through
-the pt table channel (separated cell borders, the ladder-step gap
-between the rounded rows). A utility class inside a PrimeVue
-component's internals is a defect.
+A component library component's internal spacing is owned by that
+component's theme and documented component API. No wrapper, wedge,
+scoped rule, or utility adds spacing inside a DataTable, DataView,
+Timeline, or other collection component — rows, cards, and entries ride
+the component's own rhythm and size variants. Generator spacing lives at
+the arrangement level (section rhythm, region stacks, the grid-gap
+token) and in the design-token projection; the row-surface recipe uses
+the component's documented customization API and theme overrides for
+its row separation. A utility class targeting undocumented component
+internals is a defect.
 
 ### 22.11 Group membership renders on the record surface (owner
 direction 2026-10-27)
@@ -4738,3 +4743,263 @@ The implementation is complete only when all of these invariants hold:
   preserving other memberships and personal workspace access.
 - Existing last-member, last-owner, pending-invitation, and owner-recovery
   guarantees remain enforced server-side.
+
+## 33. UI design-system decoupling and Naive UI migration (owner direction 2026-11-25)
+
+The application design system is owned by Perigram, not by its component
+library. The target component library is Naive UI, using the
+[Naive UI Themes — Monochrome theme](https://naiveuithemes.com/themes/monochrome)
+as the starting theme. This is a deliberate component-library migration,
+not a visual redesign and not permission to replace Perigram's established
+visual identity with Naive UI defaults.
+
+### 33.1 Ownership and dependency direction
+
+The dependency direction is:
+
+1. Perigram semantic design tokens and visual contracts are the source of
+   truth.
+2. A small Naive UI theme projection maps those tokens into Naive UI's
+   `GlobalThemeOverrides` and light/dark theme configuration.
+3. Naive UI components consume that projection.
+4. Application layout, domain visualization, Dockview, editors, and plugin
+   surfaces consume Perigram tokens directly and never depend on Naive UI
+   theme variables.
+
+The design system must remain usable without importing Naive UI. No
+application-owned token, layout recipe, domain signal, typography role,
+status meaning, or surface contract may be named after or defined in terms
+of a component-library API or CSS variable.
+
+The existing `designTokens` contract and application-owned `--ck-*`
+semantic variables remain the source of truth unless a separately reviewed
+token cleanup establishes a better canonical namespace. PrimeVue's
+`--p-*` variables cease to be sources of truth and are not retained as
+compatibility aliases. Naive UI's generated theme variables are likewise
+implementation details, not application tokens.
+
+The adapter is a one-way projection: semantic tokens -> Naive UI theme
+overrides. Application code must not read Naive UI theme variables to
+derive application colors, spacing, typography, dimensions, or states.
+There is no reverse mapping and no second token catalog.
+
+### 33.2 Semantic token contract
+
+The token source remains framework-independent and owns:
+
+- Light and dark canvas, surface, raised-surface, overlay, border, and
+  text roles.
+- Primary neutral ramp and the Perigram brand accent.
+- Semantic status colors and domain/entity signal colors.
+- Typography families and roles, including the existing IBM Plex Sans,
+  IBM Plex Mono, and IBM Plex Serif assignments.
+- Layout constraints and reusable dimensions already defined by the
+  token source.
+- Selection, focus, disabled, hover, and other application-level
+  interaction semantics where they are shared across surfaces.
+
+Preserve the current visual decisions: zinc/neutral primary surfaces,
+the Perigram red brand accent (`#ff0040`) in its existing semantic
+roles, the current light/dark contrast model, flat structural surfaces,
+and the established IBM Plex typography. The Monochrome theme is the
+component-theme baseline; it does not replace the Perigram token contract,
+brand accent, typography, or domain colors.
+
+No component-library theme may introduce a competing palette, font system,
+spacing scale, radius scale, or elevation language. Component-specific
+dimensions and behavior belong in a component-theme projection only when
+they are genuinely component-specific; reusable application decisions
+remain semantic tokens.
+
+### 33.3 Monochrome theme adoption
+
+Use the exported Naive UI `GlobalThemeOverrides` configuration from the
+Monochrome theme page as the initial component-theme baseline. Vendor a
+reviewed snapshot of the exported configuration in the repository, record
+its source URL, retrieval date, and license/provenance, and make builds
+independent of the theme website. Do not fetch theme JSON at runtime or
+during production builds.
+
+Adapt the snapshot through the semantic-token projection:
+
+- Neutral/monochrome component surfaces and controls follow Perigram's
+  light and dark semantic surface roles.
+- Component primary/focus/selection behavior follows the Perigram neutral
+  primary contract, not an arbitrary library default.
+- The Perigram red accent remains reserved for its existing brand and
+  decision semantics; do not turn the whole component library red.
+- Existing IBM Plex typography is applied consistently; theme-provided
+  font-family choices must not replace it.
+- Existing density, control sizing, border, radius, and elevation decisions
+  are retained where they are part of the Perigram design contract.
+- Any theme-export value that conflicts with these rules is overridden by
+  the semantic projection, not copied blindly.
+
+The exported Monochrome configuration is an upstream baseline, not a
+second source of truth. Do not hand-edit duplicated light/dark values in
+multiple files. Keep the upstream snapshot distinguishable from Perigram's
+small, intentional adaptation layer.
+
+### 33.4 Naive UI integration and theme runtime
+
+Install and configure Naive UI as the application's sole general-purpose
+component library. Use its documented Vue APIs, including
+`NConfigProvider`, typed `GlobalThemeOverrides`, and the appropriate
+light/dark theme objects. Mount global style synchronization where required
+so the document body and portalled overlays follow the active scheme.
+
+Theme selection is driven by the existing application appearance setting.
+The initial render must know the selected scheme before component rendering;
+avoid a light-theme flash, hydration mismatch, or a post-mount visual swap.
+Light and dark overrides are explicit and tested. The root font-size remains
+the shared rem basis for Naive UI controls and Perigram typography roles.
+
+Nuxt integration must be SSR-safe. Verify style generation/collection,
+portal and overlay rendering, hydration, route transitions, and production
+build behavior. Do not adopt a Nuxt module or integration wrapper merely
+because it exists: its maintenance, compatibility with the pinned Nuxt/Vue
+versions, SSR behavior, and static/prerender implications must be verified.
+Prefer a small explicit integration over a dependency that hides lifecycle
+or theme behavior.
+
+### 33.5 Component usage and application primitives
+
+Use Naive UI's unmodified components for generic controls and interaction
+primitives. Preserve Perigram's registered shared primitives where they
+represent stable application contracts, including StandardDialog,
+instance/file references, field editing, generated surface composition,
+and other cross-feature behaviors.
+
+Shared primitives must compose Naive UI rather than become a second
+component library. Do not create generic Perigram replacements for NButton,
+NInput, NSelect, NDataTable, NTree, NPopover, and similar controls.
+A shared primitive is justified by application semantics, coordinated
+behavior, accessibility, or a stable cross-component contract — not by
+renaming a library component.
+
+StandardDialog remains the single application dialog contract. It owns
+application dialog anatomy, sizing, close/dirty-confirmation behavior,
+accessibility, and focus lifecycle, and uses Naive UI's modal/dialog
+capabilities internally. Other overlays use the corresponding native
+Naive UI component unless an existing registered application primitive
+owns additional behavior.
+
+The following existing visual/behavioral contracts survive the migration:
+- Tables, tree collections, forms, tabs, menus, popovers, notifications,
+  context menus, and dialogs retain their documented application behavior.
+- Chat machine notices use Naive UI alert semantics; collapsible reasoning
+  uses a native disclosure composition; entity and file references use
+  registered shared reference primitives.
+- Generated pages continue to render through the ui-mapping generator.
+  Component selection is an implementation mapping, never a new
+  per-entity hardcoded renderer.
+- Dockview remains the workspace docking engine and receives Perigram
+  semantic tokens directly.
+- Graph/editor canvases, 2D/3D viewers, charting, markdown, and other
+  specialized rendering systems are not replaced by general-purpose UI
+  components. They integrate through the same application token contract.
+- Domain glyph fonts remain domain assets. General-purpose icons follow
+  one explicit application icon contract; PrimeIcons usage is retired
+  rather than retained as an accidental second icon system.
+
+Do not use undocumented selectors or internal component DOM structure to
+force styling. Component internals are styled through documented theme
+overrides and supported component APIs. Application layout classes may
+style the component host and its surrounding composition, not reach into
+private generated markup.
+
+### 33.6 PrimeVue retirement
+
+PrimeVue is removed completely after the migration is verified:
+
+- Remove `@primevue/nuxt-module`, `primevue`, `@primeuix/themes`,
+  PrimeVue presets, PrimeVue-specific configuration, and PrimeVue-only
+  dependencies.
+- Remove PrimeVue Pass Through contracts, including the global form-fluid
+  and tabs-strip PT configuration. Recreate required behavior through
+  documented Naive UI props, theme overrides, or small application-owned
+  compositions.
+- Remove the PrimeVue cascade layer and all PrimeVue-specific CSS variable
+  bridges. Tailwind and application CSS retain one deliberate, documented
+  cascade order.
+- Remove PrimeVue component imports, directives, plugin registration,
+  PrimeIcons, and PrimeVue-specific test helpers after all consumers have
+  migrated.
+- Replace the plugin host's forbidden dependency entry from `primevue`
+  to `naive-ui`; host-provided Vue, Naive UI, and Pinia remain non-vendored
+  host dependencies.
+- Remove stale PrimeVue terminology from active specifications and
+  implementation documentation. Historical migration notes may identify
+  PrimeVue as the former implementation.
+
+Do not keep PrimeVue installed as a hidden fallback, load both libraries
+globally, or migrate one route at a time into a permanently mixed design
+system. A short-lived migration branch or isolated comparison harness may
+run both libraries, but the shipped application has one general-purpose
+component library.
+
+### 33.7 Migration sequence
+
+1. **Inventory and baseline.** Enumerate every PrimeVue component, directive,
+   service, PT customization, theme variable, icon, CSS selector, test
+   helper, and dependency across application, shared packages, workers,
+   plugins, and tests. Record behavior and consumer locations. Capture
+   representative light/dark screenshots and interaction tests before
+   changing implementation.
+2. **Decouple tokens.** Remove application dependence on `--p-*`
+   variables. Make semantic tokens authoritative for the app shell,
+   typography, Dockview, overlays, and domain surfaces. Add tests/guards
+   preventing new library-variable dependencies outside the adapter.
+3. **Integrate Naive UI and Monochrome.** Add the pinned library, SSR-safe
+   provider, vendored theme snapshot, typed token projection, and
+   deterministic light/dark initialization. Validate production SSR and
+   hydration before broad component migration.
+4. **Build representative vertical slices.** Migrate and compare a complex
+   form/inspector, hierarchical explorer, dense data table, dialog/popover
+   flow, and chat message/attachment surface. Include keyboard, focus,
+   accessibility, mobile, and dark-mode behavior.
+5. **Migrate remaining consumers.** Move application pages, generated
+   surfaces, shared primitives, and workspace/editor chrome using the
+   inventory. Preserve domain rendering engines and plugin boundaries.
+6. **Retire PrimeVue.** Remove dependencies, module configuration, PT,
+   theme preset, CSS layer, variables, icons, imports, and obsolete tests.
+   Run repository-wide searches and architecture guards to prove there are
+   no active PrimeVue references or runtime imports.
+7. **Validate and document.** Run the full unit, SSR, framework, architecture,
+   documentation, plugin dependency, and E2E checks. Update the design-token
+   documentation and component usage guidance to describe the final
+   library-independent ownership model and Naive UI adapter.
+
+### 33.8 Acceptance criteria
+
+The migration is complete only when:
+
+- Perigram semantic tokens can be imported and consumed without importing
+  Naive UI; the theme adapter is the only layer that translates them into
+  Naive UI theme variables.
+- No application-owned semantic token, CSS rule, Dockview setting, plugin
+  contract, or domain renderer depends on `--p-*` or Naive UI-generated
+  theme variables.
+- Monochrome is the traceable baseline for Naive UI component theming, with
+  a vendored, licensed/provenance-recorded snapshot and explicit Perigram
+  adaptations.
+- The existing zinc neutral palette, Perigram red accent semantics, IBM
+  Plex typography, light/dark surfaces, domain signals, and density
+  contracts remain visually coherent.
+- Theme selection is correct on the first SSR render and after hydration;
+  no theme flash, style loss, portal mismatch, or route-dependent styling
+  regression occurs.
+- Representative tables, trees, forms, overlays, dialogs, chat surfaces,
+  and inspectors preserve required behavior, keyboard access, focus
+  management, and responsive layouts.
+- Generated surfaces, Dockview, plugin UI, graph editors, and 2D/3D
+  viewers consume the same application design tokens without depending on
+  the component-library theme implementation.
+- There is one generic component library and one application semantic
+  design system; no parallel generic control library or duplicate theme
+  catalog is introduced.
+- PrimeVue packages, module setup, PT, presets, PrimeIcons, CSS layer,
+  runtime imports, and active documentation references are retired.
+- All repository validation suites pass, and architecture checks prevent
+  reintroducing component-library variables as application token sources.
+
