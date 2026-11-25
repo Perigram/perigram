@@ -56,7 +56,6 @@ describe('Facade plugin node palette contribution', () => {
     expect(items.filter(item => item.kind === 'cts.valueService').map(item => item.id).sort()).toEqual([
       'service:facade:compose-sheet',
       'service:facade:design-bake',
-      'service:facade:design-import',
       'service:facade:design-key',
       'service:facade:sheet-dxf'
     ]);

@@ -29,7 +29,6 @@ describe('Facade managed server runtime', () => {
       'compose-sheet',
       'construct-sheet',
       'design-bake',
-      'design-import',
       'design-key',
       'generate-sheet-dxf',
       'sheet-dxf',

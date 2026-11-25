@@ -4,7 +4,6 @@ import { occsLayerExportName, occsLayerStandard } from '../occs/layerStandards.j
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { isOccsDocument } from '../occs/parameters.js';
 import { stableSheetName } from '../nesting-projections.js';
-import { extractGeometry } from '../services.js';
 
 function designIdOfPlacement(items = [], placed = {}) {
   const source = items.find(item => String(item.id) === String(placed.item_id ?? placed.itemId ?? placed.id));
@@ -76,16 +75,6 @@ async function designBake(input = {}) {
     designKey: designKeyOf(input.templateId || '', parameters),
     geometry: evaluation
   };
-}
-
-async function designImport(input = {}) {
-  const result = await extractGeometry({
-    mode: 'upload',
-    payloadBase64: input.base64 || input.payloadBase64 || '',
-    payloadMeta: { name: input.name || '' },
-    mapping: input.mapping || {}
-  });
-  return result.data;
 }
 
 function composeSheet(input = {}) {
@@ -239,7 +228,6 @@ export function createRuntime() {
       if (operationId === 'template-source') return templateSource(args);
       if (operationId === 'design-key') return designKey(args);
       if (operationId === 'design-bake') return await designBake(args);
-      if (operationId === 'design-import') return await designImport(args);
       if (operationId === 'compose-sheet') return composeSheet(args);
       if (operationId === 'sheet-dxf') return sheetDxf(args);
       if (operationId === 'construct-sheet') return constructSheet(args);

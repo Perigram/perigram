@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, and sheet instances as an installable fabrication plugin; generic polygon nesting is provided by the Nesting plugin",
-  "version": "53",
+  "version": "54",
   "requires": [
     "tech-drawing",
     "nesting"
@@ -809,51 +809,6 @@
           "keywords": [
             "bake",
             "parameters",
-            "geometry"
-          ]
-        }
-      },
-      {
-        "id": "design-import",
-        "label": "Import cassette DXF values",
-        "signature": {
-          "input": {
-            "base": "record",
-            "fields": {
-              "base64": {
-                "base": "string"
-              },
-              "name": {
-                "base": "string",
-                "nullable": true
-              },
-              "mapping": {
-                "base": "json",
-                "nullable": true
-              }
-            }
-          },
-          "output": {
-            "base": "json"
-          }
-        },
-        "execution": {
-          "runtime": "facade-server",
-          "kind": "pure",
-          "targets": [
-            "browser",
-            "server"
-          ],
-          "capabilities": [],
-          "idempotent": true
-        },
-        "palette": {
-          "group": "cassette",
-          "label": "Cassette",
-          "visible": true,
-          "keywords": [
-            "dxf",
-            "import",
             "geometry"
           ]
         }
