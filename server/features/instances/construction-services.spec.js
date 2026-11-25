@@ -449,6 +449,27 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     });
   });
 
+  it('collapses executor-declared relation refs by target identity', async () => {
+    stubStored();
+    executorOutput({
+      data: { geometry: { ok: true } },
+      relations: {
+        parts: [
+          { type: 'dxftpl', id: 'p1', revision: 'rev-9' },
+          { type: 'dxftpl', id: 'p1', revision: 'rev-9' },
+          { type: 'dxftpl', id: 'p2', revision: 'rev-9' }
+        ]
+      }
+    });
+
+    const merged = await applyConstructionService('sheetd', 'place', { name: 'Sheet' }, CONTEXT);
+
+    expect(merged.relations.parts).toEqual([
+      { type: 'dxftpl', id: 'p1', revision: 'rev-9' },
+      { type: 'dxftpl', id: 'p2', revision: 'rev-9' }
+    ]);
+  });
+
   it('stamps no field when the type declares no ref field, and no pin when the source type has no revision scope', async () => {
     stubStored('drawing');
     revisionService.getCurrentForEntity.mockResolvedValue(null);

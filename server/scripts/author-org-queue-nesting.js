@@ -1,7 +1,7 @@
-// One-shot org authoring (queue nesting): defines the org machine and
-// material types, adds the queue's material/machine/result slots, and wires
-// one manual queue action that nests the queue's position designs on the
-// selected material with the selected machine's tool spacing.
+// One-shot org authoring (queue nesting): defines the org machine, material,
+// and nesting-run types; moves the run's machine/material choice onto the
+// run; and wires the visible create-run action so nesting solves and
+// constructs its sheet-design children automatically.
 //
 //   node server/scripts/author-org-queue-nesting.js --org org-6af9e015
 //   node server/scripts/author-org-queue-nesting.js --org org-6af9e015 --apply
@@ -43,6 +43,10 @@ const TABLE_TYPE = 't-hiihlfgqr6';
 const DESIGN_TYPE = 'cassette-design';
 const MACHINE_TYPE = 't-machine';
 const MATERIAL_TYPE = 't-material';
+const RUN_TYPE = 'nesting-run';
+const SHEET_DESIGN_TYPE = 'sheet-design';
+const SHEET_INSTANCE_TYPE = 'sheet-instance';
+const CUT_PLAN_TYPE = 'sheet-cut-plan';
 
 const NAME_KEY = rowFieldId('Название');
 const TOOL_DIAMETER_KEY = rowFieldId('Диаметр инструмента');
@@ -83,10 +87,29 @@ const MATERIAL = {
   }
 };
 
-const QUEUE_NESTING_FIELDS = {
-  [MATERIAL_KEY]: { base: 'ref', accepts: [MATERIAL_TYPE], nullable: true, label: 'Материал' },
-  [MACHINE_KEY]: { base: 'ref', accepts: [MACHINE_TYPE], nullable: true, label: 'Станок' },
-  [RESULT_KEY]: { base: 'json', nullable: true, constructible: false, label: 'Результат' }
+const RUN_CHILDREN = {
+  sheets: { types: [SHEET_DESIGN_TYPE], onRemove: 'restrict', lineageKey: 'nestingRunId' },
+  sheetInstances: { types: [SHEET_INSTANCE_TYPE], onRemove: 'restrict', lineageKey: 'nestingRunId' },
+  cutPlans: { types: [CUT_PLAN_TYPE], onRemove: 'restrict', lineageKey: 'nestingRunId' }
+};
+
+const NESTING_RUN = {
+  id: RUN_TYPE,
+  class: 'item',
+  name: 'Запуск раскладки',
+  glyph: 'pi pi-play-circle',
+  fields: {
+    [NAME_KEY]: { base: 'string', identifier: true, label: 'Название' },
+    [MATERIAL_KEY]: { base: 'ref', accepts: [MATERIAL_TYPE], label: 'Материал' },
+    [MACHINE_KEY]: { base: 'ref', accepts: [MACHINE_TYPE], label: 'Станок' }
+  },
+  edges: { children: RUN_CHILDREN }
+};
+
+const QUEUE_RUN_CHILD = {
+  types: [RUN_TYPE],
+  onRemove: 'restrict',
+  lineageKey: 'tQsh5vy5wjcId'
 };
 
 const db = await connectDB();
@@ -156,6 +179,29 @@ function plannedDeclaration(stored, expected) {
   };
 }
 
+function queuePlan(stored) {
+  const base = authoritativeDeclaration(stored) || {};
+  const fields = { ...(base.fields || {}) };
+  const removed = [];
+  for (const key of [MATERIAL_KEY, MACHINE_KEY, RESULT_KEY]) {
+    if (Object.hasOwn(fields, key)) {
+      delete fields[key];
+      removed.push(key);
+    }
+  }
+  return {
+    declaration: {
+      ...base,
+      fields,
+      edges: {
+        ...(base.edges || {}),
+        children: { ...(base.edges?.children || {}), runs: QUEUE_RUN_CHILD }
+      }
+    },
+    removed
+  };
+}
+
 async function installedDomain() {
   const installs = await db.collection('plugin_installs').find({ organizationId: ORG }).toArray();
   const types = await db.collection('cts_types').find({ organizationId: ORG }).toArray();
@@ -166,7 +212,8 @@ async function installedDomain() {
   }
   const overlay = new Map([
     [MACHINE_TYPE, MACHINE],
-    [MATERIAL_TYPE, MATERIAL]
+    [MATERIAL_TYPE, MATERIAL],
+    [RUN_TYPE, NESTING_RUN]
   ]);
   const documentsInstall = installs.find(install => install.pluginId === 'documents');
   const csvTable = (documentsInstall?.declarations?.types || []).find(type => type.id === 'csv-table');
@@ -178,12 +225,14 @@ async function installedDomain() {
     ? plannedDeclaration(storedTable, { projections: tableProjections })
     : null;
   const storedIds = new Set(types.map(type => type.id));
+  const storedQueue = types.find(type => type.id === QUEUE_TYPE);
+  const queue = storedQueue ? queuePlan(storedQueue) : { declaration: null, removed: [] };
   for (const stored of types) {
     const planned = overlay.get(stored.id)
-      || (stored.id === QUEUE_TYPE ? { fields: QUEUE_NESTING_FIELDS } : null)
+      || (stored.id === QUEUE_TYPE ? queue.declaration : null)
       || (stored.id === TABLE_TYPE ? tableRepair : null);
     registry.defineType({
-      ...(planned ? plannedDeclaration(stored, planned) : stored),
+      ...(planned ? (stored.id === QUEUE_TYPE ? planned : plannedDeclaration(stored, planned)) : stored),
       scope: 'org',
       organizationId: ORG
     });
@@ -219,7 +268,9 @@ async function installedDomain() {
     domain: projectDomainFromView(registry, ORG, { commands, construction, events: [], serviceContracts: {} }, { packServices }),
     types,
     tableProjections,
-    tableRepair
+    tableRepair,
+    queue,
+    tableStored: storedTable
   };
 }
 
@@ -269,7 +320,10 @@ function ensureDeclarationClass(authoring, { id, typeId, class: classKind, name,
 }
 
 function queueDeclaration(stored) {
-  return plannedDeclaration(stored, { fields: QUEUE_NESTING_FIELDS });
+  const plan = queuePlan(stored);
+  return plan.removed.length
+    ? { ...plan.declaration, migrate: plan.removed.map(field => ({ kind: 'remove-field', field })) }
+    : plan.declaration;
 }
 
 function validatePlan(data, domain, roles) {
@@ -285,13 +339,32 @@ function validatePlan(data, domain, roles) {
   ];
 }
 
+function removeIfPresent(authoring, id) {
+  const data = authoring.definition();
+  if (data.graph.nodes.some(node => node.id === id)) authoring.removeNode(id);
+}
+
+function ensureTypeRef(authoring, id, typeId) {
+  const data = authoring.definition();
+  if (data.graph.nodes.some(node => node.id === id)) return;
+  authoring.declareTypeRef({ id, typeId });
+}
+
 function planDefinition(definition, domain, adminRoleId, tableProjections = []) {
-  const seed = authoredProcessDataFromGraphDocument(definition.data) || definition.data;
+  const source = definition.data?.activated || definition.data;
+  const seed = authoredProcessDataFromGraphDocument(source) || source;
   const authoring = createDefinitionAuthoring(domain, null, seed);
   const adminAccess = {
     level: 'admin',
     grants: [{ roleId: adminRoleId, level: 'admin' }]
   };
+
+  for (const id of [
+    'queueMaterialField', 'queueMachineField', 'queueResultField',
+    'queueNestingResult', 'queueMaterial', 'queueMachine'
+  ]) {
+    removeIfPresent(authoring, id);
+  }
 
   ensureDeclarationClass(authoring, {
     id: 'machineClass', typeId: MACHINE_TYPE, class: 'item', name: MACHINE.name, glyph: MACHINE.glyph
@@ -309,6 +382,23 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
   ensureDeclarationField(authoring, { id: 'materialWidthField', classId: 'materialClass', name: 'Ширина', descriptor: { base: 'quantity', unit: 'mm' } });
   ensureDeclarationField(authoring, { id: 'materialHeightField', classId: 'materialClass', name: 'Высота', descriptor: { base: 'quantity', unit: 'mm' } });
 
+  ensureDeclarationClass(authoring, {
+    id: 'nestingRunClass', typeId: RUN_TYPE, class: 'item', name: NESTING_RUN.name, glyph: NESTING_RUN.glyph
+  });
+  ensureDeclarationField(authoring, { id: 'runNameField', classId: 'nestingRunClass', name: 'Название', descriptor: { base: 'string', identifier: true } });
+  ensureDeclarationField(authoring, { id: 'runMaterialField', classId: 'nestingRunClass', name: 'Материал', descriptor: { base: 'ref', accepts: [MATERIAL_TYPE] } });
+  ensureDeclarationField(authoring, { id: 'runMachineField', classId: 'nestingRunClass', name: 'Станок', descriptor: { base: 'ref', accepts: [MACHINE_TYPE] } });
+  authoring.wireDeclaration('materialClass', 'runMaterialField', 'targets');
+  authoring.wireDeclaration('machineClass', 'runMachineField', 'targets');
+  for (const [id, typeId] of [
+    ['sheetDesignRef', SHEET_DESIGN_TYPE],
+    ['sheetInstanceRef', SHEET_INSTANCE_TYPE],
+    ['cutPlanRef', CUT_PLAN_TYPE]
+  ]) ensureTypeRef(authoring, id, typeId);
+  authoring.wireDeclaration('sheetDesignRef', 'nestingRunClass', 'children', { key: 'sheets' });
+  authoring.wireDeclaration('sheetInstanceRef', 'nestingRunClass', 'children', { key: 'sheetInstances' });
+  authoring.wireDeclaration('cutPlanRef', 'nestingRunClass', 'children', { key: 'cutPlans' });
+
   const tableClassId = classNodeId(authoring, TABLE_TYPE);
   if (tableClassId && tableProjections.length) {
     authoring.configure(tableClassId, { projections: tableProjections });
@@ -316,11 +406,7 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
 
   const queueClassId = classNodeId(authoring, QUEUE_TYPE);
   if (!queueClassId) throw new Error(`Process declares no ${QUEUE_TYPE} class`);
-  ensureDeclarationField(authoring, { id: 'queueMaterialField', classId: queueClassId, name: 'Материал', descriptor: { base: 'ref', accepts: [MATERIAL_TYPE], nullable: true } });
-  ensureDeclarationField(authoring, { id: 'queueMachineField', classId: queueClassId, name: 'Станок', descriptor: { base: 'ref', accepts: [MACHINE_TYPE], nullable: true } });
-  ensureDeclarationField(authoring, { id: 'queueResultField', classId: queueClassId, name: 'Результат', descriptor: { base: 'json', nullable: true, constructible: false } });
-  authoring.wireDeclaration('materialClass', 'queueMaterialField', 'targets');
-  authoring.wireDeclaration('machineClass', 'queueMachineField', 'targets');
+  authoring.wireDeclaration('nestingRunClass', queueClassId, 'children', { key: 'runs' });
 
   ensureNode(authoring, 'mkMachine', 'construct', () => {});
   authoring.wireDeclaration('machineClass', 'mkMachine', 'binds');
@@ -345,6 +431,11 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
     record.typeId = QUEUE_TYPE;
     record.select = 'current';
   });
+  ensureNode(authoring, 'mkRun', 'construct', () => {});
+  authoring.wireDeclaration('nestingRunClass', 'mkRun', 'binds');
+  authoring.configure('mkRun', { access: adminAccess });
+  authoring.setInputDefault('mkRun', `fields.${NAME_KEY}`, 'Раскладка');
+
   ensureNode(authoring, 'queueChildren', 'childEntities', record => {
     record.typeId = QUEUE_TYPE;
   });
@@ -368,9 +459,7 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
     record.leftKey = `relations.${DESIGN_KEY}.id`;
     record.rightKey = 'sourceId';
   });
-  for (const id of ['qnSourceId', 'qnSourceKey', 'qnParts']) {
-    if (authoring.record(id)) authoring.removeNode(id);
-  }
+  for (const id of ['qnSourceId', 'qnSourceKey', 'qnParts']) removeIfPresent(authoring, id);
   ensureNode(authoring, 'qnPairRight', 'recordField', record => {
     record.path = 'right';
     record.type = { base: 'record', nullable: false };
@@ -386,12 +475,12 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
     if (authoring.record('qnItems')) authoring.removeNode('qnItems');
     ensureNode(authoring, 'qnItems', 'mergeRecords', () => {});
   }
-  ensureNode(authoring, 'queueMaterial', 'relatedEntities', record => {
-    record.typeId = QUEUE_TYPE;
+  ensureNode(authoring, 'runMaterial', 'relatedEntities', record => {
+    record.typeId = RUN_TYPE;
     record.relationKey = MATERIAL_KEY;
   });
-  ensureNode(authoring, 'queueMachine', 'relatedEntities', record => {
-    record.typeId = QUEUE_TYPE;
+  ensureNode(authoring, 'runMachine', 'relatedEntities', record => {
+    record.typeId = RUN_TYPE;
     record.relationKey = MACHINE_KEY;
   });
   ensureNode(authoring, 'materialWidthValue', 'getField', record => {
@@ -408,11 +497,29 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
   });
 
   ensureNode(authoring, 'queueNestingSolve', 'service:nesting:nesting-solve', () => {});
-  ensureNode(authoring, 'queueNestingResult', 'mutate', record => {
-    record.typeId = QUEUE_TYPE;
+  ensureNode(authoring, 'solveRecord', 'castValue', record => {
+    record.outputType = { base: 'record' };
   });
-  authoring.configure('queueNestingResult', { access: adminAccess });
+  ensureNode(authoring, 'solveLayouts', 'recordField', record => {
+    record.path = 'layouts';
+    record.type = { base: 'json', nullable: true };
+  });
+  ensureNode(authoring, 'layoutLoop', 'forEachEntity', record => {
+    record.type = { base: 'json', nullable: true };
+  });
+  ensureNode(authoring, 'mkSheet', 'construct', () => {});
+  authoring.wireDeclaration('sheetDesignRef', 'mkSheet', 'binds');
+  authoring.configure('mkSheet', { construction: { mode: 'fromLayout' }, access: adminAccess });
+  ensureNode(authoring, 'mkSheetInstance', 'construct', () => {});
+  authoring.wireDeclaration('sheetInstanceRef', 'mkSheetInstance', 'binds');
+  authoring.configure('mkSheetInstance', { access: adminAccess });
+  authoring.setInputDefault('mkSheetInstance', 'fields.name', 'Лист');
+  ensureNode(authoring, 'mkCutPlan', 'construct', () => {});
+  authoring.wireDeclaration('cutPlanRef', 'mkCutPlan', 'binds');
+  authoring.configure('mkCutPlan', { access: adminAccess });
+  authoring.setInputDefault('mkCutPlan', 'fields.name', 'Карта раскроя');
 
+  ensureWire(authoring, 'queueCtx', 'data:result', 'mkRun', 'data:lineage.tQsh5vy5wjcId');
   ensureWire(authoring, 'queueCtx', 'data:result', 'queueChildren', 'data:entity');
   ensureWire(authoring, 'queueChildren', 'data:result', 'queueChildType', 'data:entity');
   ensureWire(authoring, 'queueChildType', 'data:value', 'isPosition', 'data:left');
@@ -428,16 +535,29 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
   ensureWire(authoring, 'qnPairRight', 'data:value', 'qnItems', 'data:left');
   ensureWire(authoring, 'qnCountRecord', 'data:record', 'qnItems', 'data:right');
   ensureWire(authoring, 'qnItems', 'data:record', 'queueNestingSolve', 'data:items');
-  ensureWire(authoring, 'queueCtx', 'data:result', 'queueMaterial', 'data:entity');
-  ensureWire(authoring, 'queueCtx', 'data:result', 'queueMachine', 'data:entity');
-  ensureWire(authoring, 'queueMaterial', 'data:result', 'materialWidthValue', 'data:entity');
-  ensureWire(authoring, 'queueMaterial', 'data:result', 'materialHeightValue', 'data:entity');
-  ensureWire(authoring, 'queueMachine', 'data:result', 'machineToolDiameterValue', 'data:entity');
+  ensureWire(authoring, 'mkRun', 'data:result', 'runMaterial', 'data:entity');
+  ensureWire(authoring, 'mkRun', 'data:result', 'runMachine', 'data:entity');
+  ensureWire(authoring, 'runMaterial', 'data:result', 'materialWidthValue', 'data:entity');
+  ensureWire(authoring, 'runMaterial', 'data:result', 'materialHeightValue', 'data:entity');
+  ensureWire(authoring, 'runMachine', 'data:result', 'machineToolDiameterValue', 'data:entity');
   ensureWire(authoring, 'materialWidthValue', 'data:value', 'queueNestingSolve', 'data:sheetWidth');
   ensureWire(authoring, 'materialHeightValue', 'data:value', 'queueNestingSolve', 'data:sheetHeight');
   ensureWire(authoring, 'machineToolDiameterValue', 'data:value', 'queueNestingSolve', 'data:space');
-  ensureWire(authoring, 'queueCtx', 'data:result', 'queueNestingResult', 'data:entity');
-  ensureWire(authoring, 'queueNestingSolve', 'data:result', 'queueNestingResult', `data:fields.${RESULT_KEY}`);
+  ensureWire(authoring, 'queueNestingSolve', 'data:result', 'solveRecord', 'data:value');
+  ensureWire(authoring, 'solveRecord', 'data:value', 'solveLayouts', 'data:value');
+  ensureWire(authoring, 'solveLayouts', 'data:value', 'layoutLoop', 'data:items');
+  ensureWire(authoring, 'mkRun', 'control:completed', 'layoutLoop', 'control:in');
+  ensureWire(authoring, 'layoutLoop', 'control:each', 'mkSheet', 'control:in');
+  ensureWire(authoring, 'layoutLoop', 'data:item', 'mkSheet', 'data:layout');
+  ensureWire(authoring, 'designs', 'data:result', 'mkSheet', 'data:designs');
+  ensureWire(authoring, 'mkRun', 'data:result', 'mkSheet', 'data:lineage.nestingRunId');
+  ensureWire(authoring, 'mkSheet', 'control:completed', 'mkSheetInstance', 'control:in');
+  ensureWire(authoring, 'mkRun', 'data:result', 'mkSheetInstance', 'data:lineage.nestingRunId');
+  ensureWire(authoring, 'mkSheetInstance', 'control:completed', 'mkCutPlan', 'control:in');
+  ensureWire(authoring, 'mkRun', 'data:result', 'mkCutPlan', 'data:lineage.nestingRunId');
+  ensureWire(authoring, 'mkSheet', 'data:result', 'mkCutPlan', 'data:relations.design');
+  ensureWire(authoring, 'mkSheetInstance', 'data:result', 'mkCutPlan', 'data:relations.sheet');
+  ensureWire(authoring, 'mkCutPlan', 'control:completed', 'layoutLoopEnd', 'control:in');
 
   const data = authoring.definition();
   for (const key of ['history', 'activated']) {
@@ -445,7 +565,6 @@ function planDefinition(definition, domain, adminRoleId, tableProjections = []) 
   }
   return data;
 }
-
 await db.collection('sessions').insertOne({
   sessionId,
   userId: String(user._id),
@@ -461,17 +580,22 @@ try {
   const adminRoleId = adminRole?.id || '';
   if (!adminRoleId) throw new Error('organization has no admin role');
 
-  const { domain, types, tableProjections, tableRepair } = await installedDomain();
+  const { domain, types, tableProjections, tableRepair, queue: queueChange } = await installedDomain();
   const byId = new Map(types.map(type => [type.id, type]));
   if (!byId.has(QUEUE_TYPE)) throw new Error(`organization has no ${QUEUE_TYPE} type`);
   if (!byId.has(ENTRY_TYPE)) throw new Error(`organization has no ${ENTRY_TYPE} type`);
 
   const queue = queueDeclaration(byId.get(QUEUE_TYPE));
-  const declarations = [MACHINE, MATERIAL, queue, ...(tableRepair ? [tableRepair] : [])];
-  const changedTypes = declarations.filter(declaration => typeNeedsWrite(declaration, byId.get(declaration.id)));
+  const declarations = [MACHINE, MATERIAL, NESTING_RUN, queue, ...(tableRepair ? [tableRepair] : [])];
+  const changedTypes = declarations.filter(declaration => (
+    typeNeedsWrite(declaration, byId.get(declaration.id))
+    || (declaration.id === QUEUE_TYPE && queueChange.removed.length)
+  ));
 
   const planned = planDefinition(definitionDoc, domain, adminRoleId, tableProjections);
-  const currentAuthored = authoredProcessDataFromGraphDocument(definitionDoc.data) || definitionDoc.data;
+  const currentAuthored = authoredProcessDataFromGraphDocument(definitionDoc.data.activated || definitionDoc.data)
+    || definitionDoc.data.activated
+    || definitionDoc.data;
 
   if (!APPLY) {
     const newNodes = Object.keys(planned.processNodes || {}).filter(id => !currentAuthored.processNodes?.[id]);
