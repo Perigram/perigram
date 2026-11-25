@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-11-22
+updated: 2026-11-25
 ```
 
 This spec is human-write only. 
@@ -3571,6 +3571,280 @@ The CTS expression evaluator, process evaluator, and any legacy HAG
 construction path remain behind adapters until this proof and the
 migration gates in §30.11 pass.
 
+
+### 30.14 Responsibility architecture and semantic convergence
+
+This subsection resolves the package and runtime responsibilities implied by
+§§28–30. It is normative for architecture changes. It does not add packages
+or require a rewrite; it defines which existing responsibilities converge
+and which remain deliberately separate.
+
+The governing rule is: **unify semantics, separate responsibilities,
+specialize execution guarantees**. A shared graph language and typed IR do
+not imply one universal scheduler, persistence layer, application service,
+or UI. Conversely, different execution profiles do not justify separate
+graph formats, operation contracts, type systems, compatibility rules, or
+interpreters.
+
+#### One semantic pipeline
+
+All graph-based authoring and execution paths converge on one semantic
+pipeline:
+
+1. **Canonicalize** authored graph/definition data into the versioned
+   canonical document model. Editor layout and transient interaction state
+   are excluded from semantic identity.
+2. **Resolve** definition, module, operation, provider, and revision
+   references against an explicit environment and dependency lock.
+3. **Validate** graph structure, interfaces, semantic types, port
+   compatibility, conversions, constraints, capabilities, and execution
+   profile requirements using the canonical contracts.
+4. **Lower** the validated definition into the canonical typed IR in §30.13.
+   The IR is the semantic execution input, not a validation shadow beside
+   an independently interpreted source graph.
+5. **Plan** the requested execution profile: bounded procedural evaluation
+   or durable workflow execution. Planning may add profile-specific
+   scheduling metadata but must not redefine graph or operation meaning.
+6. **Execute** through the selected profile and provider bindings, producing
+   typed results, diagnostics, provenance, and explicit effect proposals.
+7. **Materialize effects** only through the owning host services after
+   authorization, validation, and any required transaction or confirmation.
+
+The same canonicalization, resolution, validation, compatibility, and IR
+lowering rules apply to visual editing, textual DSL, APIs, agents, preview,
+and execution. An adapter may translate a legacy representation into the
+canonical model; it may not become a second semantic authority.
+
+There must not be a permanent path that validates a lowered IR and then
+executes the original graph with a separate interpretation of its meaning.
+During migration, such a path is allowed only as a named compatibility
+bridge with parity fixtures, telemetry or comparison evidence where
+practical, and a removal gate. New execution work targets the IR.
+
+#### Semantic kernel and package ownership
+
+The existing package boundaries remain the initial ownership boundaries.
+Do not create a new kernel package, runtime package, graph package, or
+generic service layer merely to express this architecture.
+
+| Owner | Owns | Must not own |
+|---|---|---|
+| `packages/core` | Canonical graph/definition document mechanics; shared semantic primitives; normalization and resolution contracts; typed IR; graph-independent diagnostics and provenance contracts; pure evaluation mechanics; execution/result contracts; generic graph composition. | CTS's organization data authority; provider-native engines; persistence; authentication/authorization policy; plugin hosting; durable scheduling; application-specific activation. |
+| `packages/plugin-sdk` | The single provider-facing operation and port declaration contract; provider identity/version bindings; compatibility and conversion contributions; capability/effect/runtime-placement declarations; provider registration and preview/inspector contribution contracts. | A second evaluator, graph document, type language, or host authorization system. |
+| `packages/cts` | Organization-defined application types and values; declaration evolution; fields, relations, containment, constraints, lifecycle vocabulary, revisions, and authoritative stored-instance semantics/access adapters. | A second universal graph runtime, a competing operation registry, or generic execution scheduling. |
+| `packages/processes` | Process authoring profile; process-specific role/lane and grant declarations; event entry; durable workflow control semantics; waits, retries, leases, task boundaries, recovery, and process activation/application-contract projection. | A competing graph document, general-purpose dataflow evaluator, universal type system, or duplicate operation/port compatibility rules. |
+| Application host and feature services | Composition; authentication and authorization decisions; persistence and transactions; secrets; package installation; capability enforcement; effect dispatch; artifact destinations/materialization; durable infrastructure integration. | A second semantic interpreter or business-rule implementation hidden in transport/repository layers. |
+| Plugins/providers/workers | Domain representations, native values and engines, domain operations, adapters, conversions, renderers, and specialized inspectors, under declared provider contracts and capabilities. | Ambient host authority, platform-owned persistence, or private copies of shared semantic contracts. |
+
+The table describes responsibility, not a demand that every row become a
+module. A concern may be implemented by several focused files under one
+owner. A package boundary is justified by a stable contract and dependency
+direction, not by the number of concepts in this table.
+
+The Plugin SDK is the provider contribution boundary; Core is the consumer
+and owner of graph semantics. The SDK may define the public shape by which
+providers declare operations, ports, conversions, and runtime bindings.
+Core consumes that shape and owns the meaning of graph composition, type
+checking orchestration, IR, and pure evaluation. There must be one
+compatibility algorithm and one normalized operation descriptor, even if
+the public provider contract and its internal normalized representation
+are distinct types connected by one explicit adapter.
+
+CTS remains the authority for organization application types and stored
+instances. Core may define generic type/IR interfaces and evaluation
+mechanics, but it must not duplicate CTS declaration storage, relation
+semantics, constraints, or tenant-scoped data access. CTS expressions and
+process socket types are not allowed to evolve as independent universal
+languages: each must either lower to the canonical semantic model or
+remain a narrowly scoped domain/profile contract with an explicit adapter
+and documented reason.
+
+Processes owns durable workflow guarantees, not graph meaning. A process
+definition is a specialized definition/profile over the shared graph
+model. Process-specific lanes, grants, event starts, waits, and recovery
+remain specialized. Its compiler may project a process definition into an
+application contract (roles, actions, screens, policies, workflows, and
+related runtime projections); that operation is **process activation
+compilation**, not the canonical graph-to-IR compiler. Names, APIs, logs,
+and documentation must distinguish these operations rather than using
+"compile" as an ambiguous label.
+
+#### Execution profiles are distinct by guarantees
+
+The platform has two principal execution profiles over shared semantics:
+
+- **Procedural profile:** bounded invocation of a graph revision with
+  explicit inputs and context; supports live evaluation, preview,
+  diagnostics, caching, cancellation, and selected output materialization.
+  It does not own durable waits, long-lived leases, event subscriptions,
+  or workflow recovery.
+- **Durable workflow profile:** executes the same graph/operation semantics
+  while adding durable control-token scheduling, event entry, waits,
+  retries, leases, task dispatch, recovery, and process lifecycle evidence.
+  Its scheduler and persistence model are specialized because its
+  guarantees differ, not because it is a second graph language.
+
+Both profiles consume the same pinned operation contracts, semantic type
+rules, conversions, and typed IR. Profile-specific constructs must be
+explicitly represented in the canonical model/IR or in a versioned profile
+extension with source mapping and validation. A profile extension cannot
+silently alter the meaning of a shared operation or connection.
+
+A preview evaluator, process data-tree evaluator, server graph executor,
+and any future optimized runtime are not independent semantic authorities.
+They may be distinct adapters, hosts, or execution strategies only when
+they consume the same IR and pass the same semantic conformance suite.
+Specialized execution engines may optimize or delegate execution, but their
+observable results, diagnostics, effect classification, cancellation, and
+provenance must conform to the shared contracts.
+
+#### Three lifecycles; no overloaded Apply
+
+Keep three related but independent lifecycles:
+
+1. **Definition lifecycle:** author, normalize, validate, revise, compare,
+   and publish/activate a definition. Publishing makes a version available
+   to consumers; it does not execute arbitrary effects or materialize
+   graph outputs.
+2. **Evaluation lifecycle:** resolve a pinned revision and context, lower,
+   plan, evaluate, inspect, and retain execution evidence according to the
+   selected profile. Live authoring and pure preview must not require
+   packaging or deployment.
+3. **Effect/materialization lifecycle:** propose changes, authorize them,
+   commit persistent mutations, bake/export artifacts, and recover or
+   reconcile durable work. These operations use the owning service,
+   transaction, capability, and audit boundaries.
+
+For process definitions, **Apply** is the process activation action: save
+the authored definition, validate it against the effective environment,
+compute the application-contract change and required migrations, then
+activate the resulting process contract through the process-definition
+service. Apply is not a universal graph compilation or graph execution
+button. For procedural graphs, evaluation and preview remain available
+without Apply; **Commit**, **Bake**, or **Export** explicitly materialize
+selected results through authorized host boundaries. A product surface may
+combine lifecycle steps only when the underlying operations and their
+failure/rollback semantics remain explicit.
+
+#### Canonical ownership and overlap-resolution rules
+
+Every shared semantic concept has exactly one authoritative owner and
+implementation. In particular:
+
+- One canonical graph document and graph identity/revision model; process
+  graphs are a profile/projection, not a second persisted graph language.
+- One normalized operation/port descriptor and one compatibility/conversion
+  implementation; provider declarations are adapted once at registration.
+- One canonical type/value compatibility model; CTS-specific declaration
+  and persistence semantics remain owned by CTS.
+- One normalization, resolution, validation, typed-IR lowering, and
+  semantic execution path. Profile-specific planning and scheduling are
+  separate after semantic lowering.
+- One preview representation-discovery and rendering host contract;
+  providers contribute renderers, not parallel preview workspaces.
+- One authoritative capability/access decision and one owning persistence
+  path for each resource/effect. A graph runtime may request an operation;
+  it cannot grant itself access or write around the owning service.
+- One definition/revision source of truth. Compiled projections, caches,
+  execution plans, and runtime snapshots are derived artifacts with
+  explicit source revisions and invalidation rules; they must not become
+  independently editable authorities.
+
+Do not unify concepts merely because their names or shapes resemble each
+other. Keep distinct contracts where guarantees or domain meaning differ:
+semantic type versus representation versus engine-native value versus
+transport; graph revision versus execution versus artifact; procedural
+evaluation versus durable scheduling; process activation projection versus
+graph IR lowering; provider declaration versus resolved runtime binding.
+Each distinction must have a named owner and a documented conversion or
+boundary.
+
+#### Migration workstreams and acceptance
+
+The migration is a repository-wide reconciliation, not a sequence of
+parallel rewrites. Work is performed in this order, with vertical slices
+where useful:
+
+1. **Inventory actual authority.** Trace every graph document/session,
+   node/operation registry, port/type compatibility implementation,
+   normalizer, validator, compiler, IR, evaluator, preview path, runtime
+   registry, process activation path, effect dispatcher, and persistence
+   writer. Record source files, callers, data formats, package imports,
+   and tests. Classify each as canonical owner, adapter, host service,
+   execution profile, derived projection, or obsolete duplicate. Distinguish
+   verified duplication from superficially similar domain-specific code.
+2. **Specify the canonical contracts.** Reconcile Core, Plugin SDK, CTS,
+   Processes, and the application host against this subsection and §30.13.
+   Define exact ownership and dependency direction for graph documents,
+   operation descriptors, type/value contracts, compatibility results,
+   IR, execution requests/results, diagnostics, provenance, and effects.
+   Update package READMEs and public export maps before moving consumers.
+3. **Converge the semantic pipeline.** Make normalization, resolution,
+   validation, compatibility, IR lowering, and execution consume one set
+   of contracts. Add adapters for existing formats. Eliminate the
+   validate-IR/execute-source split. Keep procedural and durable scheduling
+   distinct after shared semantic lowering.
+4. **Converge authoring and preview.** Route generic graph and process
+   authoring through the canonical graph/session and normalized node
+   contracts. Retain specialized process controls as profile-specific
+   projections. Use the one preview host and output representation
+   pipeline from §28; remove duplicate inspectors and preview evaluators
+   only after parity is proven.
+5. **Integrate process activation.** Keep process activation compilation
+   responsible for deriving the application contract and migration gate.
+   Make its graph semantics come from the shared model/IR. Preserve role,
+   grant, lifecycle, event-entry, wait, retry, lease, recovery, and audit
+   guarantees in the durable workflow profile.
+6. **Complete effect and materialization boundaries.** Trace reads, writes,
+   plugin calls, files, notifications, exports, commits, and bakes to their
+   owning host services. Separate pure proposals from effects; verify
+   capability checks, tenant scope, transactions, idempotency, audit
+   evidence, and failure/recovery behavior at the authoritative boundary.
+7. **Remove proven duplication.** Delete obsolete evaluators, registries,
+   adapters, wrappers, aliases, and documentation only after all consumers
+   have migrated and conformance, data-compatibility, authorization, and
+   rollback gates pass. Do not retain a compatibility layer without a
+   named consumer and removal condition.
+
+A workstream is complete only when:
+- the owner and public contract are documented and match actual imports;
+- no second implementation of the shared semantic rule remains;
+- representative legacy and new fixtures pass through the canonical path;
+- procedural and durable profiles pass shared semantic conformance tests
+  plus their own profile-specific guarantee tests;
+- effects are denied without the required capability and are persisted
+  only through the owning service boundary;
+- tenant isolation, revision pinning, cancellation, idempotency, and
+  recovery behavior are covered where applicable;
+- performance and memory behavior are measured against the prior path;
+- package READMEs, SPEC, TODOs, export maps, architecture guards, and
+  tests agree with the resulting implementation.
+
+A migration adapter must state its source format, target contract, supported
+versions, semantic-loss policy, caller inventory, parity tests, and removal
+condition. An adapter without a live caller or a justified compatibility
+window is dead architecture and should be removed. A duplicate implementation
+is not justified merely because it has a different package name or is called
+a preview, compiler, evaluator, or runtime.
+
+#### Non-goals and restraint
+
+This architecture does not mandate a new package, service, repository,
+database, event bus, workflow engine, language, UI framework, or deployment
+topology. It does not require every definition to be a graph internally if
+a simpler canonical definition representation satisfies the same semantic
+contracts; graph composition remains the universal composition model where
+behavior and dataflow are being programmed. It does not collapse specialized
+editors, domain IRs, native engines, or durable scheduling into the kernel.
+It does not make Apply synonymous with build, evaluate, commit, or bake.
+
+Prefer the smallest implementation that establishes one semantic authority.
+A proposed abstraction must identify at least two concrete consumers or a
+specific invariant that cannot be enforced without it. A proposed package
+or service extraction must demonstrate an independent contract and
+operational boundary under §29. Remove forwarding-only layers and
+duplicated metadata rather than wrapping them in a new abstraction.
+
 ## 31. Architecture simplification and extraction sequence (historical implementation plan)
 
 The repository is simplified before it is divided into independently
@@ -3637,8 +3911,8 @@ implementation and delivery mechanisms, not product domains.
 |---|---|---|
 | Type language and declarations | `packages/cts` | Types, fields, references, relations, containment, state declarations, operators, expressions, validation, and evolution. |
 | Entity block DTOs and generic definition helpers | `packages/core` | Retain only concepts distinct from CTS; consolidate overlap rather than maintaining competing model vocabularies. |
-| Process authoring and compilation | `packages/processes` | Consumes CTS declarations; does not define a second type system. |
-| Workflow lifecycle contracts | CTS declarations plus `packages/core` | CTS owns the authored state vocabulary; core owns workflow normalization, region transitions, and lifecycle payload validation. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
+| Process authoring and activation compilation | `packages/processes` | Owns the process profile and application-contract activation projection; consumes canonical graph/operation semantics and CTS declarations, and does not define a second type system or graph compiler. |
+| Workflow lifecycle | Shared semantics plus `packages/processes` profile | CTS owns authored state/type declarations; core owns generic graph/IR semantics; processes owns durable workflow control, waits, retries, leases, and recovery. The server machine service owns persistence, access checks, event writes, and hook dispatch. |
 | Persistence and execution | Application runtime and feature owners | Runtime composes services; feature modules own their data and write paths. |
 | Authorization | One access authority | Routes, commands, transitions, and features delegate to the same policy implementation. |
 | Transport | API routes and deployed adapters | Transport adapts requests; it does not own business rules. |
