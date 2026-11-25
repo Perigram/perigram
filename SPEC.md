@@ -232,9 +232,11 @@ principals only.
 
 ## 4. UI
 
-All UI uses unmodified Naive UI components plus the repo's registered
-shared primitives. No hand-rolled div/button chrome and no parallel
-application component library. Domain-specific compositions are permitted
+All generic UI controls and interaction primitives use Nuxt UI components
+plus the repo's registered shared primitives. No hand-rolled generic
+button/input/menu/dialog chrome and no parallel application component
+library. Domain-specific compositions are permitted when they encode
+application behavior or layout rather than reimplementing generic controls. Domain-specific compositions are permitted
 when they encode application behavior or layout rather than reimplementing
 generic controls.
 Raw IDs and other technical identifiers are never shown in user-facing UI.
@@ -4744,279 +4746,400 @@ The implementation is complete only when all of these invariants hold:
 - Existing last-member, last-owner, pending-invitation, and owner-recovery
   guarantees remain enforced server-side.
 
-## 33. UI design-system decoupling and Naive UI migration (owner direction 2026-11-25)
+## 33. Perigram design system, Nuxt UI adoption, and Theme Studio (owner direction 2026-11-25)
 
-The application design system is owned by Perigram, not by its component
-library. The target component library is Naive UI, using the
-[Naive UI Themes — Monochrome theme](https://naiveuithemes.com/themes/monochrome)
-as a visual and component-theme reference. This is a full redesign of
-Perigram's visual language and design system alongside the component-library
-migration. Existing visual decisions are not constraints: they are material
-to audit, challenge, replace, or discard. The goal is a coherent, distinctive,
-production-grade interface designed deliberately for Perigram's actual
-workflows — not a reskin of the current application and not an unmodified
-Naive UI demo theme. This section supersedes earlier visual styling,
-typography, palette, spacing, and component-appearance prescriptions
-where they conflict; functional/domain requirements remain in force unless
+Perigram owns its design system. Nuxt UI is the selected general-purpose
+Vue/Nuxt component library and implementation substrate, not the owner or
+definition of the product's visual identity. The design system is rebuilt
+from first principles; the existing appearance, token catalog, component
+recipes, and layout conventions are not constraints. The [Nuxt UI Theme
+Editor](https://ui.nuxt.com/theme?view=editor) is an architectural reference
+for a live, executable theme workbench, and Nuxt UI itself is the component
+library candidate to adopt. Neither its default appearance nor its editor
+is to be copied uncritically.
+
+The target is one coherent, distinctive, production-grade product language
+across ordinary application UI, dense data surfaces, collaborative work,
+technical editors, and visualization. This is not a component-library
+reskin. Product capabilities and domain semantics remain requirements;
+their current visual expression and composition may be replaced.
+
+This section supersedes earlier component-library, visual styling,
+typography, palette, spacing, and component-appearance prescriptions where
+they conflict. In particular, prior Naive UI-specific prescriptions are
+superseded. Functional and domain requirements remain in force unless
 explicitly redesigned.
 
-### 33.1 Ownership and dependency direction
+### 33.1 Ownership and architecture
 
 The dependency direction is:
 
-1. Perigram semantic design tokens and visual contracts are the source of
-   truth.
-2. A small Naive UI theme projection maps those tokens into Naive UI's
-   `GlobalThemeOverrides` and light/dark theme configuration.
-3. Naive UI components consume that projection.
-4. Application layout, domain visualization, Dockview, editors, and plugin
-   surfaces consume Perigram tokens directly and never depend on Naive UI
-   theme variables.
+1. **Perigram design-system document and semantic contracts** are the
+   canonical source of truth.
+2. **Perigram theme compiler/adapters** project the canonical document into
+   CSS custom properties, Tailwind CSS v4 theme/utilities where appropriate,
+   and Nuxt UI's supported theme/configuration mechanisms.
+3. **Nuxt UI** supplies generic Vue components, accessible interaction
+   primitives, and component styling mechanisms.
+4. **Perigram application and domain compositions** consume Perigram
+   semantic tokens and contracts directly.
+5. **Specialized rendering systems** (Dockview, graph editors, 2D/3D/CAD,
+   documents, charts, plugin surfaces) consume the same Perigram contracts
+   without depending on Nuxt UI internals.
 
-The design system must remain usable without importing Naive UI. No
-application-owned token, layout recipe, domain signal, typography role,
-status meaning, or surface contract may be named after or defined in terms
-of a component-library API or CSS variable.
+The design-system model and compiler must be usable and testable without
+importing Nuxt UI. No Perigram token, domain signal, layout rule, visual
+contract, or serialized theme field may be named after a Nuxt UI component,
+Tailwind utility, Reka primitive, or generated CSS variable.
 
-The current `designTokens`, `--ck-*` variables, and existing token
-categories are legacy implementation material, not requirements. Audit
-them and replace the token model where it is inconsistent, underspecified,
-redundant, or incapable of expressing the new design. The resulting
-Perigram-owned semantic system is authoritative; neither former PrimeVue
-variables nor Naive UI-generated variables become application tokens.
+Nuxt UI's `app.config.ui`, component `ui` props, Tailwind Variants
+recipes, Tailwind theme variables, and CSS variables are integration
+surfaces, not competing canonical sources. Use them where they are the
+documented and maintainable way to implement the compiled design. Do not
+make application code read generated Nuxt UI variables to derive its own
+semantic colors, spacing, typography, dimensions, or state meanings.
 
-The adapter is a one-way projection: semantic tokens -> Naive UI theme
-overrides. Application code must not read Naive UI theme variables to
-derive application colors, spacing, typography, dimensions, or states.
-There is no reverse mapping and no second token catalog.
+Keep the adapter one-way:
+Perigram design document -> compiled semantic CSS/theme output -> Nuxt UI
+and application consumers. No reverse mapping, duplicated token catalog,
+or component-library-specific source of truth.
 
-### 33.2 Semantic token contract
+### 33.2 Nuxt UI adoption and technical fit
 
-Design the token model from the desired experience, not by mechanically
-renaming the current variables. It owns the complete visual grammar:
+Adopt Nuxt UI as the sole general-purpose component library, subject to a
+repository-level compatibility and migration audit before implementation.
+Use its documented Nuxt/Vue integration and supported component APIs.
+The target styling architecture is Nuxt UI's CSS-first theming with
+Tailwind CSS v4 and Tailwind Variants; use Reka UI primitives through
+Nuxt UI where they provide accessible interaction behavior.
 
-- Color system: canvas, surfaces, borders, text hierarchy, accent, semantic
-  states, data visualization, and domain-specific color roles.
-- Typography: font families, scripts and language coverage, weights,
-  optical sizing, line heights, tracking, and role-based hierarchy. Select
-  typefaces based on actual multilingual coverage and visual quality; no
-  current font assignment is sacred.
-- Spatial system: layout grids, spacing, sizing, density, responsive
-  breakpoints, and content-width rules.
-- Shape and depth: radii, borders, shadows, layering, elevation, and
-  separation strategies.
-- Interaction language: focus, hover, active, selected, disabled, loading,
-  validation, drag/drop, keyboard, and touch states.
-- Component and composition recipes: control sizes, field anatomy,
-  navigation, menus, tables, trees, cards, dialogs, overlays, empty states,
-  feedback, and complex workspace surfaces.
-- Motion: transition vocabulary, durations, easing, reduced-motion behavior,
-  and meaningful state transitions.
+Before migration, verify the exact pinned versions and compatibility of
+Nuxt UI, Nuxt, Vue, Tailwind CSS, Reka UI, the current build pipeline,
+SSR/prerendering, existing CSS layers, i18n, and plugin-host constraints.
+Confirm licensing, maintenance, bundle/build impact, accessibility,
+keyboard behavior, portal behavior, and the ability to use the components
+outside Nuxt-only contexts where plugin surfaces require it. Do not assume
+that a module, integration, component, or API from another Nuxt UI major
+version is available in the pinned version.
 
-Do not assume the current zinc palette, red accent usage, IBM Plex font
-assignments, flat surfaces, current density, radii, or contrast choices are
-correct. Re-evaluate each from first principles. Retain an existing choice
-only when the redesign demonstrates that it is the best solution. The
-Monochrome theme is a strong visual starting point, not a mandate that the
-entire product become monochrome and not a substitute for designing
-Perigram's own hierarchy, personality, and domain visualization.
+Nuxt UI is the default for generic buttons, inputs, selects, menus,
+popovers, dialogs, tabs, tooltips, alerts, badges, tables, trees, and
+similar controls. Do not build parallel generic replacements. A Perigram
+shared primitive is justified when it expresses domain semantics,
+coordinated behavior, accessibility, or a stable application contract —
+not when it merely renames or wraps a library component.
 
-No component-library theme may become the design system. Component-specific
-theme values are projections of the Perigram design decisions; shared
-application decisions remain framework-independent.
+Nuxt UI does not own Perigram's page architecture, workspace navigation,
+record semantics, permission model, generated screen model, editor
+infrastructure, or technical visualization. Those remain application
+contracts and may use custom compositions and rendering technology.
 
-### 33.3 Monochrome theme adoption
+### 33.3 Canonical design-system document
 
-Use the exported Naive UI `GlobalThemeOverrides` configuration from the
-Monochrome theme page as the initial component-theme baseline. Vendor a
-reviewed snapshot of the exported configuration in the repository, record
-its source URL, retrieval date, and license/provenance, and make builds
-independent of the theme website. Do not fetch theme JSON at runtime or
-during production builds.
+Create a typed, versioned, serializable Perigram design-system document.
+It is the authoritative artifact edited by tooling and consumed by the
+theme compiler. It must support sparse overrides over explicit defaults,
+stable identifiers, validation, deterministic normalization, migration
+between schema versions, import/export, and structural diffing.
 
-Study the Monochrome theme's actual exported configuration and visual
-result. Use it as a baseline to explore and build the new system, not as a
-preset to accept wholesale. Adapt, extend, or discard any part of it to
-achieve the intended product design. Define Perigram's palette, typography,
-density, shape, depth, component states, and light/dark modes as one
-coherent system, then project those decisions into Naive UI. Do not
-pre-commit to any existing brand-accent usage, font, neutral ramp, or
-component geometry. Record which Monochrome decisions are adopted and
-which are deliberately changed, so the result is intentional rather than
-an accumulation of overrides.
+The document has distinct layers with explicit ownership and inheritance:
 
-The exported Monochrome configuration is an upstream baseline, not a
-second source of truth. Do not hand-edit duplicated light/dark values in
-multiple files. Keep the upstream snapshot distinguishable from Perigram's
-small, intentional adaptation layer.
+- **Foundations:** color palettes and color-space data, typography
+  families/roles/weights, spacing and sizing scales, density, radii,
+  borders, elevation, motion, breakpoints, and layout constraints.
+- **Semantic tokens:** canvas and surface hierarchy, text roles, borders,
+  focus and selection, interactive states, overlays, status meanings,
+  data visualization, and domain-specific signals. Components consume
+  semantic roles rather than inventing local colors.
+- **Component recipes:** component slots/anatomy, variants, sizes, density,
+  states, and compound conditions. Recipes compile to supported Nuxt UI
+  styling mechanisms (including Tailwind Variants where appropriate) or
+  application-owned composition styles.
+- **Domain recipes:** record headers and fields, property inspectors,
+  collection rows/cells, permission controls, state/lifecycle indicators,
+  graph nodes and sockets, editor toolbars, file/document previews, and
+  other recurring Perigram concepts.
+- **Application compositions:** workspace shell, navigation, pages,
+  settings, dialogs, chat, dock panels, empty/loading/error states, and
+  responsive arrangements.
 
-### 33.4 Naive UI integration and theme runtime
+The schema must distinguish primitive values, semantic meaning, component
+implementation, and page composition. Avoid both extremes: a bag of raw
+CSS values with no semantics, and an over-generalized design language that
+cannot express real product surfaces.
 
-Install and configure Naive UI as the application's sole general-purpose
-component library. Use its documented Vue APIs, including
-`NConfigProvider`, typed `GlobalThemeOverrides`, and the appropriate
-light/dark theme objects. Mount global style synchronization where required
-so the document body and portalled overlays follow the active scheme.
+Support explicit light and dark appearances, with shared foundations and
+mode-specific semantic values where needed. Support named design-system
+presets/branches without duplicating the canonical schema. User-selectable
+appearance is a runtime preference; authoring and changing the product's
+canonical design system is a separate privileged development workflow.
 
-Theme selection is driven by the existing application appearance setting.
-The initial render must know the selected scheme before component rendering;
-avoid a light-theme flash, hydration mismatch, or a post-mount visual swap.
-Light and dark overrides are explicit and tested. The root font-size remains
-the shared rem basis for Naive UI controls and Perigram typography roles.
+Existing `designTokens`, `--ck-*`, `--p-*`, and other legacy token
+categories are migration inputs only. Audit, simplify, replace, or delete
+them. No legacy token survives merely because code already consumes it.
 
-Nuxt integration must be SSR-safe. Verify style generation/collection,
-portal and overlay rendering, hydration, route transitions, and production
-build behavior. Do not adopt a Nuxt module or integration wrapper merely
-because it exists: its maintenance, compatibility with the pinned Nuxt/Vue
-versions, SSR behavior, and static/prerender implications must be verified.
-Prefer a small explicit integration over a dependency that hides lifecycle
-or theme behavior.
+### 33.4 Visual language and design requirements
 
-### 33.5 Component usage and application primitives
+Design the visual grammar from actual Perigram workflows and content,
+not by translating the current appearance or accepting a component
+library's defaults. The design exploration must resolve:
 
-Use Naive UI's native components as the default implementation for generic
-controls and interaction primitives, with the new design system providing
-their visual language. Re-evaluate existing Perigram shared primitives:
-retain, redesign, consolidate, or delete each based on whether it expresses
-real application semantics or merely compensates for the old component
-library and styling. StandardDialog, instance/file references, field
-editing, and generated surface composition are candidates for redesign,
-not untouchable legacy contracts.
+- Color relationships, palette construction, neutral range, accent role,
+  semantic status colors, contrast, selection, focus, and chart/data colors.
+- Typography families and roles, multilingual/script coverage, shaping,
+  weights, optical sizing, line heights, tracking, code typography, and
+  dense-data readability. Choose fonts for actual language coverage and
+  visual quality; no current font assignment is sacred.
+- Spatial rhythm, density levels, spacing and sizing scales, responsive
+  breakpoints, content widths, and compact versus comfortable modes.
+- Surface hierarchy, borders, radii, shadows, elevation, overlays, and
+  separation without arbitrary card/border proliferation.
+- Interaction states: hover, active, selected, focused, disabled, pending,
+  loading, validation, drag/drop, keyboard, touch, and reduced motion.
+- Component anatomy, iconography, domain glyphs, motion, transitions,
+  and meaningful state changes.
+- Information hierarchy for dense records, large collections, technical
+  inspectors, node graphs, chat, and multi-panel workspaces.
 
-Shared primitives must compose Naive UI rather than become a second
-component library. Do not create generic Perigram replacements for NButton,
-NInput, NSelect, NDataTable, NTree, NPopover, and similar controls.
-A shared primitive is justified by application semantics, coordinated
-behavior, accessibility, or a stable cross-component contract — not by
-renaming a library component.
+Do not assume the current zinc palette, carmine accent, IBM Plex
+assignments, current radii, flatness, shadows, contrast, or density are
+correct. Evaluate each from first principles. Nuxt UI's default theme and
+the Theme Editor's current appearance are reference material, not
+constraints. The result may be colorful or restrained, compact or spacious,
+flat or layered, provided the choices form a coherent product system and
+work across real use cases.
 
-StandardDialog remains the single application dialog contract. It owns
-application dialog anatomy, sizing, close/dirty-confirmation behavior,
-accessibility, and focus lifecycle, and uses Naive UI's modal/dialog
-capabilities internally. Other overlays use the corresponding native
-Naive UI component unless an existing registered application primitive
-owns additional behavior.
+Do not use generic gradients, glass effects, arbitrary colored cards,
+decorative borders, or inconsistent one-off treatments as substitutes
+for a visual system. Every repeated visual distinction must have a
+semantic role or an explicit component/domain recipe.
 
-Preserve product capabilities and domain semantics, not their current
-visual expression. Revisit every major surface — workspace shell, sidebar,
-record pages, generated screens, forms, tables, trees, chat, dialogs,
-inspectors, editors, and mobile layouts — and redesign its hierarchy,
-composition, density, navigation, and responsive behavior as needed.
+### 33.5 Theme Studio: executable design-system workbench
 
-The redesign must remain compatible with the platform's underlying
-capabilities: generated pages and ui-mapping contracts, Dockview workspace
-behavior, plugin surfaces, graph/editor canvases, 2D/3D viewers, charting,
-markdown, and domain-specific visualization. These systems are not required
-to look or behave as they do today. They must consume the new Perigram
-design tokens and participate in the new visual language. Replace or
-restructure their presentation where that produces a better product.
+Build a first-class Perigram Theme Studio inspired by the architecture
+and workflow of the [Nuxt UI Theme Editor](https://ui.nuxt.com/theme?view=editor).
+Initially it is a development/design-authoring tool, not an end-user
+customization feature. Its purpose is to author, inspect, validate, preview,
+compare, and export the actual Perigram design-system document.
 
-Re-evaluate the icon system, domain glyphs, shared primitives, and all
-existing visual assets. Avoid carrying multiple icon languages or legacy
-styling conventions forward merely for compatibility.
+The studio edits the canonical document directly. It must not maintain a
+parallel editor-only state model or mutate arbitrary CSS as its source of
+truth. Editing operations are typed document transformations; previews
+render the result through the same compiler and runtime integration used
+by the application.
 
-Do not use undocumented selectors or internal component DOM structure to
-force styling. Component internals are styled through documented theme
-overrides and supported component APIs. Application layout classes may
-style the component host and its surrounding composition, not reach into
-private generated markup.
+The studio includes:
 
-### 33.6 PrimeVue retirement
+- **Foundations editor:** palettes, semantic color roles, typography,
+  weights, spacing, sizing, density, shape, elevation, and motion.
+- **Semantic token editor:** inspect and edit token meaning, light/dark
+  values, inheritance, references, and actual consumers.
+- **Component recipe editor:** inspect component anatomy, slots, variants,
+  sizes, states, and compound variants; preview real component instances.
+- **Domain recipe editor:** edit and preview Perigram-specific recurring
+  surfaces, not only generic library components.
+- **Preset management:** create, apply, compare, duplicate, reset, import,
+  and export named design-system documents.
+- **History:** undo/redo based on meaningful edit transactions; coalesce
+  continuous slider/drag interactions rather than storing every pointer
+  movement as a separate step.
+- **Live preview:** update the running preview immediately from the edited
+  document, including light/dark modes and responsive sizes.
+- **Sharing and reproducibility:** serialize a versioned document into a
+  portable artifact or shareable representation. Shared artifacts must
+  validate and migrate by schema version; do not depend on hidden browser
+  state or a remote theme website.
+- **Export/build output:** deterministic generated CSS, Nuxt UI integration
+  configuration, component recipes, and documentation derived from the
+  canonical document. Generated output is not manually edited source.
 
-PrimeVue is removed completely after the migration is verified:
+Color tooling should be a real color engine, not a hex input collection.
+Use a perceptually appropriate color space such as OKLCH for palette
+construction and editing. Support palette ramps, curve-based generation,
+sampling, fitting/importing an existing palette, exact pinned colors,
+gamut handling, and derived light/dark ramps where useful. Keep the
+mathematics in pure, independently tested functions; do not couple it to
+Vue components or CSS rendering.
 
-- Remove `@primevue/nuxt-module`, `primevue`, `@primeuix/themes`,
-  PrimeVue presets, PrimeVue-specific configuration, and PrimeVue-only
-  dependencies.
-- Remove PrimeVue Pass Through contracts, including the global form-fluid
-  and tabs-strip PT configuration. Recreate required behavior through
-  documented Naive UI props, theme overrides, or small application-owned
-  compositions.
-- Remove the PrimeVue cascade layer and all PrimeVue-specific CSS variable
-  bridges. Tailwind and application CSS retain one deliberate, documented
-  cascade order.
-- Remove PrimeVue component imports, directives, plugin registration,
-  PrimeIcons, and PrimeVue-specific test helpers after all consumers have
-  migrated.
-- Replace the plugin host's forbidden dependency entry from `primevue`
-  to `naive-ui`; host-provided Vue, Naive UI, and Pinia remain non-vendored
-  host dependencies.
-- Remove stale PrimeVue terminology from active specifications and
-  implementation documentation. Historical migration notes may identify
-  PrimeVue as the former implementation.
+The preview is the most important part of the studio. It must render
+actual application components and realistic Perigram compositions, not
+just a gallery of generic controls. Provide selectable preview contexts
+that cover at minimum:
 
-Do not keep PrimeVue installed as a hidden fallback, load both libraries
-globally, or migrate one route at a time into a permanently mixed design
-system. A short-lived migration branch or isolated comparison harness may
-run both libraries, but the shipped application has one general-purpose
-component library.
+1. Workspace shell and navigation with multiple open panels.
+2. Record/detail pages with inline field editing and state/lifecycle
+   information.
+3. Dense collections, tables, filters, sorting, and bulk actions.
+4. Property inspectors, forms, permissions, and validation states.
+5. Chat, messages, agent activity, attachments, and typed notices.
+6. Dialogs, popovers, menus, command surfaces, and notifications.
+7. Dockview and editor layouts, including graph/node interfaces.
+8. 2D/3D or document preview surfaces where visual integration matters.
 
-### 33.7 Migration sequence
+Previews use deterministic fixture data and representative empty, loading,
+error, disabled, selected, focused, and populated states. They must be
+interactive enough to exercise actual component behavior. A preview must
+not be a static screenshot or a simplified mock that bypasses the
+production component and recipe.
 
-1. **Audit and understand.** Inventory all current UI surfaces, PrimeVue
-   usage, CSS, tokens, shared primitives, icons, responsive behavior, and
-   visual inconsistencies. Capture screenshots and interaction baselines,
-   but treat screenshots as diagnostic evidence, not targets to preserve.
-2. **Design the system before migrating components.** Establish product
-   design principles and explore multiple coherent visual directions,
-   using Monochrome as one input. Produce a complete visual proposal with
-   typography, color, spatial scale, shape, depth, component states, motion,
-   responsive rules, and representative application screens. Evaluate it
-   against real Perigram workflows and dense technical interfaces.
-3. **Build the independent token foundation.** Replace or simplify the
-   current token source as needed. Define semantic tokens and composition
-   contracts independently of Naive UI. Ensure application CSS, Dockview,
-   plugin surfaces, and domain renderers consume this system directly.
-4. **Implement the Naive UI theme adapter.** Vendor the reviewed Monochrome
-   snapshot, record provenance, and project the approved Perigram design
-   into typed Naive UI light/dark overrides. Verify SSR, hydration, portals,
-   and first-render theme selection.
-5. **Prototype complete vertical slices.** Implement representative end-to-end
-   screens — workspace shell, record/detail surface, data-heavy collection,
-   complex inspector/form, chat, and overlay flows — in the new system.
-   Refine the design based on actual use, not isolated component galleries.
-6. **Rebuild and migrate the application.** Replace old presentation,
-   components, CSS, primitives, and visual conventions systematically.
-   Keep functional contracts and data semantics where still correct, but
-   do not preserve UI structure solely to reduce migration effort.
-7. **Retire PrimeVue and legacy design infrastructure.** Remove obsolete
-   dependencies, presets, PT, CSS layers, variable bridges, icons, token
-   definitions, duplicated styling systems, and dead compatibility code.
-8. **Validate and document.** Run unit, SSR, architecture, accessibility,
-   visual regression, responsive, and E2E checks. Document the new design
-   language, token ownership, component usage, and contribution rules.
+The studio must expose both the resulting appearance and its causes:
+selected semantic token, recipe, variant, density, mode, and responsive
+context. It should make it possible to trace a visible element back to
+the canonical design document and identify the consumers of a token.
 
-### 33.8 Acceptance criteria
+Keep the studio implementation modular: pure schema/normalization and
+migration; pure color/palette engine; edit-command/history layer; compiler
+and adapters; preview host and fixtures; authoring UI. The studio must
+not become a runtime dependency of ordinary application screens.
 
-The migration is complete only when:
+### 33.6 Component and domain integration
 
-- Perigram semantic tokens can be imported and consumed without importing
-  Naive UI; the theme adapter is the only layer that translates them into
-  Naive UI theme variables.
-- No application-owned semantic token, CSS rule, Dockview setting, plugin
-  contract, or domain renderer depends on `--p-*` or Naive UI-generated
-  theme variables.
-- Monochrome is the traceable baseline for Naive UI component theming, with
-  a vendored, licensed/provenance-recorded snapshot and explicit Perigram
-  adaptations.
-- The new palette, typography, light/dark modes, domain signals, density,
-  and surface treatments are designed as a coherent system from first
-  principles; no legacy visual decision is retained by default.
-- Theme selection is correct on the first SSR render and after hydration;
-  no theme flash, style loss, portal mismatch, or route-dependent styling
-  regression occurs.
-- Representative workspace, navigation, record, collection, form,
-  inspector, chat, overlay, and editor surfaces demonstrate the new design
-  consistently while preserving required product capabilities, keyboard
-  access, focus management, and responsive behavior.
-- Generated surfaces, Dockview, plugin UI, graph editors, and 2D/3D
-  viewers consume the same application design tokens without depending on
-  the component-library theme implementation.
-- There is one generic component library and one application semantic
-  design system; no parallel generic control library or duplicate theme
-  catalog is introduced.
-- PrimeVue packages, module setup, PT, presets, PrimeIcons, CSS layer,
-  runtime imports, and active documentation references are retired.
-- All repository validation suites pass, and architecture checks prevent
-  reintroducing component-library variables as application token sources.
+Use Nuxt UI components as the default generic implementation, styled by
+the compiled Perigram design system. Prefer documented slots, props,
+variants, and theme extension points. Avoid undocumented selectors,
+private DOM structure, or brittle overrides against generated markup.
+Application CSS may style component hosts and application compositions;
+component internals are controlled through supported Nuxt UI mechanisms
+or explicit application-owned components.
 
+Perigram shared primitives are retained, redesigned, consolidated, or
+deleted based on their actual semantic responsibility. StandardDialog,
+instance/file references, inline field editing, generated surface
+composition, typed notices, and other shared primitives are candidates
+for redesign. They are not untouchable legacy contracts.
+
+StandardDialog remains the single application dialog contract where
+application behavior requires it. It owns dialog anatomy, sizing,
+close/dirty-confirmation behavior, accessibility, and focus lifecycle,
+and composes Nuxt UI's dialog/modal capabilities. Other overlays use
+Nuxt UI's native components unless a registered Perigram primitive owns
+additional behavior.
+
+Preserve underlying product capabilities while reconsidering their
+presentation: generated pages and ui-mapping contracts, Dockview workspace
+behavior, plugin surfaces, graph/editor canvases, 2D/3D viewers, CAD/OCCT,
+charting, markdown, and domain-specific visualization. These systems are
+not required to look or behave as they do today. They must consume Perigram
+semantic tokens and visual contracts directly; they must not depend on
+Nuxt UI's private implementation or theme variables. Restructure their
+presentation when it improves the product.
+
+The plugin host's component-library dependency contract must be updated
+to the chosen Nuxt UI package and its actual runtime requirements. Verify
+whether Nuxt UI components can be consumed in each supported plugin
+execution context; do not assume a Nuxt application module is equivalent
+to a portable Vue component runtime. The host must not silently vendor a
+second copy of the generic component library.
+
+### 33.7 Runtime, CSS, and build integration
+
+Integrate Nuxt UI using the documented APIs for the pinned major version.
+Use its application/provider component (such as `UApp` when required by
+that version) for global overlay, toast, tooltip, and related infrastructure.
+Do not reproduce provider behavior manually when the library already
+provides it.
+
+The theme compiler emits the semantic CSS layer and the Nuxt UI/Tailwind
+projection. Define one deliberate CSS cascade order for Tailwind,
+Perigram-generated styles, Nuxt UI component styles, and application
+composition styles. Avoid specificity escalation and duplicated sources
+of truth.
+
+The selected appearance must be known before the first server render.
+SSR, hydration, route transitions, portal/overlay rendering, theme changes,
+and production builds must not produce a theme flash, hydration mismatch,
+missing styles, or route-dependent differences. Light and dark output
+must be deterministic.
+
+Do not assume every Nuxt UI feature is SSR-safe or compatible with the
+current prerender strategy. Verify the actual pinned versions and all
+required runtime contexts. Keep the design document/compiler independent
+of Nuxt-specific runtime code; Nuxt integration is an adapter.
+
+### 33.8 Migration sequence
+
+1. **Audit the real application.** Inventory component usage, pages,
+   generated surfaces, CSS, token sources, shared primitives, icons,
+   Tailwind configuration, Dockview, plugin surfaces, responsive behavior,
+   SSR behavior, and visual inconsistencies. Capture screenshots and
+   interaction baselines as diagnostic evidence, not targets to preserve.
+2. **Validate Nuxt UI technically.** Pin and test the compatible Nuxt UI,
+   Nuxt, Vue, Tailwind CSS, and Reka versions. Build a small integration
+   spike covering SSR, overlays, forms, tables, plugin constraints,
+   accessibility, and CSS layering. Resolve migration risks before
+   committing to broad conversion.
+3. **Design the product language.** Explore coherent visual directions
+   against actual Perigram workflows. Define principles and representative
+   screens before locking palette, typography, density, or component
+   geometry.
+4. **Define the canonical document and compiler.** Establish schema,
+   defaults, sparse overrides, validation, migration, semantic tokens,
+   deterministic CSS output, and the Nuxt UI adapter.
+5. **Build the Theme Studio.** Implement the editing engine, color tools,
+   history, presets, export, and real application previews. Use it to
+   refine the design system rather than building a separate mockup that
+   diverges from production.
+6. **Prototype complete vertical slices.** Rebuild the workspace shell,
+   record/detail, dense collection, inspector/form, chat, overlay, and
+   editor/visualization contexts using the actual runtime components and
+   domain compositions.
+7. **Migrate and redesign the application.** Replace old presentation,
+   component usage, CSS, primitives, and visual conventions. Preserve
+   correct functional contracts and data semantics, but do not preserve
+   UI structure solely to reduce migration effort.
+8. **Retire legacy infrastructure.** Remove PrimeVue, old presets,
+   pass-through configuration, PrimeIcons, old variable bridges, obsolete
+   token definitions, duplicate styling systems, and dead compatibility
+   code. Remove Naive UI experiments/configuration if any were introduced
+   during the abandoned migration direction.
+9. **Validate and document.** Run unit, schema/compiler, SSR, architecture,
+   accessibility, visual regression, responsive, and E2E checks. Document
+   token ownership, recipe authoring, Nuxt UI integration, Theme Studio
+   workflows, and contribution rules.
+
+### 33.9 Acceptance criteria
+
+The redesign and migration are complete only when:
+
+- Nuxt UI is the sole general-purpose component library, and its pinned
+  versions are verified against the actual Nuxt/Vue/Tailwind build.
+- The canonical Perigram design-system document and compiler work without
+  importing Nuxt UI or depending on its generated variables.
+- The document has explicit, versioned schemas for foundations, semantic
+  tokens, component recipes, domain recipes, and application compositions.
+- Sparse overrides, defaults, normalization, validation, schema migration,
+  structural diff, import/export, and deterministic compilation are tested.
+- Nuxt UI integration is a one-way projection; no application-owned token,
+  CSS rule, Dockview setting, plugin contract, or domain renderer derives
+  its semantics from Nuxt UI variables or private component markup.
+- The visual language is intentionally designed for Perigram workflows,
+  multilingual content, dense technical interfaces, light/dark modes,
+  responsive layouts, and accessible interaction states. No legacy visual
+  decision is retained by default.
+- The Theme Studio edits the canonical document and uses the production
+  compiler/runtime for live previews.
+- The studio has foundations, semantic tokens, component and domain
+  recipes, presets, undo/redo, import/export, and deterministic generated
+  output.
+- The studio previews real, interactive Perigram compositions with
+  deterministic fixtures across workspace, records, collections,
+  inspectors, chat, overlays, editors, and visualization contexts.
+- Visible preview elements can be traced to their semantic tokens and
+  recipes; token consumers can be inspected.
+- Color palette generation/editing uses tested perceptual color
+  mathematics and supports ramps, fitting/import, pins, and gamut handling.
+- Generated pages, Dockview, plugin UI, graph editors, and 2D/3D/CAD
+  viewers participate in the same Perigram visual system without depending
+  on Nuxt UI internals.
+- SSR and hydration render the selected appearance correctly on the first
+  render; portals, overlays, route transitions, and production builds are
+  validated.
+- Generic component implementations are not duplicated in a parallel
+  Perigram control library; shared primitives exist only for real
+  application/domain contracts.
+- PrimeVue packages, module setup, presets, pass-through configuration,
+  PrimeIcons, CSS layers, runtime imports, and active implementation
+  references are retired. No Naive UI migration remains in the active
+  architecture.
+- Repository validation, accessibility, architecture guards, visual
+  regression, and E2E suites pass.
