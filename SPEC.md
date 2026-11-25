@@ -4968,8 +4968,12 @@ Vue components or CSS rendering.
 
 The preview is the most important part of the studio. It must render
 actual application components and realistic Perigram compositions, not
-just a gallery of generic controls. Provide selectable preview contexts
-that cover at minimum:
+just a gallery of generic controls. Use the adopted official template
+implementations as the source for matching preview contexts: the
+Dashboard-derived authenticated shell, Chat, Editor, and applicable
+Calendar surfaces must be previewed through their real production
+compositions, not reconstructed mocks. Provide selectable preview
+contexts that cover at minimum:
 
 1. Workspace shell and navigation with multiple open panels.
 2. Record/detail pages with inline field editing and state/lifecycle
@@ -4979,7 +4983,9 @@ that cover at minimum:
 5. Chat, messages, agent activity, attachments, and typed notices.
 6. Dialogs, popovers, menus, command surfaces, and notifications.
 7. Dockview and editor layouts, including graph/node interfaces.
-8. 2D/3D or document preview surfaces where visual integration matters.
+8. Calendar and scheduling surfaces with day/week/month/year contexts,
+   event creation/editing, and responsive behavior.
+9. 2D/3D or document preview surfaces where visual integration matters.
 
 Previews use deterministic fixture data and representative empty, loading,
 error, disabled, selected, focused, and populated states. They must be
