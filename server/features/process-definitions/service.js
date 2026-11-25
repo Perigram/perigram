@@ -1725,7 +1725,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const featureForType = sourceTypeId => {
     const normalized = normalizeTypeId(sourceTypeId);
     const entity = (domain?.entities || []).find(item => item.id === normalized || item.type === normalized);
-    const fieldPolicy = getEntityFieldAccessPolicy(normalized) || domain?.fieldAccess?.[normalized];
+    const fieldPolicy = getEntityFieldAccessPolicy(normalized);
     return fieldPolicy?.feature || entity?.feature || entity?.collection || resolveInstanceFeature(normalized, domain);
   };
   if (operation === 'cts.emit') {

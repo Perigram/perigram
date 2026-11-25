@@ -144,7 +144,7 @@ export function createActionExecutionAuthHelpers({ getDomain, normalizeTypeId, g
     typeId = normalizeTypeId(typeId);
     const domain = domainOverride || getDomain();
     const entity = (domain?.entities || []).find(item => item.id === typeId || item.type === typeId);
-    const fieldPolicy = getEntityFieldAccessPolicy(typeId) || domain?.fieldAccess?.[typeId];
+    const fieldPolicy = getEntityFieldAccessPolicy(typeId);
     if (fieldPolicy?.feature) return fieldPolicy.feature;
     if (entity?.feature) return entity.feature;
     if (entity?.collection) return entity.collection;
