@@ -972,14 +972,33 @@ instance with pele for mermaid fences) rather than carrying copies. Declared lic
 GPL-stays-out law a gate refusal instead of a review: the install gate
 and operator policy audit the dependency list.
 
-Owner decision (2026-10-27): a dependency module may name another
-plugin's served module — the `plugin:<id><path>` spelling — where `<id>`
-must appear in the listing's `requires`; the module proxy resolves the
-bare import to the required plugin's proxied scope, and the surface
-check exempts it from the own-root existence rule. The CadCraft browser
-edition homes in tech-drawing (the drawing-domain plugin) as the base
-for DXF editing; the facade's cassette designer consumes its host
-through this seam.
+Owner decision (2026-11-26; supersedes the 2026-10-27 CadCraft
+ownership placement below): CadCraft is an independently installable
+first-class plugin and the shared interactive 2D CAD subsystem. Its
+runtime distribution, browser assets, canonical embedding host, generic
+CAD document/editor, and CAD interaction contracts are owned by the
+`cadcraft` plugin — not by Tech Drawing, Facade, or another domain
+plugin. Tech Drawing and Facade declare CadCraft as a direct dependency
+and consume its served module through the existing cross-plugin module
+dependency seam (`plugin:<id><path>`, with the provider in
+`requires`). No consumer bundles, vendors, forks, or privately mounts
+a second CadCraft copy. Plugin dependency installation/version snapshots
+remain governed by the existing dependency lifecycle.
+
+CadCraft is the interactive editor/engine integration, not the owner of
+all geometry formats or fabrication semantics. Format adapters remain
+format-owned capabilities under the geometry architecture below. DXF
+must be available as a first-class CAD import/export workflow through a
+declared adapter/capability, preserving native DXF entities and metadata
+to the extent explicitly supported. The existing decision to keep DWG
+out remains in force: no DWG implementation or dependency is implied by
+this extraction. Reconsider DWG only through a separate explicit owner
+decision covering licensing, fidelity, runtime and conversion boundaries.
+
+Facade's cassette designer and sheet editor consume the same CadCraft
+host/runtime. The sheet editor's domain model and fabrication algorithms
+remain Facade-owned; its bespoke SVG drawing/camera/selection implementation
+is retired in favor of native CadCraft document rendering and interaction.
 
 Owner decision (2026-10-17): the surface mount grows two editor-grade
 capabilities — `sync`, realtime document sync through the host's room
@@ -5424,3 +5443,321 @@ Acceptance requires:
 - The application has one coherent visual and interaction language
   across shell, chat, documents, calendar, generated pages, settings,
   and domain editors.
+
+## 34. CadCraft as the shared 2D CAD subsystem (owner direction 2026-11-26)
+
+CadCraft becomes a first-class, independently installable plugin named
+`cadcraft`. It owns the distribution and Perigram integration of the
+CadCraft browser edition and is the one shared interactive CAD subsystem
+used by domain plugins. This section establishes the ownership and
+migration target; it does not authorize a second geometry kernel or
+duplicate the platform's canonical geometry contracts (§28, §30, and the
+geometry-plugin direction in §9).
+
+### 34.1 Ownership and dependency direction
+
+The target dependency graph is:
+
+- `cadcraft`: standalone capability; no dependency on Tech Drawing or
+  Facade.
+- `tech-drawing`: direct dependency on `cadcraft`; owns technical
+  drawing workflows, sketch/template semantics, drawing standards and
+  domain-specific tools.
+- `facade`: direct dependency on `cadcraft` and its actual domain
+  dependencies (including Tech Drawing and nesting only where Facade
+  consumes their capabilities); owns cassette/fabrication semantics,
+  sheet composition and production workflows.
+
+A transitive dependency is not a substitute for a direct declaration:
+Facade declares CadCraft directly because its surfaces consume CadCraft
+directly. The dependency resolver and install snapshots must ensure the
+required compatible CadCraft version is installed once and shared. A
+dependent plugin cannot be installed or upgraded into a state with a
+missing/incompatible CadCraft dependency, and CadCraft cannot be removed
+while dependents require it.
+
+The existing plugin dependency/module proxy contract remains the only
+cross-plugin module boundary. CadCraft exposes versioned public modules
+through its listing; consumers declare the provider in `requires` and
+import the served module. Do not introduce ad-hoc filesystem reach-through,
+consumer-relative vendor paths, private copies, global browser singletons,
+or a second plugin-to-plugin import mechanism.
+
+### 34.2 CadCraft plugin responsibilities
+
+CadCraft owns:
+
+- The pinned/versioned CadCraft browser distribution, static assets,
+  license notices, provenance and reproducible update/build procedure.
+- The single Perigram embedding host and its iframe/runtime transport.
+- A versioned, documented host API for mounting, configuring, observing,
+  mutating and disposing CAD documents.
+- Generic CAD document lifecycle and editor surface(s).
+- Generic CAD interaction: camera/navigation, entity selection and hit
+  testing, drafting tools, snapping, ortho, dimensions/annotations,
+  layer operations, entity properties, transactions and undo/redo,
+  subject to the capabilities of the upstream engine.
+- Generic drawing import/export integration through explicit format
+  adapter capabilities.
+- Standalone CAD editor UX and its document persistence integration.
+- Compatibility tests for the public host contract and supported
+  upstream CadCraft version.
+
+CadCraft does not own:
+
+- Facade's sheet/cassette/part/fabrication domain model, nesting,
+  placement constraints, clearance rules, cut plans or production
+  persistence semantics.
+- Tech Drawing's templates, drawing standards, marker/spot semantics,
+  or technical-drawing-specific workflows.
+- The platform's canonical geometry types, units, coordinate conventions,
+  serialization contracts, access control, file storage, or plugin
+  lifecycle.
+- General geometry algorithms that belong to library-backed geometry
+  operation providers.
+- Every file format merely because the CAD editor can display or edit it.
+
+### 34.3 One embedding host and public integration contract
+
+Move the existing CadCraft host integration out of Tech Drawing's
+vendored asset tree into the CadCraft plugin. The extracted host is the
+only supported Perigram integration point. It must hide iframe details,
+message transport, upstream implementation details and asset paths from
+consumers.
+
+The public contract must provide, with explicit capability/version
+negotiation:
+
+- Mount, configure, resize, suspend/resume and deterministic disposal.
+- Open, seed, replace, serialize and export a document.
+- Native entity creation, update and deletion.
+- Native selection, deselection, hit testing and selection subscriptions.
+- Camera state, fit-to-content, zoom and coordinate conversion.
+- Layer listing, creation, ordering, visibility, locking and styling
+  where supported by the engine.
+- Drafting settings and operations: snapping, ortho, construction aids,
+  dimensions and annotations where supported.
+- Transaction boundaries, undo/redo and change/dirty notifications.
+- Read-only mode and capability-aware command availability.
+- Import/export hand-off to declared format adapters.
+- Error reporting, cancellation and lifecycle cleanup.
+
+The contract must distinguish engine-native features from Perigram host
+features and from format-adapter features. Do not expose undocumented
+upstream internals as stable API. Unsupported capabilities must be
+reported explicitly; consumers must not silently emulate them with
+parallel renderers or hidden private APIs.
+
+The host owns synchronization between the embedded engine and Perigram
+theme, fonts, document state and authorized host capabilities. It does
+not grant a surface direct API/database access. Persistence and file
+access continue through existing authorized Perigram host/service
+boundaries.
+
+### 34.4 Standalone CAD editor
+
+CadCraft provides a clean, independently usable CAD editor surface.
+Opening or creating a generic drawing must not require Facade or Tech
+Drawing to be installed.
+
+The editor is a real document editor, not a demo canvas. It includes:
+
+- A native drawing canvas and camera/navigation controls.
+- Entity selection and contextual properties.
+- Generic drawing/drafting commands supported by the engine.
+- Layer manager and layer-aware visibility/locking.
+- Snapping, ortho and other supported drafting aids.
+- Dimensions and annotations supported by the document model.
+- Undo/redo and explicit dirty/save state.
+- Document open/create/rename/save lifecycle through platform
+  persistence.
+- DXF import/export through the declared format capability, with
+  visible reporting of unsupported or lossy content.
+- Read-only behavior governed by the host's grants.
+- Keyboard accessibility, pointer interaction and deterministic
+  lifecycle behavior.
+
+Use the application's shared editor/workspace shell and design-system
+compositions. CadCraft owns CAD-specific tools and canvas composition;
+it does not fork application navigation, generic file panels, theme
+infrastructure, or general-purpose editor chrome. The standalone editor
+must be useful without domain-specific palettes or inspectors.
+
+### 34.5 DXF and format boundaries; DWG exclusion
+
+DXF is a first-class supported interchange format for the CAD workflow.
+Its implementation remains a format adapter/capability under the
+library-backed geometry and format-plugin architecture (§9). CadCraft
+integrates that capability into the editor; it does not absorb the
+format adapter's ownership or duplicate its parser/writer.
+
+The DXF capability declares its supported entity types, blocks,
+layers, dimensions, text, attributes, units, coordinate handling,
+external references, unsupported entities and fidelity limits. Import
+must preserve native metadata and unsupported content where feasible;
+export must report omissions or approximations. Do not claim lossless
+round-tripping without fixture-backed evidence. Generic geometry
+operations and CAD editing must not silently discard format-native
+metadata.
+
+Consolidate the existing DXF parser/writer/extractor implementations
+only after inventorying their actual responsibilities and test coverage.
+Choose one canonical format adapter for each responsibility; remove
+duplicate vendor copies and domain-local format engines when their
+behavior has been migrated. Facade may retain a domain-specific DXF
+exporter only where it generates fabrication semantics that cannot be
+expressed by the generic adapter; it must use the shared format
+capability for ordinary document interchange.
+
+DWG remains explicitly out of scope under the existing owner decision.
+Do not add a DWG parser, writer, SDK, converter or runtime dependency as
+part of this work. A future DWG proposal requires a separate decision
+covering commercial/open licensing, server/browser execution,
+conversion infrastructure, fidelity, unsupported content and
+operational costs. Do not infer DWG support from DXF support.
+
+### 34.6 Facade sheet editor migration
+
+Replace the bespoke CAD presentation and interaction implementation
+inside the Facade sheet editor with the CadCraft host. The migration
+preserves Facade's domain behavior and persisted data; it is not a
+rewrite of the fabrication model.
+
+Facade remains authoritative for:
+
+- The multi-sheet working set and sheet-family discovery.
+- Sheet identity, dimensions, boundaries and local coordinate frames.
+- Cassette/design source relationships and placed-instance identity.
+- Placement transforms and rotation semantics.
+- Containment, boundary margins, clearances, collision and magnetic
+  placement algorithms.
+- Moving placements between sheets and resolving target-sheet behavior.
+- Cut-plan associations and split-stack workflow.
+- Dirty tracking, validation, recomputation and persistence of sheet
+  geometry/relations.
+- Domain-specific layer standards and fabrication export semantics.
+
+CadCraft becomes authoritative for the interactive CAD document view:
+native entity rendering, camera, selection, hit testing, drafting
+interaction, generic layers/annotations, and generic undo/redo. The
+Facade semantic model remains the source of truth for fabrication
+relationships and constraints. CadCraft's internal document is a
+projection/editing surface, not a replacement database or the
+authoritative source of cassette/placement relationships.
+
+Define an explicit projection/command boundary:
+
+1. Facade derives a CAD document projection from its semantic sheet
+   working set.
+2. The projection uses stable IDs linking native CAD entities to
+   Facade sheet, design and placement identities.
+3. User CAD interactions are translated into typed Facade domain
+   commands where they affect fabrication state.
+4. Domain commands validate constraints and update the semantic model.
+5. The CAD projection is reconciled from the accepted semantic state;
+   rejected operations visibly roll back rather than leaving divergent
+   canvas state.
+6. Saving persists through the existing Facade record/persistence
+   boundary, not through a second independent CAD document store.
+
+Multi-sheet composition must remain available in one coherent drawing
+workspace. Sheet frames may be represented as native CAD geometry or
+document/layout constructs supported by CadCraft; do not retain a
+parallel SVG canvas for sheet boundaries or cassette geometry.
+HTML overlays are allowed only for domain controls that are not drawing
+geometry (for example, a contextual inspector or a constrained
+placement affordance). They must not become a second renderer or
+duplicate native selection.
+
+Retain and test the existing domain algorithms for free placement,
+magnetic placement, rotation, boundary containment, clearance,
+collision and cross-sheet moves. Keep these algorithms independent of
+CadCraft so they remain deterministic, testable and usable by batch
+recomputation/export without mounting an editor.
+
+### 34.7 Undo, transactions and synchronization
+
+There must be one coherent user-visible undo/redo history for a sheet
+editing session. Generic CAD edits and Facade domain commands must
+participate in coordinated transaction boundaries. Do not expose
+competing independent histories that undo only one side of a
+semantic/projection update.
+
+Where an operation is a Facade domain command, the accepted command
+and its projection update are one undoable unit. Where an operation is
+purely generic CAD document editing, CadCraft's native transaction
+history may own it. The integration must define which history owns each
+command and how mixed transactions are committed, reverted, serialized
+or replayed. If upstream CadCraft cannot provide the required history
+hooks, implement a bounded host-level transaction adapter; do not
+silently weaken semantic consistency.
+
+### 34.8 Migration and delivery sequence
+
+1. **Inventory and baseline.** Record the actual CadCraft upstream
+   version, license, host API, feature coverage, build/update process,
+   and current consumers. Inventory all DXF parsers/writers and the
+   Facade sheet editor's domain algorithms. Add behavior fixtures for
+   existing sheet workflows before changing the renderer.
+2. **Extract plugin.** Create `workers/cadcraft`, move the browser
+   distribution and host out of Tech Drawing, declare public modules,
+   license/provenance and build scripts. Add CadCraft to Tech Drawing's
+   direct dependencies and verify its existing DXF/sketch workflows.
+3. **Standalone editor.** Deliver a generic drawing document/editor
+   surface, host lifecycle, save/dirty handling and DXF integration.
+   Prove it works with CadCraft installed alone.
+4. **Consumer migration.** Migrate the cassette designer and Facade
+   sheet editor to the extracted host. Preserve behavior through
+   fixtures and domain tests. Facade declares CadCraft directly.
+5. **Format consolidation.** Consolidate duplicate DXF infrastructure
+   behind the format capability; retain only justified domain-specific
+   fabrication exporters.
+6. **Retirement.** Remove the Tech Drawing vendor copy, old host
+   implementations, Facade's bespoke sheet SVG CAD renderer/camera/
+   selection/history, and obsolete dependencies. Remove compatibility
+   shims after all consumers migrate.
+
+Each stage is independently testable and must leave the previous
+consumer workflows operational. Do not combine the extraction,
+editor rewrite and format consolidation into one unreviewable change.
+
+### 34.9 Acceptance criteria
+
+- CadCraft is independently installable and its standalone editor
+  operates without Facade or Tech Drawing.
+- CadCraft runtime assets and host have exactly one plugin owner.
+- Tech Drawing and Facade declare CadCraft as direct dependencies;
+  neither bundles a private CadCraft copy.
+- Dependency resolution, upgrade snapshots and uninstall protection
+  correctly enforce the shared dependency.
+- Existing cassette designer workflows work through the extracted host.
+- Facade sheet editor uses CadCraft for all drawing geometry rendering,
+  camera/navigation, native selection and generic CAD interactions.
+- The sheet editor preserves multi-sheet composition, cassette
+  placements, transforms, constraints, magnetic placement, cross-sheet
+  moves, cut-plan splitting, dirty state and persistence.
+- Fabrication semantics remain authoritative in Facade and remain
+  testable without a browser/editor runtime.
+- Mixed CAD/domain edits have coherent transaction and undo/redo
+  behavior; no divergent semantic model and canvas projection remain.
+- DXF import/export has declared entity coverage and fixture-backed
+  fidelity reporting; unsupported content is not silently discarded.
+- No duplicate general-purpose DXF engine remains without a documented
+  technical justification.
+- DWG remains absent unless a later explicit owner decision changes
+  scope.
+- Plugin boundaries, licensing, accessibility, cleanup, read-only
+  behavior and persistence authorization are covered by automated
+  tests.
+- No PR or implementation is implied by this specification entry.
+
+### 34.10 Non-goals and restraint
+
+This work does not create a new geometry kernel, replace canonical
+geometry contracts, move Facade fabrication semantics into CadCraft,
+make Tech Drawing a dependency of CadCraft, introduce DWG support,
+rewrite every drawing workflow at once, or build a generic editor
+framework inside CadCraft. Reuse the existing plugin dependency,
+surface, persistence, workspace and design-system contracts. Extend
+them only where a demonstrated integration requirement cannot be met.
+
