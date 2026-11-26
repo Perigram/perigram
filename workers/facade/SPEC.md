@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-28
-updated: 2026-11-02
+updated: 2026-11-26
 ```
 
 Desired state of the facade fabrication domain: its type family,
