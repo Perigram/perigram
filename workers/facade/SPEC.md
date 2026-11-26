@@ -118,7 +118,7 @@ with lines. Vertex coordinates and fillet radii are edited only through
 a canvas popup over the selected corner (click near it with the Select
 tool; Escape or clicking away closes it); the always-visible vertex
 chips row is gone, and parameter and hole authoring rows stay. The
-editor owns its drafting assists on the vendored engine: it asserts the
+editor owns its drafting assists on the shared CadCraft host: it asserts the
 default object-snap mask (endpoint, midpoint, center, quadrant,
 intersection, nearest) on mount, so per-origin persisted engine settings
 cannot disable snapping; the Tangent toggle rides on top of that mask.
@@ -841,6 +841,17 @@ dependencies; a dependency on Tech Drawing must never be used as an
 indirect route to CadCraft. Facade owns no CadCraft distribution, host
 copy, iframe transport, generic CAD renderer, camera, selection engine,
 or generic drafting implementation.
+
+This owner direction supersedes earlier Facade canvas decisions (notably
+the 2026-11-03 SVG interaction-overlay arrangement) wherever they assign
+CAD geometry rendering, camera/navigation, hit-testing, selection or
+generic drawing interaction to a Facade-owned SVG layer. CadCraft's native
+canvas and host own those responsibilities in both Facade CAD surfaces.
+Facade may retain HTML/SVG overlays only for non-geometric domain UI
+that does not duplicate CAD geometry, camera behavior, hit-testing or
+selection — for example, a domain inspector or a placement action
+control. Read-only lightweight SVG previews remain governed by the
+separate preview contract above.
 
 The sheet-design editor is migrated from its bespoke SVG CAD
 implementation to the shared CadCraft editor. This replaces the drawing
