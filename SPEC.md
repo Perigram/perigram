@@ -5425,29 +5425,3 @@ Acceptance requires:
 - The application has one coherent visual and interaction language
   across shell, chat, documents, calendar, generated pages, settings,
   and domain editors.
-
-## 34. CadCraft as the shared 2D CAD subsystem (owner direction 2026-11-26)
-
-CadCraft becomes a first-class, independently installable plugin named
-`cadcraft`. It owns the distribution and Perigram integration of the
-CadCraft browser edition and is the one shared interactive CAD subsystem
-used by domain plugins. This section establishes the ownership and
-migration target; it does not authorize a second geometry kernel or
-duplicate the platform's canonical geometry contracts (§28, §30, and the
-geometry-plugin direction in §9).
-
-### 34.1 Ownership and dependency direction
-
-The target dependency graph is:
-
-- `cadcraft`: standalone capability; no dependency on Tech Drawing or
-  Facade.
-- `tech-drawing`: direct dependency on `cadcraft`; owns technical
-  drawing workflows, sketch/template semantics, drawing standards and
-  domain-specific tools.
-- `facade`: direct dependency on `cadcraft` and its actual domain
-  dependencies (including Tech Drawing and nesting only where Facade
-  consumes their capabilities); owns cassette/fabrication semantics,
-  sheet composition and production workflows.
-
-A transitive dependency is not a substitute for a direct declaration
