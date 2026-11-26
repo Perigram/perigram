@@ -43,14 +43,16 @@ parser owns DXF payloads; the CAD engine mounts in editors.
 ## Profiles and the cassette designer
 
 Owner decision (2026-10-13): the cassette profile sketch is drawn on a
-real CAD engine, not a bespoke sketch widget. Owner decision
-(2026-11-01): the facade plugin's profile sketch editor embeds the
-Apache-2.0 CadCraft browser edition (getcadcraft/cadcraft, vendored as a
-self-contained executor asset) with real drawing commands, object snaps,
-and the sketch's own undo history; drawn entity records normalize into
-the OCCS profile sketch through the engine's one normalization path
-(tangent corner arcs become fillet modifiers, other arcs flatten, circles
-become holes). DXF remains the pipeline's exchange format.
+real CAD engine, not a bespoke sketch widget. Owner direction
+(2026-11-26): Facade consumes the independently owned CadCraft plugin
+through a direct plugin dependency and its public host contract; it does
+not vendor the browser edition or own a private host. The profile sketch
+editor uses native drawing commands, object snaps and CAD interaction,
+then normalizes drawn entity records into the OCCS profile sketch through
+one domain normalization path (tangent corner arcs become fillet
+modifiers, other arcs flatten, circles become holes). DXF remains the
+pipeline's exchange format. See
+[CadCraft SPEC](../cadcraft/SPEC.md) for the shared editor/runtime contract.
 
 Owner direction (2026-11-01, native profile annotations): the profile
 canvas draws its derived annotations — every dimension, the face hatch
@@ -829,6 +831,81 @@ reads on the canvas, and the inspector carries no hand-rolled fact
 rows. Pickers
 pick-to-add: choosing a sheet from the sheet picker joins the working
 set, choosing a cassette design places it on the active sheet.
+
+### Shared CadCraft integration and sheet-editor migration
+
+Owner direction (2026-11-26): both the cassette profile designer and the
+sheet-design editor use the one CadCraft host supplied by the independent
+`cadcraft` plugin. Facade declares CadCraft directly in its plugin
+dependencies; a dependency on Tech Drawing must never be used as an
+indirect route to CadCraft. Facade owns no CadCraft distribution, host
+copy, iframe transport, generic CAD renderer, camera, selection engine,
+or generic drafting implementation.
+
+The sheet-design editor is migrated from its bespoke SVG CAD
+implementation to the shared CadCraft editor. This replaces the drawing
+surface, geometry renderer, camera/navigation, native selection and
+hit-testing, generic drafting interaction, and generic CAD undo/redo.
+It does not replace the Facade fabrication model or its domain behavior.
+The existing multi-sheet workflow remains: the opened sheet and
+explicitly added lineage-family/org sheets share one drawing workspace;
+sheet frames retain their identities and local coordinate systems;
+placements can move between sheets; sheet rotation, placement rotation,
+cut-plan splitting, save-time recompute, and per-record persistence
+remain supported.
+
+Facade remains the source of truth for sheet and cassette identities,
+sheet dimensions and boundaries, placement-to-design relations,
+placement transforms, containment, margins, clearances, collision and
+magnetic placement rules, cross-sheet move validation, cut-plan
+associations, dirty tracking, recomputation and fabrication export.
+These rules remain deterministic domain operations, independently
+testable and usable without mounting CadCraft.
+
+Facade projects its semantic working set into a CadCraft document using
+stable entity identifiers linked to Facade sheet/design/placement
+identities. CAD interactions that affect fabrication state are translated
+into typed Facade commands. Facade validates each command against its
+domain constraints, applies accepted changes to its semantic model, and
+reconciles the CadCraft projection from that accepted state. A rejected
+command must visibly roll back; the canvas must never retain a geometry
+state that disagrees with persisted or authoritative Facade data.
+Saving continues through Facade's existing record and relation
+persistence boundary; CadCraft's internal document is not a second
+source of truth or a separate persistence store.
+
+The migration must preserve existing behavior for placement, rotation,
+snap/magnetic placement, sheet containment, non-overlap, clearances,
+cross-sheet moves, multi-sheet family discovery, cut-plan splitting,
+dirty state and save-time recomputation. Keep the domain algorithms
+outside the editor adapter so they can be tested without browser,
+canvas or upstream CadCraft dependencies.
+
+There is one coherent undo/redo history per editing session. Generic CAD
+operations may use CadCraft's native transactions; operations that mutate
+Facade fabrication state are Facade domain commands. Mixed operations
+must commit and undo as one coordinated unit, including projection
+reconciliation. Do not expose two independent histories that can leave
+the semantic model and drawing out of sync.
+
+No parallel SVG renderer may remain for sheet boundaries, cassette
+geometry or placements after migration. HTML overlays are limited to
+non-geometric domain controls such as the placement inspector; they may
+not duplicate drawing geometry, hit-testing or selection.
+
+Migration is staged: first capture behavior fixtures and inventory the
+existing sheet editor/domain algorithms; then verify the CadCraft host
+contract and migrate the cassette designer; implement and test the
+Facade projection/command adapter; migrate the sheet editor; finally
+remove the obsolete SVG CAD renderer, camera, selection and history code.
+Do not delete domain algorithms or read-only lightweight SVG previews
+that remain appropriate to their separate preview contract.
+
+Acceptance: both Facade CAD surfaces use the same independently owned
+CadCraft host; Facade has a direct CadCraft dependency; all existing
+sheet workflows and fabrication constraints remain covered by tests;
+semantic state and CAD projection cannot diverge; mixed edits have
+coherent undo/redo; and no duplicate generic CAD renderer remains.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
